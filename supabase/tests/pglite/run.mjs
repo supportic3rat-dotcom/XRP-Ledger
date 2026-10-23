@@ -612,6 +612,24 @@ await test('customers cannot run jobs or call the job functions', async () => {
   await as(BRENDAN, null, () => throwsLike(`select ltv_check()`, /permission denied/));
 });
 
+console.log('\nSign-up');
+await test('an app sign-up gets a customer record with a unique deposit tag', async () => {
+  const id = '00000000-0000-4000-8000-00000000beef';
+  await db.exec(`insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data)
+    values ('00000000-0000-0000-0000-000000000000', '${id}', 'authenticated', 'authenticated', 'new@example.com',
+            '{"full_name": "Ada Obi", "country": "NG", "display_currency": "NGN", "marketing_opt_in": true}')`);
+  const c = await one(`select full_name, display_name, email, country, display_currency, destination_tag::text t, account_ref, kyc_status
+                       from customers where id = '${id}'`);
+  assert(c && c.display_name === 'Ada' && c.country === 'NG' && c.display_currency === 'NGN' && c.kyc_status === 'not_started', JSON.stringify(c));
+  assert(/^ACC-[0-9A-F]{10}$/.test(c.account_ref) && Number(c.t) > 0, JSON.stringify(c));
+});
+await test('a user created without a name (staff) gets no customer record', async () => {
+  const id = '00000000-0000-4000-9000-00000000beef';
+  await db.exec(`insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data)
+    values ('00000000-0000-0000-0000-000000000000', '${id}', 'authenticated', 'authenticated', 'staff@example.com', '{}')`);
+  assert((await one(`select count(*)::int n from customers where id = '${id}'`)).n === 0, 'customer created');
+});
+
 console.log('\nAudit chain');
 await test('the seeded chain verifies', async () => assert((await one(`select verify_audit_chain() b`)).b === null, 'broken'));
 await test('editing any entry breaks the chain', async () => {

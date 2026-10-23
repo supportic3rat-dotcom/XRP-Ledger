@@ -115,3 +115,6 @@ Everything here differs from the design files or the brief on purpose, or still 
 - Left in place but unused: the backup-code tables and `mfa-backup-verify`, the `mfa-*` / `backup-codes*` actions
   in `security-update`, the access-token hook's backup-code upgrade, and the `mfa-disable` job.
 - Risk accepted by the owner: a leaked password now gives full access to a customer's funds or a staff account.
+- Fixed (same day): app sign-ups never got a `customers` row (only the seed wrote them). A trigger on `auth.users`
+  now creates it from the sign-up metadata, with a unique destination tag and an `ACC-…` reference
+  (`20261023000300_customer_on_signup.sql`). Users created without `full_name` (staff) are skipped.
