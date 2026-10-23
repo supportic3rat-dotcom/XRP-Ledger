@@ -1,0 +1,16 @@
+# Sign in with the demo account (demo mode) or a seeded test user (Supabase), then reach Home.
+# Not yet run on a simulator; see docs/testing.md.
+appId: com.example.xrpledger
+---
+- launchApp:
+    clearState: true
+- tapOn: "Sign in"
+- tapOn: "you@example.com"
+- inputText: "brendan@example.com"
+- tapOn: "Password"
+- inputText: "Prototype-Pass-2026"
+- tapOn: "Sign in"
+- assertVisible: "Two-factor check"
+- inputText: "123456"
+- tapOn: "Verify and continue"
+- assertVisible: "Quick actions"

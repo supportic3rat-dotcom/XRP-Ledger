@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger Ops — Admin console</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F4F5F3}
+*{box-sizing:border-box}
+.ops{--bg:#F4F5F3;--surface:#FFFFFF;--sunken:#EFF2EE;--border:#E1E5E1;--border-strong:#D0D7D2;--text:#17211D;--text-2:#4C5A54;--text-3:#5F6D66;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--pos:#13704C;--neg:#B13A2B;--neg-soft:#FBEDEA;--warn:#875D00;--warn-soft:#FBF4E4;--dot-warn:#D49711;-webkit-font-smoothing:antialiased}
+.ops button,.ops input,.ops select,.ops textarea{font:inherit;color:inherit}
+.ops :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:15px;height:15px}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#B9C4BF;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.on{background:rgba(255,255,255,.12);color:#fff}
+.nav-item .count{margin-left:auto;min-width:22px;height:20px;padding:0 6px;border-radius:10px;background:#FFFFFF;color:#000;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer}
+.tab:hover{background:var(--sunken)}
+.tab.on{background:var(--surface);border-color:var(--border);color:var(--text)}
+.tab .n{color:var(--text-3);font-variant-numeric:tabular-nums}
+.q-head,.q-row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.1fr) minmax(0,1fr) 64px minmax(0,1.15fr);gap:12px;align-items:center;padding:0 16px}
+.q-head{height:36px;font-size:12px;font-weight:500;color:var(--text-3);border-bottom:1px solid var(--border)}
+.q-row{width:100%;min-height:56px;border:0;border-bottom:1px solid #EEF1ED;background:transparent;text-align:left;cursor:pointer;font-size:13.5px}
+.q-row:hover{background:#FAFBF9}
+.q-row.static{cursor:default}
+.q-row.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.q-head.g6,.q-row.g6{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) minmax(0,1.2fr) minmax(0,1fr) 78px minmax(0,1fr)}
+.q-head.g4,.q-row.g4{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr)}
+.q-head.g5,.q-row.g5{grid-template-columns:90px minmax(0,1.1fr) minmax(0,1.8fr) minmax(0,1fr) 92px}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}.status.bad{color:var(--neg)}.status.off{color:var(--text-3)}
+.pill{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:500;background:var(--sunken);color:var(--text-2);white-space:nowrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.sec-t{margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--text-3);text-transform:uppercase}
+.chk{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid #EEF1ED;font-size:13px}
+.chk:first-child{border-top:0}
+.chk.mid{align-items:center}
+.kv{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+.jl{width:100%;border-collapse:collapse;font-size:12.5px}
+.jl th{text-align:left;font-weight:500;color:var(--text-3);padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.jl td{padding:7px 8px;border-bottom:1px solid #EEF1ED;font-variant-numeric:tabular-nums}
+.jl .r{text-align:right}
+.jl tr.total td{font-weight:600;border-bottom:0}
+.audit{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.audit li{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:7px 0;border-top:1px solid #EEF1ED;font-size:12.5px}
+.audit li:first-child{border-top:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn-sm{height:32px;padding:0 12px;font-size:12.5px;border-radius:8px}
+.ops .btn-primary{background:var(--accent);border:1px solid var(--accent);color:#fff}
+.btn-primary:hover{background:#2A2A2A}
+.btn-secondary{background:var(--surface);border:1px solid var(--border-strong);color:var(--text)}
+.btn-secondary:hover{background:var(--sunken)}
+.btn-danger{background:var(--surface);border:1px solid #E7C3BD;color:var(--neg)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:#6E4C00}
+.banner.ok{background:var(--accent-soft);color:var(--accent-text)}
+.banner.bad{background:var(--neg-soft);color:#8E2D21}
+select.in,textarea.in,input.in{width:100%;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);padding:8px 10px;font-size:13px}
+textarea.in{min-height:64px;resize:vertical}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.metric{display:flex;flex-direction:column;gap:6px;padding:16px;text-align:left;cursor:pointer}
+.metric:hover{border-color:var(--border-strong)}
+.metric .lbl{font-size:12.5px;color:var(--text-3);font-weight:500}
+.metric .val{font-size:24px;font-weight:500;letter-spacing:-0.02em}
+.att{display:flex;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;border-top:1px solid #EEF1ED;background:transparent;text-align:left;cursor:pointer;font-size:13px}
+.att:first-child{border-top:0}
+.att:hover .att-t{text-decoration:underline}
+.bar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--accent);border-radius:4px}
+.toast{position:fixed;right:24px;bottom:24px;z-index:50;max-width:360px;padding:12px 14px;border-radius:10px;background:#000;color:#fff;font-size:13px;box-shadow:0 8px 24px -8px rgba(0,0,0,.4)}
+@media (max-width: 760px){.side{flex-basis:100% !important;min-height:0 !important}.side .navlist{flex-direction:row !important;overflow-x:auto}.side .nav-item{width:auto;flex:none}.q-head,.q-row,.q-head.g6,.q-row.g6,.q-head.g4,.q-row.g4,.q-head.g5,.q-row.g5{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 96px}.hide-sm{display:none}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</helmet>
+<div class="ops" style="display: flex; flex-wrap: wrap; min-height: 100vh; background: #F4F5F3; color: #17211D; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <aside class="side" aria-label="Operations" style="flex: 1 1 232px; display: flex; flex-direction: column; gap: 24px; padding: 18px 14px; background: #000000; color: #fff; min-height: 100vh">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 8px">
+      <svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" style="fill: #FFFFFF"></rect><path d="M8 9.5h12M8 14h7.5M12.5 18.5H20" style="fill: none; stroke: #000000; stroke-width: 2.2; stroke-linecap: round"></path></svg>
+      <span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">XRP Ledger Ops</span><span style="font-size: 11.5px; color: #98A69F">Internal · staff only</span></span>
+    </div>
+    <nav class="navlist" style="display: flex; flex-direction: column; gap: 2px">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+        <button type="button" class="nav-item {{n.cls}}" aria-current="{{n.current}}" onClick="{{n.go}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.icon}}"></path></svg>{{n.label}}<sc-if value="{{n.count}}" hint-placeholder-val="{{ false }}"><span class="count">{{n.count}}</span></sc-if></button>
+      </sc-for>
+    </nav>
+    <div style="margin-top: auto; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; font-weight: 600">You · {{role.name}}</span>
+      <span style="font-size: 11.5px; color: #98A69F">{{role.scope}}</span>
+    </div>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 22px 28px 40px">
+    <div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+      <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h1 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.015em">{{head.title}}</h1>
+          <p style="margin: 0; font-size: 13.5px; color: #4C5A54">{{head.sub}}</p>
+        </div>
+        <span class="pill warn">Staging · XRPL testnet · sample data</span>
+      </header>
+
+      <!-- ===== Overview ===== -->
+      <sc-if value="{{is.overview}}" hint-placeholder-val="{{ true }}">
+        <div class="metrics">
+          <sc-for list="{{ov.metrics}}" as="m" hint-placeholder-count="4">
+            <button type="button" class="card metric" onClick="{{m.go}}">
+              <span class="lbl">{{m.label}}</span>
+              <span class="num val">{{m.value}}</span>
+              <span class="status {{m.tone}}">{{m.note}}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section class="card" aria-label="Provider health" style="flex: 1 1 420px; min-width: 0; padding: 18px">
+            <h3 class="sec-t">Provider health</h3>
+            <sc-for list="{{ov.providers}}" as="p" hint-placeholder-count="7">
+              <div class="chk mid"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{p.name}}</span><span style="font-size: 12px; color: #5F6D66">{{p.note}}</span></span><span class="status {{p.tone}}">{{p.status}}</span></div>
+            </sc-for>
+          </section>
+          <section class="card" aria-label="Needs attention" style="flex: 1 1 420px; min-width: 0; padding: 18px">
+            <h3 class="sec-t">Needs attention</h3>
+            <sc-for list="{{ov.attention}}" as="a" hint-placeholder-count="4">
+              <button type="button" class="att" onClick="{{a.go}}">
+                <span class="status {{a.tone}}" aria-hidden="true"></span>
+                <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span class="att-t" style="font-weight: 500">{{a.title}}</span><span style="font-size: 12px; color: #5F6D66">{{a.note}}</span></span>
+                <span style="font-size: 12px; color: #5F6D66">{{a.where}} →</span>
+              </button>
+            </sc-for>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===== Approval queue ===== -->
+      <sc-if value="{{is.queue}}" hint-placeholder-val="{{ false }}">
+        <div class="tabs" role="group" aria-label="Filter by type">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="6">
+            <button type="button" class="tab {{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}} <span class="n">{{f.count}}</span></button>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section class="card" aria-label="Queue" style="flex: 999 1 520px; min-width: 0; overflow: hidden">
+            <div class="q-head" aria-hidden="true"><span>Reference</span><span>Type</span><span class="hide-sm">Amount</span><span class="hide-sm">Age</span><span>Status</span></div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <button type="button" class="q-row {{r.cls}}" aria-pressed="{{r.on}}" onClick="{{r.pick}}">
+                <span style="display: flex; flex-direction: column; min-width: 0"><span class="mono" style="font-size: 12.5px; font-weight: 500">{{r.ref}}</span><span class="mono" style="font-size: 11.5px; color: #5F6D66">{{r.customer}}</span></span>
+                <span>{{r.type}}</span>
+                <span class="num hide-sm" style="font-weight: 500">{{r.amount}}</span>
+                <span class="num hide-sm" style="color: #5F6D66">{{r.age}}</span>
+                <span class="status {{r.tone}}">{{r.status}}</span>
+              </button>
+            </sc-for>
+            <sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 32px 16px; text-align: center; font-size: 13px; color: #5F6D66">Nothing waiting in this category.</div>
+            </sc-if>
+          </section>
+
+          <section class="card" aria-labelledby="d-title" style="flex: 1 1 400px; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 18px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                <span class="mono" style="font-size: 12.5px; color: #5F6D66">{{d.ref}} · {{d.customer}}</span>
+                <span class="status {{d.tone}}">{{d.status}}</span>
+              </div>
+              <h2 id="d-title" style="margin: 0; font-size: 18px; font-weight: 600">{{d.type}} · <span class="num">{{d.amount}}</span></h2>
+              <span style="font-size: 12.5px; color: #4C5A54">{{d.summary}}</span>
+            </div>
+
+            <div>
+              <h3 class="sec-t">Checks</h3>
+              <sc-for list="{{d.checks}}" as="c" hint-placeholder-count="4">
+                <div class="chk">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px; color: {{c.color}}"><path d="{{c.icon}}"></path></svg>
+                  <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{c.label}}</span><span style="font-size: 12px; color: #5F6D66">{{c.note}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div>
+              <h3 class="sec-t">Approvals · {{d.approvalText}}</h3>
+              <sc-for list="{{d.approvals}}" as="a" hint-placeholder-count="1">
+                <div class="chk"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px; color: #13704C"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span style="flex: 1">{{a.who}}</span><span class="num" style="font-size: 12px; color: #5F6D66">{{a.at}}</span></div>
+              </sc-for>
+              <sc-if value="{{d.sodNote}}" hint-placeholder-val="{{ false }}">
+                <div class="banner info" style="margin-top: 6px">{{d.sodNote}}</div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{d.hasJournal}}" hint-placeholder-val="{{ true }}">
+              <div>
+                <h3 class="sec-t">Ledger journal</h3>
+                <table class="jl">
+                  <thead><tr><th>Account</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{d.journal}}" as="j" hint-placeholder-count="2">
+                      <tr><td>{{j.account}}</td><td class="r">{{j.dr}}</td><td class="r">{{j.cr}}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <span style="display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: #13704C"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Balanced · posted entries are never edited</span>
+              </div>
+            </sc-if>
+
+            <div>
+              <h3 class="sec-t">Audit trail</h3>
+              <ol class="audit">
+                <sc-for list="{{d.audit}}" as="e" hint-placeholder-count="3">
+                  <li><span class="num mono" style="color: #5F6D66">{{e.at}}</span><span>{{e.text}}</span></li>
+                </sc-for>
+              </ol>
+            </div>
+
+            <sc-if value="{{d.canAct}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid #EEF1ED">
+                <sc-if value="{{rejecting}}" hint-placeholder-val="{{ false }}">
+                  <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500">Rejection reason
+                    <select class="in" value="{{reason.code}}" onChange="{{onReasonCode}}">
+                      <option value="">Select a reason</option>
+                      <option value="screening">Destination failed screening</option>
+                      <option value="evidence">Insufficient supporting evidence</option>
+                      <option value="limits">Exceeds customer limits</option>
+                      <option value="customer">Customer asked to cancel</option>
+                    </select>
+                  </label>
+                  <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500">Note for the audit log
+                    <textarea class="in" value="{{reason.note}}" onChange="{{onReasonNote}}" placeholder="What did you check, and why reject?"></textarea>
+                  </label>
+                  <sc-if value="{{reason.err}}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size: 12.5px; color: #B13A2B">{{reason.err}}</span></sc-if>
+                  <div style="display: flex; gap: 8px; justify-content: flex-end">
+                    <button type="button" class="btn btn-secondary" onClick="{{cancelReject}}">Back</button>
+                    <button type="button" class="btn btn-danger" onClick="{{confirmReject}}">Confirm rejection</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{notRejecting}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; gap: 8px; justify-content: flex-end">
+                    <button type="button" class="btn btn-danger" onClick="{{startReject}}" disabled="{{d.rejectDisabled}}">Reject…</button>
+                    <button type="button" class="btn btn-primary" onClick="{{approve}}" disabled="{{d.approveDisabled}}">{{d.approveLabel}}</button>
+                  </div>
+                  <sc-if value="{{d.approveBlock}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #5F6D66; text-align: right">{{d.approveBlock}}</span></sc-if>
+                </sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{d.outcome}}" hint-placeholder-val="{{ false }}">
+              <div class="banner {{d.outcomeCls}}" role="status">{{d.outcome}}</div>
+            </sc-if>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===== Transactions ===== -->
+      <sc-if value="{{is.tx}}" hint-placeholder-val="{{ false }}">
+        <div class="tabs" role="group" aria-label="Filter transactions">
+          <sc-for list="{{tx.filters}}" as="f" hint-placeholder-count="6">
+            <button type="button" class="tab {{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}} <span class="n">{{f.count}}</span></button>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section class="card" aria-label="Transactions" style="flex: 999 1 560px; min-width: 0; overflow: hidden">
+            <div class="q-head g6" aria-hidden="true"><span>Reference</span><span class="hide-sm">Customer</span><span>Type</span><span class="hide-sm">Amount</span><span class="hide-sm">Time</span><span>Status</span></div>
+            <sc-for list="{{tx.rows}}" as="r" hint-placeholder-count="8">
+              <button type="button" class="q-row g6 {{r.cls}}" aria-pressed="{{r.on}}" onClick="{{r.pick}}">
+                <span class="mono" style="font-size: 12.5px; font-weight: 500">{{r.ref}}</span>
+                <span class="mono hide-sm" style="font-size: 12px; color: #5F6D66">{{r.customer}}</span>
+                <span>{{r.type}}</span>
+                <span class="num hide-sm" style="font-weight: 500">{{r.amount}}</span>
+                <span class="num hide-sm" style="color: #5F6D66">{{r.time}}</span>
+                <span class="status {{r.tone}}">{{r.status}}</span>
+              </button>
+            </sc-for>
+          </section>
+          <section class="card" aria-labelledby="tx-title" style="flex: 1 1 380px; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 18px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                <span class="mono" style="font-size: 12.5px; color: #5F6D66">{{tx.d.ref}} · {{tx.d.customer}}</span>
+                <span class="status {{tx.d.tone}}">{{tx.d.status}}</span>
+              </div>
+              <h2 id="tx-title" style="margin: 0; font-size: 18px; font-weight: 600">{{tx.d.type}} · <span class="num">{{tx.d.amount}}</span></h2>
+            </div>
+            <dl class="kv">
+              <sc-for list="{{tx.d.rows}}" as="x" hint-placeholder-count="5"><dt>{{x.k}}</dt><dd class="{{x.cls}}">{{x.v}}</dd></sc-for>
+            </dl>
+            <sc-if value="{{tx.d.hasJournal}}" hint-placeholder-val="{{ true }}">
+              <div>
+                <h3 class="sec-t">Ledger journal</h3>
+                <table class="jl">
+                  <thead><tr><th>Account</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead>
+                  <tbody><sc-for list="{{tx.d.journal}}" as="j" hint-placeholder-count="2"><tr><td>{{j.account}}</td><td class="r">{{j.dr}}</td><td class="r">{{j.cr}}</td></tr></sc-for></tbody>
+                </table>
+              </div>
+            </sc-if>
+            <div>
+              <h3 class="sec-t">Timeline</h3>
+              <ol class="audit">
+                <sc-for list="{{tx.d.timeline}}" as="e" hint-placeholder-count="3"><li><span class="num mono" style="color: #5F6D66">{{e.at}}</span><span>{{e.text}}</span></li></sc-for>
+              </ol>
+            </div>
+            <sc-if value="{{tx.d.queueLink}}" hint-placeholder-val="{{ false }}">
+              <button type="button" class="btn btn-secondary" onClick="{{tx.d.openQueue}}">Open in approval queue</button>
+            </sc-if>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===== Reconciliation ===== -->
+      <sc-if value="{{is.recon}}" hint-placeholder-val="{{ false }}">
+        <section class="card" style="padding: 16px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+          <div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-weight: 600"><span class="mono">{{rc.run}}</span> · {{rc.when}}</span>
+            <span style="font-size: 12.5px; color: #5F6D66">Internal ledger vs [Custody provider] vs XRP Ledger (validated ledger {{rc.ledger}})</span>
+          </div>
+          <span class="status {{rc.tone}}">{{rc.status}}</span>
+          <button type="button" class="btn btn-secondary" onClick="{{rc.rerun}}">Run now</button>
+        </section>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section class="card" aria-label="Wallet balances" style="flex: 999 1 560px; min-width: 0; padding: 18px; overflow-x: auto">
+            <h3 class="sec-t">Holdings by wallet · XRP</h3>
+            <table class="jl">
+              <thead><tr><th>Wallet</th><th class="r">Internal ledger</th><th class="r">Custody provider</th><th class="r">On ledger</th><th class="r">Difference</th></tr></thead>
+              <tbody>
+                <sc-for list="{{rc.rows}}" as="x" hint-placeholder-count="4">
+                  <tr class="{{x.cls}}"><td>{{x.name}}</td><td class="r">{{x.a}}</td><td class="r">{{x.b}}</td><td class="r">{{x.c}}</td><td class="r" style="color: {{x.color}}; font-weight: 500">{{x.diff}}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <h3 class="sec-t" style="margin-top: 20px">Liabilities · XRP</h3>
+            <dl class="kv">
+              <dt>Customer balances (available, reserved, yield, collateral)</dt><dd class="num">1,284,110.25</dd>
+              <dt>Unattributed deposits (suspense)</dt><dd class="num">{{rc.suspense}}</dd>
+              <dt>Total liabilities</dt><dd class="num">1,284,610.25</dd>
+              <dt>Holdings ÷ liabilities</dt><dd class="num" style="color: #13704C">100.00%</dd>
+            </dl>
+          </section>
+          <section class="card" aria-label="Exceptions" style="flex: 1 1 380px; min-width: 0; padding: 18px">
+            <h3 class="sec-t">Exceptions · {{rc.openCount}} open</h3>
+            <sc-for list="{{rc.exc}}" as="e" hint-placeholder-count="3">
+              <div class="chk" style="flex-wrap: wrap">
+                <span style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{e.title}}</span><span style="font-size: 12px; color: #5F6D66">{{e.note}}</span><span class="status {{e.tone}}">{{e.status}}</span></span>
+                <sc-if value="{{e.cta}}" hint-placeholder-val="{{ true }}"><button type="button" class="btn btn-secondary btn-sm" onClick="{{e.act}}" disabled="{{e.disabled}}">{{e.cta}}</button></sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{rc.roleNote}}" hint-placeholder-val="{{ false }}"><div class="banner info" style="margin-top: 8px">{{rc.roleNote}}</div></sc-if>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===== Users ===== -->
+      <sc-if value="{{is.users}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section class="card" aria-label="Customers" style="flex: 999 1 520px; min-width: 0; overflow: hidden">
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border)"><input class="in" aria-label="Search customers" placeholder="Search by customer ID or name" value="{{us.q}}" onChange="{{us.onQ}}"></div>
+            <div class="q-head g4" aria-hidden="true"><span>Customer</span><span>Verification</span><span class="hide-sm">Custodial XRP</span><span>Flags</span></div>
+            <sc-for list="{{us.rows}}" as="r" hint-placeholder-count="5">
+              <button type="button" class="q-row g4 {{r.cls}}" aria-pressed="{{r.on}}" onClick="{{r.pick}}">
+                <span style="display: flex; flex-direction: column; min-width: 0"><span class="mono" style="font-size: 12.5px; font-weight: 500">{{r.id}}</span><span style="font-size: 12px; color: #5F6D66">{{r.name}}</span></span>
+                <span class="status {{r.tone}}">{{r.kyc}}</span>
+                <span class="num hide-sm">{{r.total}}</span>
+                <span style="font-size: 12.5px; color: #5F6D66">{{r.flag}}</span>
+              </button>
+            </sc-for>
+            <sc-if value="{{us.none}}" hint-placeholder-val="{{ false }}"><div style="padding: 28px 16px; text-align: center; font-size: 13px; color: #5F6D66">No customers match.</div></sc-if>
+          </section>
+          <section class="card" aria-labelledby="u-title" style="flex: 1 1 400px; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 18px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                <span class="mono" style="font-size: 12.5px; color: #5F6D66">{{us.d.id}} · joined {{us.d.joined}}</span>
+                <span class="status {{us.d.stTone}}">{{us.d.state}}</span>
+              </div>
+              <h2 id="u-title" style="margin: 0; font-size: 18px; font-weight: 600">{{us.d.name}}</h2>
+            </div>
+            <div class="banner info">{{us.maskNote}}</div>
+            <div>
+              <h3 class="sec-t">Personal details</h3>
+              <dl class="kv">
+                <dt>Email</dt><dd>{{us.d.email}}</dd>
+                <dt>Phone</dt><dd class="num">{{us.d.phone}}</dd>
+                <dt>Date of birth</dt><dd class="num">{{us.d.dob}}</dd>
+                <dt>Country</dt><dd>{{us.d.country}}</dd>
+                <dt>Verification</dt><dd>{{us.d.kyc}} · [KYC provider]</dd>
+                <dt>Risk rating</dt><dd>{{us.d.risk}}</dd>
+              </dl>
+            </div>
+            <div>
+              <h3 class="sec-t">Balances · XRP</h3>
+              <dl class="kv">
+                <dt>Available</dt><dd class="num">{{us.d.avail}}</dd>
+                <dt>Allocated to yield</dt><dd class="num">{{us.d.yld}}</dd>
+                <dt>Locked as collateral</dt><dd class="num">{{us.d.coll}}</dd>
+                <dt>Total</dt><dd class="num">{{us.d.total}}</dd>
+              </dl>
+            </div>
+            <div>
+              <h3 class="sec-t">Flags</h3>
+              <sc-for list="{{us.d.flags}}" as="f" hint-placeholder-count="2"><div class="chk"><span style="flex: 1">{{f}}</span></div></sc-for>
+              <sc-if value="{{us.d.noFlags}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #5F6D66">None</span></sc-if>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding-top: 4px; border-top: 1px solid #EEF1ED">
+              <button type="button" class="btn btn-secondary" onClick="{{us.viewTx}}">View transactions</button>
+              <button type="button" class="btn btn-secondary" onClick="{{us.flagReview}}" disabled="{{us.flagDisabled}}">Flag for review</button>
+              <button type="button" class="btn btn-danger" onClick="{{us.freeze}}" disabled="{{us.freezeDisabled}}">{{us.freezeLabel}}</button>
+            </div>
+            <sc-if value="{{us.block}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #5F6D66; text-align: right; margin-top: -10px">{{us.block}}</span></sc-if>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===== Custody ===== -->
+      <sc-if value="{{is.custody}}" hint-placeholder-val="{{ false }}">
+        <section class="card" aria-label="Wallets" style="padding: 18px; overflow-x: auto">
+          <h3 class="sec-t">Wallets · [Custody provider]</h3>
+          <table class="jl">
+            <thead><tr><th>Wallet</th><th>Address</th><th class="r">Balance (XRP)</th><th class="r">Share</th><th>Signing</th></tr></thead>
+            <tbody>
+              <sc-for list="{{cu.wallets}}" as="w" hint-placeholder-count="3">
+                <tr><td style="font-weight: 500">{{w.name}}</td><td class="mono" style="font-size: 12px">{{w.addr}}</td><td class="r">{{w.bal}}</td><td class="r">{{w.share}}</td><td>{{w.sign}}</td></tr>
+              </sc-for>
+              <tr class="total"><td>Total</td><td></td><td class="r">1,284,610.25</td><td class="r">100%</td><td></td></tr>
+            </tbody>
+          </table>
+          <div class="banner info" style="margin-top: 12px">Hot wallet is at 84,210 of its 100,000 XRP ceiling. Top-ups from warm need 2 of 3 signers; keys never leave the provider’s security boundary.</div>
+        </section>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section class="card" aria-label="Signing policy" style="flex: 1 1 420px; min-width: 0; padding: 18px">
+            <h3 class="sec-t">Signing policy · v3</h3>
+            <dl class="kv">
+              <dt>Up to 1,000 XRP</dt><dd>1 staff approval, then hot wallet auto-sign</dd>
+              <dt>Over 1,000 XRP</dt><dd>2 approvals, different people, one Compliance</dd>
+              <dt>Warm → hot top-up</dt><dd>2 of 3 signers</dd>
+              <dt>Cold vault release</dt><dd>3 of 5 signers · 24-hour time lock</dd>
+              <dt>Destination screening</dt><dd>Required · [Screening provider]</dd>
+              <dt>New customer address</dt><dd>24-hour activation hold</dd>
+            </dl>
+            <h3 class="sec-t" style="margin-top: 20px">Signers</h3>
+            <sc-for list="{{cu.signers}}" as="g" hint-placeholder-count="5">
+              <div class="chk mid"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{g.name}}</span><span style="font-size: 12px; color: #5F6D66">{{g.meta}}</span></span><span class="status {{g.tone}}">{{g.status}}</span></div>
+            </sc-for>
+          </section>
+          <section class="card" aria-label="Limits" style="flex: 1 1 420px; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 18px">
+            <div>
+              <h3 class="sec-t">Limits</h3>
+              <dl class="kv">
+                <dt>Per customer, daily</dt><dd class="num">25,000 XRP</dd>
+                <dt>Per transaction (auto-sign)</dt><dd class="num">1,000 XRP</dd>
+                <dt>Platform outflow, daily</dt><dd class="num">41,280 of 150,000 XRP</dd>
+              </dl>
+              <div class="bar" style="margin-top: 10px" role="img" aria-label="27.5 percent of daily outflow limit used"><span style="width: 27.5%"></span></div>
+            </div>
+            <div>
+              <h3 class="sec-t">Pending policy change</h3>
+              <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px">
+                <span style="font-weight: 500">Raise hot wallet ceiling to 120,000 XRP</span>
+                <span style="color: #5F6D66">Requested by Operations · A. Bello · today 10:05 · “Higher weekend withdrawal volume”</span>
+                <span class="status {{cu.pTone}}">{{cu.pStatus}}</span>
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px">
+                <button type="button" class="btn btn-danger" onClick="{{cu.decline}}" disabled="{{cu.disabled}}">Decline</button>
+                <button type="button" class="btn btn-primary" onClick="{{cu.approve}}" disabled="{{cu.disabled}}">Approve change</button>
+              </div>
+              <sc-if value="{{cu.block}}" hint-placeholder-val="{{ false }}"><p style="margin: 6px 0 0; font-size: 12px; color: #5F6D66; text-align: right">{{cu.block}}</p></sc-if>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===== Audit log ===== -->
+      <sc-if value="{{is.audit}}" hint-placeholder-val="{{ false }}">
+        <div class="banner ok">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+          <span>Append-only and tamper-evident: each entry stores a hash of the one before it, so editing or deleting any entry breaks the chain. Chain verified today at 12:50 · {{al.count}} entries shown.</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div class="tabs" role="group" aria-label="Filter by actor">
+            <sc-for list="{{al.filters}}" as="f" hint-placeholder-count="4">
+              <button type="button" class="tab {{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}</button>
+            </sc-for>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onClick="{{al.export}}">Export CSV</button>
+        </div>
+        <section class="card" aria-label="Audit log" style="overflow: hidden">
+          <div class="q-head g5" aria-hidden="true"><span>Time</span><span>Actor</span><span>Action</span><span class="hide-sm">Target</span><span class="hide-sm">Hash</span></div>
+          <sc-for list="{{al.rows}}" as="r" hint-placeholder-count="10">
+            <div class="q-row g5 static" style="font-size: 13px">
+              <span class="num mono" style="font-size: 12px; color: #5F6D66">{{r.at}}</span>
+              <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 500">{{r.actor}}</span><span style="font-size: 11.5px; color: #5F6D66">{{r.kind}}</span></span>
+              <span>{{r.action}}</span>
+              <span class="mono hide-sm" style="font-size: 12px">{{r.target}}</span>
+              <span class="mono hide-sm" style="font-size: 11.5px; color: #5F6D66">{{r.hash}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </sc-if>
+    </div>
+  </main>
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status">{{toast}}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"role":{"editor":"enum","options":["operations","compliance","auditor"],"default":"operations"},"view":{"editor":"enum","options":["overview","queue","tx","recon","users","custody","audit"],"default":"overview"},"$preview":{"width":1440,"height":1000}}'>
+var OK = 'M5 12.5l4.5 4.5L19 7.5', WARN = 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.8v5M12 16.2h.01', WAIT = 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2';
+var ROLES = {
+  operations: { key: 'operations', name: 'Operations Administrator', scope: 'Approve withdrawals, deposits, exchange', can: ['withdrawal', 'deposit', 'exchange', 'yield'] },
+  compliance: { key: 'compliance', name: 'Compliance Officer', scope: 'Compliance review, loans, exceptions', can: ['withdrawal', 'deposit', 'loan'] },
+  auditor: { key: 'auditor', name: 'Read-Only Auditor', scope: 'View only', can: [] }
+};
+var NAV = [
+  ['overview', 'Overview', 'M4 4h6.5v6.5H4zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5z'],
+  ['queue', 'Approval queue', 'M9 11.5l2.2 2.2 4.3-4.4M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z'],
+  ['tx', 'Transactions', 'M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5'],
+  ['recon', 'Reconciliation', 'M4 12h4l2-5 4 10 2-5h4'],
+  ['users', 'Users', 'M9 5.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zM3.5 19c1-3 3-4.5 5.5-4.5s4.5 1.5 5.5 4.5M16 6.5a3 3 0 0 1 0 5.6M18.5 19c-.4-1.6-1.2-2.8-2.3-3.6'],
+  ['custody', 'Custody', 'M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z'],
+  ['audit', 'Audit log', 'M7 4h10v16H7zM10 8h4M10 12h4M10 16h2']
+];
+var HEADS = {
+  overview: ['Overview', 'Platform health at a glance. Click any card to drill in.'],
+  queue: ['Approval queue', 'Requests waiting on a staff decision. Every action is logged with your role and reason.'],
+  tx: ['Transactions', 'Every customer movement with its ledger journal and on-ledger evidence.'],
+  recon: ['Reconciliation', 'Internal ledger, custody provider and XRP Ledger must agree. Differences become exceptions.'],
+  users: ['Users', 'Customer records. Personal data is masked according to your role.'],
+  custody: ['Custody', 'Wallets, signing policy and limits. Policy changes need approval from a second role.'],
+  audit: ['Audit log', 'Every staff, customer and system action, in order.']
+};
+var ITEMS = [
+  { id: 'wd2042', ref: 'WD-PROTO-2042', customer: 'CUS-0042', kind: 'withdrawal', type: 'Withdrawal', amount: '1,250.00 XRP', age: '22m', summary: 'To rProtoRecipient4xQb…2hN · tag 10293847 · XRP Ledger',
+    checks: [['Balance reserved', 'Ledger hold posted at 12:30', 'ok'], ['Destination screening', '[Screening provider]: low risk', 'ok'], ['Within daily limit', '1,250 of 25,000 XRP', 'ok'], ['2FA confirmed by customer', 'Authenticator, 12:30', 'ok'], ['New destination', 'First withdrawal to this address', 'warn']],
+    required: 2, approvals: [{ who: 'Compliance Officer · J. Duru', at: '12:41' }],
+    journal: [{ account: 'Customer available · XRP', dr: '1,250.00', cr: '' }, { account: 'Customer reserved · XRP', dr: '', cr: '1,250.00' }],
+    audit: [{ at: '12:30', text: 'Customer submitted request (2FA verified)' }, { at: '12:30', text: 'System reserved 1,250.00 XRP' }, { at: '12:41', text: 'J. Duru (Compliance) approved · 1 of 2' }] },
+  { id: 'wd2043', ref: 'WD-PROTO-2043', customer: 'CUS-0187', kind: 'withdrawal', type: 'Withdrawal', amount: '80.00 XRP', age: '8m', summary: 'To saved allowlisted address · XRP Ledger',
+    checks: [['Balance reserved', 'Ledger hold posted at 12:44', 'ok'], ['Destination screening', 'Low risk', 'ok'], ['Allowlisted address', 'Saved 41 days ago', 'ok']],
+    required: 1, approvals: [],
+    journal: [{ account: 'Customer available · XRP', dr: '80.00', cr: '' }, { account: 'Customer reserved · XRP', dr: '', cr: '80.00' }],
+    audit: [{ at: '12:44', text: 'Customer submitted request (2FA verified)' }, { at: '12:44', text: 'System reserved 80.00 XRP' }] },
+  { id: 'dep2050', ref: 'DEP-PROTO-2050', customer: 'Unattributed', kind: 'deposit', type: 'Deposit exception', amount: '500.00 XRP', age: '1h 05m', summary: 'Validated on ledger · no destination tag · sender rSendr…k3P',
+    checks: [['Validated on ledger', 'Tx hash recorded from validated ledger', 'ok'], ['Destination tag', 'Missing — cannot auto-attribute', 'warn'], ['Customer claim', 'CUS-0311 opened ticket SUP-0921 with tx proof', 'wait']],
+    required: 1, approvals: [],
+    journal: [{ account: 'Custody omnibus · XRP', dr: '500.00', cr: '' }, { account: 'Unattributed deposits · XRP', dr: '', cr: '500.00' }],
+    audit: [{ at: '11:47', text: 'Monitor detected deposit without tag' }, { at: '11:47', text: 'Posted to unattributed deposits (suspense)' }, { at: '12:10', text: 'Support linked ticket SUP-0921' }] },
+  { id: 'ex0318', ref: 'EX-PROTO-0318', customer: 'CUS-0042', kind: 'exchange', type: 'Exchange · XRP → USD', amount: '500.00 XRP', age: '14m', summary: 'Manual request · needs firm quote from [Liquidity provider]',
+    checks: [['Customer eligible', 'Verified, within exchange limits', 'ok'], ['Liquidity provider quote', 'Not requested yet', 'wait']],
+    required: 1, approvals: [], journal: [],
+    audit: [{ at: '12:38', text: 'Customer submitted request (indicative $1,175.04)' }] },
+  { id: 'ln0009', ref: 'LN-PROTO-0009', customer: 'CUS-0098', kind: 'loan', type: 'Loan application', amount: '$1,500.00', age: '3h', summary: '2,000.00 XRP collateral · starting LTV 31.5% · [Lending provider]',
+    checks: [['Identity verified', 'Verified Sep 2', 'ok'], ['Collateral available', '2,000.00 XRP free', 'ok'], ['Agreement accepted', 'Lending Agreement draft v0.1 at 09:52', 'ok'], ['Provider credit decision', 'Pending', 'wait']],
+    required: 1, approvals: [], journal: [],
+    audit: [{ at: '09:52', text: 'Customer submitted application' }] },
+  { id: 'yd0112', ref: 'YLD-PROTO-0112', customer: 'CUS-0233', kind: 'yield', type: 'Yield allocation', amount: '300.00 XRP', age: '41m', summary: 'XRP Flexible · [Yield provider]',
+    checks: [['Product terms accepted', 'Yield Product Terms draft v0.1', 'ok'], ['Above minimum', '300 ≥ 50 XRP', 'ok']],
+    required: 1, approvals: [], journal: [{ account: 'Customer available · XRP', dr: '300.00', cr: '' }, { account: 'Customer pending yield · XRP', dr: '', cr: '300.00' }],
+    audit: [{ at: '12:11', text: 'Customer submitted allocation' }] }
+];
+var FILTERS = [['all', 'All'], ['withdrawal', 'Withdrawals'], ['deposit', 'Deposit exceptions'], ['exchange', 'Exchange'], ['loan', 'Loans'], ['yield', 'Yield']];
+var NEXT_STEP = { withdrawal: 'Queued for custody submission. Shows Completed only after the transaction is validated on the ledger.', deposit: 'Attribution approved. Credit posts as a balanced journal entry and is queued for reconciliation.', exchange: 'Approved to request a firm quote. Customer must accept it before XRP is reserved.', loan: 'Forwarded to the lending provider. Nothing is funded until the provider settles.', yield: 'Sent to the yield provider. XRP moves to Allocated only after the provider confirms.' };
+
+var TXS = [
+  { id: 't1', ref: 'DEP-PROTO-2041', customer: 'CUS-0042', kind: 'deposit', type: 'Deposit', amount: '+1,250.00 XRP', time: 'Today 11:42', status: 'Validating', tone: 'wait',
+    rows: [['From', 'rSendr…proto9Qa', 'mono'], ['Destination tag', '48201937', 'mono'], ['Screening', 'Passed · low risk'], ['Ledger', 'Awaiting validation']], journal: [],
+    timeline: [['11:42', 'Monitor detected incoming payment'], ['11:42', 'Matched to CUS-0042 by tag'], ['11:42', 'Screening passed · waiting for validated ledger']] },
+  { id: 't2', ref: 'WD-PROTO-2042', customer: 'CUS-0042', kind: 'withdrawal', type: 'Withdrawal', amount: '−1,250.00 XRP', time: 'Today 12:30', status: 'Awaiting approval', tone: 'wait', queue: 'wd2042',
+    rows: [['To', 'rProtoRecipient4xQb…2hN', 'mono'], ['Destination tag', '10293847', 'mono'], ['Fee', '0.25 XRP + network'], ['Approvals', '1 of 2']],
+    journal: [['Customer available · XRP', '1,250.00', ''], ['Customer reserved · XRP', '', '1,250.00']],
+    timeline: [['12:30', 'Customer submitted (2FA verified)'], ['12:30', 'System reserved 1,250.00 XRP'], ['12:41', 'J. Duru (Compliance) approved · 1 of 2']] },
+  { id: 't3', ref: 'WD-PROTO-1988', customer: 'CUS-0042', kind: 'withdrawal', type: 'Withdrawal', amount: '−300.00 XRP', time: 'Oct 12 16:20', status: 'Completed', tone: 'ok',
+    rows: [['To', 'rRecip…proto7Hd', 'mono'], ['Destination tag', '10293847', 'mono'], ['Fees', '0.250012 XRP'], ['Ledger hash', '3F9C…PROTO', 'mono'], ['Ledger index', '92,301,447', 'mono']],
+    journal: [['Customer reserved · XRP', '300.25', ''], ['Custody omnibus · XRP', '', '300.000012'], ['Fee revenue · XRP', '', '0.249988']],
+    timeline: [['16:02', 'Customer submitted'], ['16:09', 'A. Bello (Operations) approved'], ['16:11', 'Submitted to [Custody provider]'], ['16:11', 'Validated on ledger · marked Completed']] },
+  { id: 't4', ref: 'EX-PROTO-0301', customer: 'CUS-0042', kind: 'exchange', type: 'Exchange · XRP → USD', amount: '500.00 XRP', time: 'Oct 9 10:05', status: 'Rejected', tone: 'bad',
+    rows: [['Reason', 'Payout account not verified'], ['Quote', 'Never requested'], ['Fees charged', 'None']], journal: [],
+    timeline: [['10:05', 'Customer submitted request'], ['10:31', 'A. Bello (Operations) rejected · payout account not verified'], ['10:31', 'Customer notified']] },
+  { id: 't5', ref: 'YLD-PROTO-0098', customer: 'CUS-0042', kind: 'yield', type: 'Yield reward', amount: '+1.89 XRP', time: 'Oct 3 00:10', status: 'Credited', tone: 'ok',
+    rows: [['Product', 'XRP Flexible'], ['Gross / fee', '2.10 / 0.21 XRP'], ['Provider statement', 'Matched']],
+    journal: [['Yield provider receivable · XRP', '2.10', ''], ['Customer available · XRP', '', '1.89'], ['Fee revenue · XRP', '', '0.21']],
+    timeline: [['00:02', 'Provider statement received'], ['00:10', 'Matched and credited']] },
+  { id: 't6', ref: 'LN-PROTO-0007', customer: 'CUS-0042', kind: 'loan', type: 'Loan funding', amount: '$600.00', time: 'Sep 19 14:20', status: 'Funded', tone: 'ok',
+    rows: [['Collateral', '750.00 XRP locked'], ['APR', '10% fixed'], ['Margin call / liquidation', '65% / 80% LTV'], ['Provider', '[Lending provider]']],
+    journal: [['Customer available · XRP', '750.00', ''], ['Customer collateral · XRP', '', '750.00']],
+    timeline: [['Sep 18', 'Application submitted'], ['Sep 18', 'K. Musa (Compliance) approved'], ['Sep 19', 'Provider confirmed funding']] },
+  { id: 't7', ref: 'DEP-PROTO-2050', customer: 'Unattributed', kind: 'deposit', type: 'Deposit (no tag)', amount: '+500.00 XRP', time: 'Today 11:47', status: 'Exception', tone: 'bad', queue: 'dep2050',
+    rows: [['From', 'rSendr…k3P', 'mono'], ['Destination tag', 'Missing'], ['Claimed by', 'CUS-0311 · SUP-0921']],
+    journal: [['Custody omnibus · XRP', '500.00', ''], ['Unattributed deposits · XRP', '', '500.00']],
+    timeline: [['11:47', 'Validated on ledger without tag'], ['11:47', 'Posted to suspense'], ['12:10', 'Support linked ticket SUP-0921']] },
+  { id: 't8', ref: 'YLD-PROTO-0112', customer: 'CUS-0233', kind: 'yield', type: 'Yield allocation', amount: '300.00 XRP', time: 'Today 12:11', status: 'At provider', tone: 'wait', queue: 'yd0112',
+    rows: [['Product', 'XRP Flexible'], ['Provider', '[Yield provider]'], ['Confirmation', 'Delayed · 41m']],
+    journal: [['Customer available · XRP', '300.00', ''], ['Customer pending yield · XRP', '', '300.00']],
+    timeline: [['12:11', 'Customer submitted allocation'], ['12:12', 'Sent to provider']] }
+];
+var TX_FILTERS = [['all', 'All'], ['deposit', 'Deposits'], ['withdrawal', 'Withdrawals'], ['exchange', 'Exchange'], ['yield', 'Yield'], ['loan', 'Loans']];
+
+var USERS = [
+  { id: 'CUS-0042', name: 'Tobi Adeyemi', email: 'tobi.adeyemi@example.com', phone: '+234 803 555 4821', dob: '1991-04-12', country: 'Nigeria', kyc: 'Verified · level 2', kycTone: 'ok', joined: 'Sep 2, 2026', risk: 'Low', avail: 4170.10, yld: 1500, coll: 750, flags: ['Active loan LN-PROTO-0007', 'Withdrawal WD-PROTO-2042 awaiting approval'] },
+  { id: 'CUS-0187', name: 'Hauwa Bello', email: 'hauwa.b@example.com', phone: '+234 806 555 1290', dob: '1988-11-30', country: 'Nigeria', kyc: 'Verified · level 2', kycTone: 'ok', joined: 'Aug 14, 2026', risk: 'Low', avail: 920, yld: 0, coll: 0, flags: [] },
+  { id: 'CUS-0311', name: 'Ngozi Eze', email: 'ngozi.eze@example.com', phone: '+234 809 555 7714', dob: '1995-02-08', country: 'Nigeria', kyc: 'Verified · level 1', kycTone: 'ok', joined: 'Oct 1, 2026', risk: 'Low', avail: 2310, yld: 0, coll: 0, flags: ['Claims DEP-PROTO-2050 (500 XRP, no tag) · SUP-0921'] },
+  { id: 'CUS-0098', name: 'Emeka Obi', email: 'emeka.obi@example.com', phone: '+44 7700 900312', dob: '1984-07-21', country: 'United Kingdom', kyc: 'Verified · level 2', kycTone: 'ok', joined: 'Jul 30, 2026', risk: 'Medium', avail: 2000, yld: 0, coll: 0, flags: ['Loan application LN-PROTO-0009'] },
+  { id: 'CUS-0233', name: 'Funke Ade', email: 'funke.ade@example.com', phone: '+234 802 555 0045', dob: '1999-09-17', country: 'Nigeria', kyc: 'Pending review', kycTone: 'wait', joined: 'Oct 15, 2026', risk: 'Not rated', avail: 120, yld: 300, coll: 0, flags: ['Proof of address under review'] }
+];
+function x2(v) { return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function mask(u, role) {
+  var p = u.name.split(' '), dom = u.email.split('@')[1], last = u.phone.replace(/\s/g, '').slice(-4);
+  if (role === 'compliance') return { name: u.name, email: u.email, phone: u.phone, dob: u.dob };
+  if (role === 'operations') return { name: p[0] + ' ' + p[1][0] + '.', email: u.email.slice(0, 2) + '•••@' + dom, phone: u.phone.split(' ')[0] + ' ••• ••• ' + last, dob: '••••-••-•• (' + u.dob.slice(0, 4) + ')' };
+  return { name: p.map(function (w) { return w[0] + '••••'; }).join(' '), email: '•••@' + dom, phone: '•••• ' + last, dob: 'Hidden' };
+}
+var MASK_NOTE = {
+  compliance: 'Full personal data is visible to Compliance. Each record you open is written to the audit log.',
+  operations: 'Operations sees partially masked personal data. Ask Compliance if you need the full record.',
+  auditor: 'Auditors see masked personal data only. Balances and flags are shown in full.'
+};
+var AUDIT = [
+  ['12:50', 'System', 'system', 'Audit chain verified', '—'],
+  ['12:44', 'CUS-0187', 'customer', 'Submitted withdrawal (2FA verified)', 'WD-PROTO-2043'],
+  ['12:41', 'J. Duru', 'staff', 'Approved withdrawal · 1 of 2', 'WD-PROTO-2042'],
+  ['12:38', 'CUS-0042', 'customer', 'Submitted exchange request', 'EX-PROTO-0318'],
+  ['12:30', 'System', 'system', 'Reserved 1,250.00 XRP', 'WD-PROTO-2042'],
+  ['12:11', 'CUS-0233', 'customer', 'Allocated 300 XRP to XRP Flexible', 'YLD-PROTO-0112'],
+  ['12:10', 'M. Okon', 'staff', 'Linked ticket to deposit', 'SUP-0921'],
+  ['12:00', 'System', 'system', 'Reconciliation run completed · 3 exceptions', 'RC-PROTO-0412'],
+  ['11:47', 'System', 'system', 'Posted deposit to suspense (no tag)', 'DEP-PROTO-2050'],
+  ['10:05', 'A. Bello', 'staff', 'Requested signing policy change', 'POL-v4'],
+  ['09:52', 'CUS-0098', 'customer', 'Submitted loan application', 'LN-PROTO-0009'],
+  ['09:14', 'CUS-0042', 'customer', 'Signed in · Chrome on macOS', 'Session'],
+  ['08:30', 'K. Musa', 'staff', 'Signed in to Ops console', 'Session']
+];
+function hash(str) { var h = 2166136261 >>> 0; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return ('0000000' + h.toString(16)).slice(-8) + '…'; }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      view: null, filter: 'all', sel: 'wd2042', decisions: {}, rejecting: false, code: '', note: '', tried: false,
+      txFilter: 'all', txSel: 't2', userSel: 'CUS-0042', userQ: '', frozen: {}, flagged: {},
+      feeBooked: false, yieldContacted: false, runs: 0, auditFilter: 'all', policy: null, toast: null, mine: []
+    };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  say(m) { var self = this; clearTimeout(this.t); this.setState({ toast: m }); this.t = setTimeout(function () { self.setState({ toast: null }); }, 3000); }
+  log(action, target) { var m = this.state.mine.slice(); m.unshift(['12:52', 'You', 'staff', action, target]); return m; }
+  renderVals() {
+    var self = this, s = this.state, role = ROLES[this.props.role] || ROLES.operations;
+    var view = s.view || this.props.view || 'overview';
+    function go(v, extra) { return function () { self.setState(Object.assign({ view: v }, extra || {})); }; }
+
+    /* ---------- queue ---------- */
+    function statusOf(it) {
+      var dec = s.decisions[it.id];
+      if (dec && dec.kind === 'rejected') return ['Rejected', 'bad'];
+      var n = it.approvals.length + (dec && dec.kind === 'approved' ? 1 : 0);
+      if (n >= it.required) return ['Approved', 'ok'];
+      if (it.required > 1) return ['Awaiting ' + (n + 1) + ' of ' + it.required, 'wait'];
+      return ['Awaiting review', 'wait'];
+    }
+    var rows = ITEMS.filter(function (it) { return s.filter === 'all' || it.kind === s.filter; }).map(function (it) {
+      var st = statusOf(it);
+      return { ref: it.ref, customer: it.customer, type: it.type, amount: it.amount, age: it.age, status: st[0], tone: st[1], on: it.id === s.sel, cls: it.id === s.sel ? 'on' : '', pick: function () { self.setState({ sel: it.id, rejecting: false, tried: false, code: '', note: '' }); } };
+    });
+    var it = ITEMS.filter(function (x) { return x.id === s.sel; })[0] || ITEMS[0];
+    var dec = s.decisions[it.id], st = statusOf(it);
+    var approvals = it.approvals.slice(), audit = it.audit.slice(), journal = it.journal.slice();
+    if (dec && dec.kind === 'approved') { approvals.push({ who: role.name + ' · you', at: '12:52' }); audit.push({ at: '12:52', text: 'You (' + role.name + ') approved' }); }
+    if (dec && dec.kind === 'rejected') {
+      audit.push({ at: '12:52', text: 'You (' + role.name + ') rejected · ' + dec.reason + (dec.note ? ' — “' + dec.note + '”' : '') });
+      if (journal.length) { journal = journal.concat(journal.map(function (j) { return { account: j.account + ' (reversal)', dr: j.cr, cr: j.dr }; })); audit.push({ at: '12:52', text: 'System posted compensating entry, released hold' }); }
+    }
+    var already = it.approvals.some(function (a) { return a.who.indexOf(role.name) === 0; });
+    var permitted = role.can.indexOf(it.kind) >= 0;
+    var block = !permitted ? (role.can.length ? 'Your role can’t approve ' + it.type.toLowerCase() + 's.' : 'Read-only role: you can view but not act.') : (already ? 'Separation of duties: the first approval came from your role. The second must come from a different role.' : '');
+    var approveCount = approvals.length, outcome = '', outcomeCls = 'ok';
+    if (dec && dec.kind === 'rejected') { outcome = 'Rejected. Customer notified with your reason' + (journal.length ? '; reserved funds released via compensating entry.' : '.'); outcomeCls = 'bad'; }
+    else if (approveCount >= it.required && dec) outcome = NEXT_STEP[it.kind];
+    else if (dec && dec.kind === 'approved') outcome = 'Your approval is recorded. Waiting for a second approver.';
+    var openCount = ITEMS.filter(function (x) { return statusOf(x)[1] === 'wait'; }).length;
+    var counts = {};
+    ITEMS.forEach(function (x) { counts[x.kind] = (counts[x.kind] || 0) + 1; });
+
+    /* ---------- transactions ---------- */
+    var txList = TXS.filter(function (t) { return s.txFilter === 'all' || t.kind === s.txFilter; });
+    var tsel = TXS.filter(function (t) { return t.id === s.txSel; })[0] || TXS[0];
+    var tcounts = {};
+    TXS.forEach(function (t) { tcounts[t.kind] = (tcounts[t.kind] || 0) + 1; });
+    var tStatus = tsel.status, tTone = tsel.tone;
+    if (tsel.queue) { var qi = ITEMS.filter(function (x) { return x.id === tsel.queue; })[0]; if (qi && s.decisions[qi.id]) { var qs = statusOf(qi); tStatus = qs[0]; tTone = qs[1]; } }
+
+    /* ---------- reconciliation ---------- */
+    var depDone = s.decisions.dep2050 && s.decisions.dep2050.kind === 'approved';
+    var canOps = role.key === 'operations';
+    var exc = [
+      { title: 'Network fees not booked', note: 'Hot wallet · 3 withdrawals · 0.000036 XRP', done: s.feeBooked, status: s.feeBooked ? 'Resolved · adjustment posted' : 'Open', cta: s.feeBooked ? '' : 'Book fee adjustment', disabled: !canOps, act: function () { if (!canOps) return; self.setState({ feeBooked: true, mine: self.log('Posted fee adjustment journal', 'RC-PROTO-0412') }); self.say('Fee adjustment posted as a balanced journal entry.'); } },
+      { title: 'Deposit without destination tag', note: 'DEP-PROTO-2050 · 500.00 XRP held in suspense', done: depDone, status: depDone ? 'Resolved · attributed to CUS-0311' : 'Open · claim pending', cta: depDone ? '' : 'Open in approval queue', disabled: false, act: go('queue', { filter: 'all', sel: 'dep2050', rejecting: false }) },
+      { title: 'Provider confirmation delayed', note: 'YLD-PROTO-0112 · 300.00 XRP pending at [Yield provider] for 41m', done: false, status: s.yieldContacted ? 'Investigating · provider contacted 12:52' : 'Investigating', cta: s.yieldContacted ? '' : 'Mark provider contacted', disabled: !canOps, act: function () { if (!canOps) return; self.setState({ yieldContacted: true, mine: self.log('Contacted yield provider about delay', 'YLD-PROTO-0112') }); self.say('Noted. The exception stays open until the provider confirms.'); } }
+    ];
+    var excOpen = exc.filter(function (e) { return !e.done; }).length;
+    var hotInternal = s.feeBooked ? '84,210.250000' : '84,210.250036';
+
+    /* ---------- users ---------- */
+    var q = s.userQ.trim().toLowerCase();
+    var ulist = USERS.filter(function (u) { return !q || (u.id + ' ' + u.name).toLowerCase().indexOf(q) >= 0; });
+    var u = USERS.filter(function (x) { return x.id === s.userSel; })[0] || USERS[0];
+    var um = mask(u, role.key), frozen = !!s.frozen[u.id];
+    var uflags = u.flags.slice();
+    if (s.flagged[u.id]) uflags.push('Flagged for review by you · 12:52');
+
+    /* ---------- custody ---------- */
+    var isComp = role.key === 'compliance';
+    var pStatus = s.policy === 'approved' ? 'Approved by you · takes effect after 24-hour delay' : (s.policy === 'declined' ? 'Declined by you' : 'Waiting for Compliance approval');
+
+    /* ---------- audit ---------- */
+    var allAudit = s.mine.concat(AUDIT);
+    var aRows = allAudit.filter(function (a) { return s.auditFilter === 'all' || a[2] === s.auditFilter; });
+
+    return {
+      role: role, openCount: openCount, toast: s.toast,
+      nav: NAV.map(function (n) { var on = n[0] === view; return { label: n[1], icon: n[2], cls: on ? 'on' : '', current: on ? 'page' : 'false', count: n[0] === 'queue' ? openCount : (n[0] === 'recon' && excOpen ? excOpen : 0), go: go(n[0]) }; }),
+      head: { title: HEADS[view][0], sub: HEADS[view][1] },
+      is: { overview: view === 'overview', queue: view === 'queue', tx: view === 'tx', recon: view === 'recon', users: view === 'users', custody: view === 'custody', audit: view === 'audit' },
+
+      ov: {
+        metrics: [
+          { label: 'Pending approvals', value: String(openCount), note: 'Oldest 3h · LN-PROTO-0009', tone: openCount ? 'wait' : 'ok', go: go('queue') },
+          { label: 'Customer liabilities', value: '1,284,610.25 XRP', note: '100.00% covered by holdings', tone: 'ok', go: go('recon') },
+          { label: 'Reconciliation exceptions', value: String(excOpen), note: excOpen ? 'Last run ' + (s.runs ? '12:52' : '12:00') : 'All clear', tone: excOpen ? 'wait' : 'ok', go: go('recon') },
+          { label: 'Outflow today', value: '41,280 XRP', note: '27.5% of 150,000 daily limit', tone: 'ok', go: go('custody') }
+        ],
+        providers: [
+          { name: '[Custody provider]', note: 'API 120 ms · last balance sync 12:50', status: 'Operational', tone: 'ok' },
+          { name: 'XRP Ledger nodes', note: 'Validated ledger 92,418,307 · 2 of 2 nodes in sync', status: 'Operational', tone: 'ok' },
+          { name: '[KYC provider]', note: '3 checks in progress · median 4 min', status: 'Operational', tone: 'ok' },
+          { name: '[Screening provider]', note: 'Last response 12:44', status: 'Operational', tone: 'ok' },
+          { name: '[Yield provider]', note: 'Allocation confirmations delayed ~40 min', status: 'Degraded', tone: 'wait' },
+          { name: '[Lending provider]', note: '1 credit decision pending', status: 'Operational', tone: 'ok' },
+          { name: '[Market data provider]', note: 'XRP $2.38 · updated 12:50', status: 'Operational', tone: 'ok' }
+        ],
+        attention: [
+          { title: 'WD-PROTO-2042 needs a second approval', note: '1,250.00 XRP · over 1,000 XRP threshold', where: 'Queue', tone: 'wait', go: go('queue', { filter: 'all', sel: 'wd2042', rejecting: false }) },
+          { title: 'Deposit without destination tag', note: 'DEP-PROTO-2050 · 500.00 XRP in suspense', where: 'Reconciliation', tone: depDone ? 'ok' : 'bad', go: go('recon') },
+          { title: 'Proof of address review', note: 'CUS-0233 · submitted Oct 15', where: 'Users', tone: 'wait', go: go('users', { userSel: 'CUS-0233' }) },
+          { title: 'Signing policy change waiting', note: 'Hot wallet ceiling → 120,000 XRP', where: 'Custody', tone: s.policy ? 'ok' : 'wait', go: go('custody') }
+        ]
+      },
+
+      filters: FILTERS.map(function (f) { return { label: f[1], count: f[0] === 'all' ? ITEMS.length : (counts[f[0]] || 0), on: s.filter === f[0], cls: s.filter === f[0] ? 'on' : '', pick: function () { self.setState({ filter: f[0] }); } }; }),
+      rows: rows, noRows: rows.length === 0,
+      d: {
+        ref: it.ref, customer: it.customer, type: it.type, amount: it.amount, summary: it.summary, status: st[0], tone: st[1],
+        checks: it.checks.map(function (c) { return { label: c[0], note: c[1], icon: c[2] === 'ok' ? OK : (c[2] === 'warn' ? WARN : WAIT), color: c[2] === 'ok' ? '#13704C' : (c[2] === 'warn' ? '#875D00' : '#5F6D66') }; }),
+        approvalText: approveCount + ' of ' + it.required + ' required', approvals: approvals,
+        sodNote: it.required > 1 ? 'Over 1,000 XRP: two approvals from different people, at least one from Compliance.' : '',
+        hasJournal: journal.length > 0, journal: journal, audit: audit,
+        canAct: !dec, approveDisabled: !!block, rejectDisabled: !permitted, approveBlock: block,
+        approveLabel: it.kind === 'deposit' ? 'Approve attribution to CUS-0311' : (it.kind === 'exchange' ? 'Approve · request quote' : 'Approve'),
+        outcome: outcome, outcomeCls: outcomeCls
+      },
+      rejecting: s.rejecting && !dec, notRejecting: !s.rejecting,
+      reason: { code: s.code, note: s.note, err: s.tried && (!s.code || s.note.trim().length < 10) ? 'Choose a reason and write at least a short note — it goes into the audit log.' : '' },
+      onReasonCode: function (e) { self.setState({ code: e.target.value }); },
+      onReasonNote: function (e) { self.setState({ note: e.target.value }); },
+      startReject: function () { if (!permitted) return; self.setState({ rejecting: true }); },
+      cancelReject: function () { self.setState({ rejecting: false, tried: false }); },
+      confirmReject: function () {
+        if (!s.code || s.note.trim().length < 10) { self.setState({ tried: true }); return; }
+        var labels = { screening: 'Destination failed screening', evidence: 'Insufficient evidence', limits: 'Exceeds limits', customer: 'Customer cancelled' };
+        var d2 = Object.assign({}, s.decisions); d2[it.id] = { kind: 'rejected', reason: labels[s.code], note: s.note.trim() };
+        self.setState({ decisions: d2, rejecting: false, tried: false, code: '', note: '', mine: self.log('Rejected · ' + labels[s.code], it.ref) });
+      },
+      approve: function () { if (block) return; var d2 = Object.assign({}, s.decisions); d2[it.id] = { kind: 'approved' }; self.setState({ decisions: d2, mine: self.log('Approved ' + it.type.toLowerCase(), it.ref) }); },
+
+      tx: {
+        filters: TX_FILTERS.map(function (f) { return { label: f[1], count: f[0] === 'all' ? TXS.length : (tcounts[f[0]] || 0), on: s.txFilter === f[0], cls: s.txFilter === f[0] ? 'on' : '', pick: function () { self.setState({ txFilter: f[0] }); } }; }),
+        rows: txList.map(function (t) { return { ref: t.ref, customer: t.customer, type: t.type, amount: t.amount, time: t.time, status: t.status, tone: t.tone, on: t.id === tsel.id, cls: t.id === tsel.id ? 'on' : '', pick: function () { self.setState({ txSel: t.id }); } }; }),
+        d: {
+          ref: tsel.ref, customer: tsel.customer, type: tsel.type, amount: tsel.amount, status: tStatus, tone: tTone,
+          rows: tsel.rows.map(function (r) { return { k: r[0], v: r[1], cls: r[2] || '' }; }),
+          hasJournal: tsel.journal.length > 0, journal: tsel.journal.map(function (j) { return { account: j[0], dr: j[1], cr: j[2] }; }),
+          timeline: tsel.timeline.map(function (e) { return { at: e[0], text: e[1] }; }),
+          queueLink: !!tsel.queue, openQueue: go('queue', { filter: 'all', sel: tsel.queue || 'wd2042', rejecting: false })
+        }
+      },
+
+      rc: {
+        run: 'RC-PROTO-' + (412 + s.runs), when: s.runs ? 'Today 12:52 WAT' : 'Today 12:00 WAT', ledger: s.runs ? '92,418,319' : '92,417,402',
+        status: excOpen ? excOpen + ' exception' + (excOpen > 1 ? 's' : '') + ' open' : 'Balanced', tone: excOpen ? 'wait' : 'ok',
+        rerun: function () { self.setState({ runs: self.state.runs + 1, mine: self.log('Ran reconciliation', 'RC-PROTO-' + (413 + self.state.runs)) }); self.say('Reconciliation run complete.'); },
+        rows: [
+          { name: 'Hot wallet', a: hotInternal, b: '84,210.250000', c: '84,210.250000', diff: s.feeBooked ? '0' : '−0.000036', color: s.feeBooked ? '#13704C' : '#B13A2B', cls: '' },
+          { name: 'Warm wallet', a: '250,000.00', b: '250,000.00', c: '250,000.00', diff: '0', color: '#13704C', cls: '' },
+          { name: 'Cold vault', a: '950,400.00', b: '950,400.00', c: '950,400.00', diff: '0', color: '#13704C', cls: '' },
+          { name: 'Total holdings', a: s.feeBooked ? '1,284,610.25' : '1,284,610.250036', b: '1,284,610.25', c: '1,284,610.25', diff: s.feeBooked ? '0' : '−0.000036', color: s.feeBooked ? '#13704C' : '#B13A2B', cls: 'total' }
+        ],
+        suspense: depDone ? '0.00' : '500.00',
+        openCount: excOpen,
+        exc: exc.map(function (e) { return { title: e.title, note: e.note, status: e.status, tone: e.done ? 'ok' : 'wait', cta: e.cta, disabled: e.disabled, act: e.act }; }),
+        roleNote: canOps ? '' : (role.key === 'auditor' ? 'Read-only role: you can view exceptions but not resolve them.' : 'Ledger adjustments are posted by Operations; Compliance reviews them in the audit log.')
+      },
+
+      us: {
+        q: s.userQ, none: ulist.length === 0, maskNote: MASK_NOTE[role.key],
+        onQ: function (e) { self.setState({ userQ: e.target.value }); },
+        rows: ulist.map(function (x) { var m = mask(x, role.key); return { id: x.id, name: m.name, kyc: s.frozen[x.id] ? 'Frozen' : x.kyc.split(' ·')[0], tone: s.frozen[x.id] ? 'bad' : x.kycTone, total: x2(x.avail + x.yld + x.coll), flag: x.flags.length ? x.flags.length + ' open' : '—', on: x.id === u.id, cls: x.id === u.id ? 'on' : '', pick: function () { self.setState({ userSel: x.id }); } }; }),
+        d: {
+          id: u.id, joined: u.joined, name: um.name, email: um.email, phone: um.phone, dob: um.dob, country: u.country, kyc: u.kyc, risk: u.risk,
+          state: frozen ? 'Frozen' : 'Active', stTone: frozen ? 'bad' : 'ok',
+          avail: x2(u.avail), yld: x2(u.yld), coll: x2(u.coll), total: x2(u.avail + u.yld + u.coll),
+          flags: uflags, noFlags: uflags.length === 0
+        },
+        viewTx: go('tx', { txFilter: 'all', txSel: u.id === 'CUS-0042' ? 't2' : (u.id === 'CUS-0233' ? 't8' : 't1') }),
+        flagDisabled: role.key === 'auditor' || !!s.flagged[u.id],
+        flagReview: function () { if (role.key === 'auditor') return; var f = Object.assign({}, s.flagged); f[u.id] = true; self.setState({ flagged: f, mine: self.log('Flagged customer for review', u.id) }); self.say(u.id + ' flagged for Compliance review.'); },
+        freezeLabel: frozen ? 'Unfreeze account' : 'Freeze account', freezeDisabled: !isComp,
+        freeze: function () { if (!isComp) return; var f = Object.assign({}, s.frozen); f[u.id] = !frozen; self.setState({ frozen: f, mine: self.log(frozen ? 'Unfroze account' : 'Froze account · withdrawals blocked', u.id) }); self.say(frozen ? u.id + ' unfrozen.' : u.id + ' frozen. Withdrawals and new requests are blocked.'); },
+        block: isComp ? '' : (role.key === 'auditor' ? 'Read-only role: you can view but not act.' : 'Only Compliance can freeze accounts.')
+      },
+
+      cu: {
+        wallets: [
+          { name: 'Hot', addr: 'rHotProto…9xQb', bal: '84,210.25', share: '6.6%', sign: 'Auto-sign within policy' },
+          { name: 'Warm', addr: 'rWarmProto…4mKc', bal: '250,000.00', share: '19.5%', sign: '2 of 3 signers' },
+          { name: 'Cold vault', addr: 'rColdProto…V9tY', bal: '950,400.00', share: '74.0%', sign: '3 of 5 · 24h time lock' }
+        ],
+        signers: [
+          { name: 'J. Duru · Compliance', meta: 'Hardware key · last used 12:41', status: 'Active', tone: 'ok' },
+          { name: 'K. Musa · Compliance', meta: 'Hardware key · last used Oct 18', status: 'Active', tone: 'ok' },
+          { name: 'A. Bello · Operations', meta: 'Hardware key · last used 10:05', status: 'Active', tone: 'ok' },
+          { name: 'M. Okon · Operations', meta: 'Hardware key · last used Oct 12', status: 'Active', tone: 'ok' },
+          { name: 'Director · Treasury', meta: 'Cold vault only', status: 'Standby', tone: 'off' }
+        ],
+        pStatus: pStatus, pTone: s.policy === 'approved' ? 'ok' : (s.policy === 'declined' ? 'bad' : 'wait'),
+        disabled: !isComp || !!s.policy,
+        block: s.policy ? '' : (isComp ? '' : (role.key === 'auditor' ? 'Read-only role: you can view but not act.' : 'Separation of duties: requested by Operations, so it needs Compliance approval.')),
+        approve: function () { if (!isComp) return; self.setState({ policy: 'approved', mine: self.log('Approved signing policy change', 'POL-v4') }); self.say('Approved. The new ceiling applies after a 24-hour delay.'); },
+        decline: function () { if (!isComp) return; self.setState({ policy: 'declined', mine: self.log('Declined signing policy change', 'POL-v4') }); self.say('Change declined. A. Bello has been notified.'); }
+      },
+
+      al: {
+        count: aRows.length,
+        filters: [['all', 'All'], ['staff', 'Staff'], ['customer', 'Customers'], ['system', 'System']].map(function (f) { return { label: f[1], on: s.auditFilter === f[0], cls: s.auditFilter === f[0] ? 'on' : '', pick: function () { self.setState({ auditFilter: f[0] }); } }; }),
+        rows: aRows.map(function (a, i) { return { at: a[0], actor: a[1] === 'You' ? 'You · ' + role.name : a[1], kind: a[2] === 'staff' ? 'Staff' : (a[2] === 'customer' ? 'Customer' : 'System'), action: a[3], target: a[4], hash: hash(a.join('|') + (allAudit[allAudit.indexOf(a) + 1] || []).join('|')) }; }),
+        export: function () { self.setState({ mine: self.log('Exported audit log (CSV)', 'Audit log') }); self.say('Export ready. The export itself is recorded in the log.'); }
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

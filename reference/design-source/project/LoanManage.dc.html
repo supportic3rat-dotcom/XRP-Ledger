@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Manage loan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--sunken)}
+.seg-btn{flex:1;height:38px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font-size:13.5px;font-weight:500;cursor:pointer}
+.seg-btn.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--border)}
+.sec{margin:20px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;height:64px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:34px;padding:0 12px;border:1px solid var(--border-strong);border-radius:17px;background:var(--surface);font-size:12.5px;font-weight:500;cursor:pointer}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer;color:var(--text)}
+.opt:first-child{border-top:0}
+.radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border-strong);flex:none}
+.radio.on{border:6px solid var(--accent)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3);flex:none}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--accent);flex:none}
+.tl{list-style:none;margin:0;padding:14px;display:flex;flex-direction:column}
+.tl li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.tl li::before{content:"";position:absolute;left:7px;top:18px;bottom:-2px;width:2px;background:var(--border)}
+.tl li:last-child{padding-bottom:0}.tl li:last-child::before{display:none}
+.tl .dot{position:relative;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none}
+.tl li.done .dot{border-color:var(--accent);background:var(--accent)}
+.tl li.done::before{background:var(--accent)}
+.tl li.now .dot{border-color:var(--dot-warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.badge{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:7px;font-size:12px;font-weight:500;background:var(--warn-soft);color:var(--warn)}
+.badge.ok{background:var(--sunken);color:var(--pos)}
+.footer{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.footer .btn{flex:1}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <sc-if value="{{canBack}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="icon-btn" aria-label="Back" onClick="{{back}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+      </sc-if>
+      <sc-if value="{{noBack}}" hint-placeholder-val="{{ true }}">
+        <a class="icon-btn" href="{{L.borrow}}" aria-label="Back to Borrow"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      </sc-if>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">{{title}}</h1>
+      <span style="width: 44px"></span>
+    </div>
+
+    <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+      <div class="seg" role="group" aria-label="Action" style="margin-bottom: 16px">
+        <button type="button" class="seg-btn {{mode.repayCls}}" aria-pressed="{{mode.repay}}" onClick="{{setRepay}}">Repay</button>
+        <button type="button" class="seg-btn {{mode.collCls}}" aria-pressed="{{mode.coll}}" onClick="{{setColl}}">Add collateral</button>
+      </div>
+
+      <div class="card">
+        <dl class="kv">
+          <div><dt>Loan</dt><dd class="mono" style="font-size: 12.5px">LN-PROTO-0007</dd></div>
+          <div><dt>Outstanding</dt><dd>$604.93</dd></div>
+          <div><dt>Collateral</dt><dd>750.00 XRP · $1,785.00</dd></div>
+          <div><dt>Current LTV</dt><dd>33.9%</dd></div>
+        </dl>
+      </div>
+
+      <!-- Repay form -->
+      <sc-if value="{{mode.repay}}" hint-placeholder-val="{{ true }}">
+        <div class="sec">Amount to repay</div>
+        <div class="input-wrap {{r.cls}}">
+          <span style="font-size: 26px; font-weight: 500; color: var(--text-2)">$</span>
+          <input aria-label="Repayment amount in USD" inputMode="decimal" placeholder="0.00" value="{{r.amount}}" onChange="{{onRepay}}">
+        </div>
+        <div class="chips" style="margin-top: 10px">
+          <button type="button" class="chip" onClick="{{payInterest}}">Interest $4.93</button>
+          <button type="button" class="chip" onClick="{{payHalf}}">Half $302.47</button>
+          <button type="button" class="chip" onClick="{{payFull}}">Full $604.93</button>
+        </div>
+        <sc-if value="{{r.err}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 8px 4px 0">{{r.err}}</p></sc-if>
+
+        <div class="sec">Pay with</div>
+        <div class="card" role="radiogroup" aria-label="Payment source">
+          <button type="button" class="opt" role="radio" aria-checked="{{r.bank}}" onClick="{{useBank}}">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Bank transfer</span><span class="help">From [Bank account •••• 0000] · 1–2 business days</span></span>
+            <span class="radio {{r.bankCls}}" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="opt" role="radio" aria-checked="{{r.sell}}" onClick="{{useSell}}">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Sell XRP from available</span><span class="help">{{r.sellHint}}</span></span>
+            <span class="radio {{r.sellCls}}" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="card" style="margin-top: 12px">
+          <dl class="kv">
+            <div><dt>Left to repay after</dt><dd>{{r.left}}</dd></div>
+            <div><dt>LTV after</dt><dd>{{r.ltvAfter}}</dd></div>
+          </dl>
+        </div>
+      </sc-if>
+
+      <!-- Collateral form -->
+      <sc-if value="{{mode.coll}}" hint-placeholder-val="{{ false }}">
+        <div class="sec">XRP to add</div>
+        <div class="input-wrap {{k.cls}}">
+          <input aria-label="XRP to add as collateral" inputMode="decimal" placeholder="0.00" value="{{k.amount}}" onChange="{{onColl}}">
+          <span style="font-weight: 500; color: var(--text-2)">XRP</span>
+        </div>
+        <div class="chips" style="margin-top: 10px">
+          <button type="button" class="chip" onClick="{{add250}}">+250</button>
+          <button type="button" class="chip" onClick="{{add500}}">+500</button>
+          <button type="button" class="chip" onClick="{{add1000}}">+1,000</button>
+        </div>
+        <p class="help" style="margin: 8px 4px 0">Available 4,170.10 XRP</p>
+        <sc-if value="{{k.err}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 6px 4px 0">{{k.err}}</p></sc-if>
+        <div class="card" style="margin-top: 14px">
+          <dl class="kv">
+            <div><dt>Collateral after</dt><dd>{{k.after}}</dd></div>
+            <div><dt>LTV after</dt><dd>{{k.ltvAfter}}</dd></div>
+            <div><dt>Liquidation price after</dt><dd>{{k.liqAfter}}</dd></div>
+          </dl>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- Review -->
+    <sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 18px">
+        <span style="font-size: 13px; color: var(--text-3)">{{rv.kicker}}</span>
+        <span class="num" style="font-size: 32px; font-weight: 500; letter-spacing: -0.02em">{{rv.amount}}</span>
+      </div>
+      <div class="card">
+        <dl class="kv">
+          <sc-for list="{{rv.rows}}" as="x" hint-placeholder-count="4">
+            <div><dt>{{x.k}}</dt><dd>{{x.v}}</dd></div>
+          </sc-for>
+        </dl>
+      </div>
+      <sc-if value="{{rv.needsAck}}" hint-placeholder-val="{{ false }}">
+        <label class="check" style="margin-top: 16px">
+          <input type="checkbox" checked="{{ack}}" onChange="{{toggleAck}}">
+          <span>I understand this XRP will be locked and can be sold by [Lending provider] if my LTV reaches 80%.</span>
+        </label>
+        <sc-if value="{{ackErr}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 6px 0 0 30px">{{ackErr}}</p></sc-if>
+      </sc-if>
+      <div class="banner info" style="margin-top: 14px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>{{rv.note}}</span>
+      </div>
+    </sc-if>
+
+    <!-- Status -->
+    <sc-if value="{{isStatus}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0 18px; text-align: center">
+        <span class="num" style="font-size: 28px; font-weight: 500">{{rv.amount}}</span>
+        <span class="badge {{st.cls}}">{{st.label}}</span>
+        <span class="mono" style="font-size: 12px; color: var(--text-3)">{{st.ref}}</span>
+      </div>
+      <sc-if value="{{st.showBank}}" hint-placeholder-val="{{ false }}">
+        <div class="card" style="margin-bottom: 12px">
+          <dl class="kv">
+            <div><dt>Send to</dt><dd>[Lending provider bank details]</dd></div>
+            <div><dt>Amount</dt><dd>{{rv.amount}}</dd></div>
+            <div><dt>Payment reference</dt><dd class="mono" style="font-size: 12.5px">LN0007-R1</dd></div>
+          </dl>
+        </div>
+      </sc-if>
+      <div class="card">
+        <ol class="tl">
+          <sc-for list="{{st.steps}}" as="x" hint-placeholder-count="4">
+            <li class="{{x.cls}}"><span class="dot" aria-hidden="true"></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{x.label}}</span><span style="font-size: 12px; color: var(--text-3)">{{x.note}}</span></span></li>
+          </sc-for>
+        </ol>
+      </div>
+      <div class="banner info" style="margin-top: 12px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>{{st.note}}</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <div class="footer">
+    <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+      <button type="button" class="btn btn-primary" onClick="{{toReview}}">Review</button>
+    </sc-if>
+    <sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="btn btn-primary" onClick="{{confirm}}">{{rv.cta}}</button>
+    </sc-if>
+    <sc-if value="{{isStatus}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{st.canAdvance}}" hint-placeholder-val="{{ true }}">
+        <button type="button" class="btn btn-secondary" onClick="{{advance}}">Simulate next</button>
+      </sc-if>
+      <a class="btn btn-primary" href="{{L.borrow}}">Done</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+var VARIANT = 'dark';
+var SUF = VARIANT === 'light' ? 'Light' : '';
+function to(n) { return n + SUF + '.dc.html'; }
+function isDark(p) { if (p === true || p === 'true') return true; if (p === false || p === 'false') return false; return VARIANT === 'dark'; }
+var OWED = 604.93, COLL = 750, PRICE = 2.38, AVAIL = 4170.10, LIQ = 0.8;
+function usd(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function xrp(v) { return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' XRP'; }
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+var STEPS = {
+  bank: [['Request recorded', 'We’re expecting your transfer'], ['Awaiting payment', 'Send with the reference below'], ['Payment received', 'Confirmed by [Lending provider]'], ['Applied to loan', 'Balance and LTV updated']],
+  sell: [['Request recorded', 'Firm quote requested'], ['Selling XRP', 'XRP reserved at the accepted quote'], ['Payment received', 'Confirmed by [Lending provider]'], ['Applied to loan', 'Balance and LTV updated']],
+  coll: [['Request recorded', 'XRP reserved from available'], ['Sent to provider', 'Collateral transfer submitted'], ['Lock confirmed', 'Confirmed by [Lending provider]'], ['LTV updated', 'New liquidation price applies']]
+};
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { mode: 'repay', step: 'form', amount: '', coll: '', via: 'bank', tried: false, ack: false, ackTried: false, stage: 1 }; }
+  renderVals() {
+    var self = this, s = this.state;
+    var a = parseFloat(String(s.amount).replace(/,/g, '')), c = parseFloat(String(s.coll).replace(/,/g, ''));
+    var rOk = !isNaN(a) && a > 0 && a <= OWED + 1e-9, cOk = !isNaN(c) && c >= 50 && c <= AVAIL;
+    var left = rOk ? OWED - a : OWED, newColl = COLL + (cOk ? c : 0);
+    var isRepay = s.mode === 'repay';
+    var stepsSrc = isRepay ? STEPS[s.via] : STEPS.coll;
+    var rv = isRepay ? {
+      kicker: 'You’re repaying', amount: rOk ? usd(a) : '—', needsAck: false, cta: s.via === 'bank' ? 'Confirm and get payment details' : 'Confirm and request quote',
+      rows: [{ k: 'Loan', v: 'LN-PROTO-0007' }, { k: 'Pay with', v: s.via === 'bank' ? 'Bank transfer' : 'Sell ≈ ' + xrp(a / PRICE) }, { k: 'Left to repay after', v: usd(left) }, { k: 'LTV after', v: pct(left / (COLL * PRICE)) }].concat(left < 0.005 ? [{ k: 'Collateral released', v: '750.00 XRP to available' }] : []),
+      note: s.via === 'bank' ? 'Your loan balance only drops once [Lending provider] confirms your payment.' : 'You’ll get a firm XRP price to accept before anything is sold. Selling may have tax consequences.'
+    } : {
+      kicker: 'You’re adding', amount: cOk ? xrp(c) : '—', needsAck: true, cta: 'Confirm and lock XRP',
+      rows: [{ k: 'From', v: 'Available balance' }, { k: 'Collateral after', v: xrp(newColl) }, { k: 'LTV after', v: pct(OWED / (newColl * PRICE)) }, { k: 'Liquidation price after', v: '$' + (OWED / (newColl * LIQ)).toFixed(4) }],
+      note: 'Collateral only counts once the provider confirms the lock. Until then, your current LTV applies.'
+    };
+    var stg = s.stage;
+    var st = {
+      label: stg >= 3 ? 'Completed' : stepsSrc[stg][0], cls: stg >= 3 ? 'ok' : '',
+      ref: isRepay ? 'LN-PROTO-0007 · repayment R1' : 'LN-PROTO-0007 · collateral C1',
+      showBank: isRepay && s.via === 'bank' && stg <= 1,
+      canAdvance: stg < 3,
+      steps: stepsSrc.map(function (x, i) { return { label: x[0], note: x[1], cls: i < stg || (stg >= 3 && i === 3) ? 'done' : (i === stg ? 'now' : '') }; }),
+      note: isRepay ? 'Prototype: nothing is charged or transferred.' : 'Prototype: no XRP moves until the provider confirms.'
+    };
+    return {
+      themeCls: isDark(this.props.dark) ? 'dark' : '',
+      L: { borrow: to('Borrow') },
+      title: s.step === 'form' ? 'Manage loan' : (s.step === 'review' ? 'Review' : (isRepay ? 'Repayment' : 'Collateral top-up')),
+      isForm: s.step === 'form', isReview: s.step === 'review', isStatus: s.step === 'status',
+      canBack: s.step === 'review', noBack: s.step !== 'review',
+      mode: { repay: isRepay, coll: !isRepay, repayCls: isRepay ? 'on' : '', collCls: isRepay ? '' : 'on' },
+      r: {
+        amount: s.amount, cls: s.tried && !rOk ? 'invalid' : '',
+        err: s.tried && !rOk ? (isNaN(a) || a <= 0 ? 'Enter an amount to repay.' : 'That’s more than you owe ($604.93).') : '',
+        bank: s.via === 'bank', sell: s.via === 'sell', bankCls: s.via === 'bank' ? 'on' : '', sellCls: s.via === 'sell' ? 'on' : '',
+        sellHint: rOk ? '≈ ' + xrp(a / PRICE) + ' at an indicative $2.38' : 'Firm quote shown before you confirm',
+        left: usd(left), ltvAfter: pct(left / (COLL * PRICE))
+      },
+      k: {
+        amount: s.coll, cls: s.tried && !cOk ? 'invalid' : '',
+        err: s.tried && !cOk ? (isNaN(c) || c < 50 ? 'The minimum top-up is 50 XRP.' : 'You only have 4,170.10 XRP available.') : '',
+        after: xrp(newColl), ltvAfter: pct(OWED / (newColl * PRICE)), liqAfter: '$' + (OWED / (newColl * LIQ)).toFixed(4)
+      },
+      rv: rv, st: st, ack: s.ack, ackErr: s.ackTried && !s.ack ? 'Confirm you understand to continue.' : '',
+      setRepay: function () { self.setState({ mode: 'repay', tried: false }); },
+      setColl: function () { self.setState({ mode: 'coll', tried: false }); },
+      onRepay: function (e) { self.setState({ amount: e.target.value.replace(/[^0-9.,]/g, '') }); },
+      onColl: function (e) { self.setState({ coll: e.target.value.replace(/[^0-9.,]/g, '') }); },
+      payInterest: function () { self.setState({ amount: '4.93' }); },
+      payHalf: function () { self.setState({ amount: '302.47' }); },
+      payFull: function () { self.setState({ amount: '604.93' }); },
+      add250: function () { self.setState({ coll: '250' }); },
+      add500: function () { self.setState({ coll: '500' }); },
+      add1000: function () { self.setState({ coll: '1000' }); },
+      useBank: function () { self.setState({ via: 'bank' }); },
+      useSell: function () { self.setState({ via: 'sell' }); },
+      toggleAck: function () { self.setState({ ack: !s.ack }); },
+      toReview: function () { if (isRepay ? rOk : cOk) self.setState({ step: 'review', tried: false }); else self.setState({ tried: true }); },
+      back: function () { self.setState({ step: 'form' }); },
+      confirm: function () { if (!isRepay && !s.ack) { self.setState({ ackTried: true }); return; } self.setState({ step: 'status', stage: 1 }); },
+      advance: function () { self.setState({ stage: Math.min(3, s.stage + 1) }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

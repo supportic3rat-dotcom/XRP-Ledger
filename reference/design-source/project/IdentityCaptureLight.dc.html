@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Identity capture (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 4px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.h1{margin:0 0 6px;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.lead{margin:0 0 18px;font-size:14px;line-height:1.5;color:var(--text-2)}
+.steps{display:flex;gap:6px;margin:4px 0 20px}
+.steps span{flex:1;height:3px;border-radius:2px;background:var(--border)}
+.steps span.on{background:var(--accent)}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer;color:var(--text)}
+.opt:first-child{border-top:0}
+.radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border-strong);flex:none}
+.radio.on{border:6px solid var(--accent)}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap select{flex:1;min-width:0;height:50px;border:0;outline:0;background:transparent;font-size:15px;appearance:none}
+.frame{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border-radius:14px;background:var(--sunken);color:var(--text-3);font-size:13px;overflow:hidden}
+.frame .c{position:absolute;width:26px;height:26px;border-color:var(--text);border-style:solid;border-width:0}
+.frame .tl{top:14px;left:14px;border-top-width:3px;border-left-width:3px;border-top-left-radius:8px}
+.frame .tr{top:14px;right:14px;border-top-width:3px;border-right-width:3px;border-top-right-radius:8px}
+.frame .bl{bottom:14px;left:14px;border-bottom-width:3px;border-left-width:3px;border-bottom-left-radius:8px}
+.frame .br{bottom:14px;right:14px;border-bottom-width:3px;border-right-width:3px;border-bottom-right-radius:8px}
+.frame.done{background:var(--accent-soft);color:var(--text)}
+.oval{width:190px;height:240px;border-radius:50%;border:3px dashed var(--border-strong);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--text-3);font-size:13px}
+.oval.done{border-style:solid;border-color:var(--pos);color:var(--text)}
+.tick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--accent);flex:none}
+.file{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px dashed var(--border-strong);border-radius:12px}
+.footer{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.footer .btn{flex:1}
+.link{color:var(--accent-text)}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <sc-if value="{{canBack}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="icon-btn" aria-label="Back" onClick="{{back}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+      </sc-if>
+      <sc-if value="{{noBack}}" hint-placeholder-val="{{ true }}">
+        <a class="icon-btn" href="{{L.verify}}" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+      </sc-if>
+      <span style="flex: 1; font-size: 13px; color: var(--text-3); text-align: center; margin-right: 44px">{{stepLabel}}</span>
+    </div>
+    <sc-if value="{{showSteps}}" hint-placeholder-val="{{ true }}">
+      <div class="steps" aria-hidden="true">
+        <sc-for list="{{bar}}" as="b" hint-placeholder-count="6"><span class="{{b.cls}}"></span></sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{v.doc}}" hint-placeholder-val="{{ true }}">
+      <h1 class="h1">Choose your ID</h1>
+      <p class="lead">Use a valid, unexpired government-issued photo ID.</p>
+      <div class="card" role="radiogroup" aria-label="Document type">
+        <sc-for list="{{docs}}" as="d" hint-placeholder-count="3">
+          <button type="button" class="opt" role="radio" aria-checked="{{d.on}}" onClick="{{d.pick}}">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{d.label}}</span><span class="help">{{d.hint}}</span></span>
+            <span class="radio {{d.cls}}" aria-hidden="true"></span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 18px">
+        <label class="label" for="ic-country">Issuing country</label>
+        <div class="input-wrap">
+          <select id="ic-country" value="{{country}}" onChange="{{onCountry}}">
+            <option value="NG">Nigeria</option><option value="GH">Ghana</option><option value="GB">United Kingdom</option><option value="OTHER">Other</option>
+          </select>
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+      </div>
+      <div class="banner info" style="margin-top: 18px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+        <span>Photos go straight to [KYC provider] over an encrypted connection. They aren’t saved to your camera roll.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{v.photo}}" hint-placeholder-val="{{ false }}">
+      <h1 class="h1">{{photo.title}}</h1>
+      <p class="lead">{{photo.lead}}</p>
+      <div class="frame {{photo.cls}}" style="height: 220px" role="img" aria-label="{{photo.aria}}">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <sc-if value="{{photo.taken}}" hint-placeholder-val="{{ false }}">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 32px; height: 32px; color: var(--pos)"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+          <span style="font-weight: 500">Photo captured</span>
+        </sc-if>
+        <sc-if value="{{photo.notTaken}}" hint-placeholder-val="{{ true }}">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 32px; height: 32px"><rect x="3.5" y="6" width="17" height="12" rx="2"></rect><circle cx="9" cy="12" r="2.2"></circle><path d="M13.5 10.5h4M13.5 13.5h3"></path></svg>
+          <span>Camera preview</span>
+        </sc-if>
+      </div>
+      <sc-if value="{{photo.taken}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px">
+          <span class="tick"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--pos)"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>All four corners visible</span>
+          <span class="tick"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--pos)"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Text is readable, no glare</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{photo.notTaken}}" hint-placeholder-val="{{ true }}">
+        <ul style="margin: 14px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--text-2)">
+          <li>Place the document on a dark, flat surface</li>
+          <li>Fit it inside the corners</li>
+          <li>Avoid glare and shadows</li>
+        </ul>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{v.selfie}}" hint-placeholder-val="{{ false }}">
+      <h1 class="h1">Take a selfie</h1>
+      <p class="lead">We compare it with the photo on your ID. Look straight at the camera and follow the on-screen prompt.</p>
+      <div style="display: flex; justify-content: center; padding: 8px 0">
+        <div class="oval {{selfie.cls}}" role="img" aria-label="{{selfie.aria}}">
+          <sc-if value="{{selfie.taken}}" hint-placeholder-val="{{ false }}">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 32px; height: 32px; color: var(--pos)"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            <span style="font-weight: 500">Liveness passed</span>
+          </sc-if>
+          <sc-if value="{{selfie.notTaken}}" hint-placeholder-val="{{ true }}">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 32px; height: 32px"><circle cx="12" cy="9" r="3.5"></circle><path d="M5.5 19.5c1.2-3.2 3.7-4.8 6.5-4.8s5.3 1.6 6.5 4.8"></path></svg>
+            <span>Face in the oval</span>
+          </sc-if>
+        </div>
+      </div>
+      <p class="help" style="text-align: center; margin: 12px 0 0">{{selfie.hint}}</p>
+    </sc-if>
+
+    <sc-if value="{{v.address}}" hint-placeholder-val="{{ false }}">
+      <h1 class="h1">Proof of address</h1>
+      <p class="lead">A bank statement or utility bill showing your name and address, dated within the last 3 months.</p>
+      <div class="card" role="radiogroup" aria-label="Proof of address type">
+        <sc-for list="{{addrDocs}}" as="d" hint-placeholder-count="2">
+          <button type="button" class="opt" role="radio" aria-checked="{{d.on}}" onClick="{{d.pick}}">
+            <span style="flex: 1; font-weight: 500">{{d.label}}</span>
+            <span class="radio {{d.cls}}" aria-hidden="true"></span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="margin-top: 14px">
+        <sc-if value="{{file.has}}" hint-placeholder-val="{{ false }}">
+          <div class="file">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z"></path><path d="M14 3.5v4h4"></path></svg>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0"><span style="font-weight: 500">{{file.name}}</span><span class="help">412 KB · PDF</span></span>
+            <button type="button" class="icon-btn" aria-label="Remove file" onClick="{{removeFile}}"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+        </sc-if>
+        <sc-if value="{{file.none}}" hint-placeholder-val="{{ true }}">
+          <button type="button" class="btn btn-secondary" onClick="{{chooseFile}}">
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg>
+            Choose file or take photo
+          </button>
+          <p class="help" style="margin: 8px 4px 0">PDF, JPG or PNG up to 10 MB.</p>
+        </sc-if>
+        <sc-if value="{{file.err}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 8px 4px 0">{{file.err}}</p></sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{v.review}}" hint-placeholder-val="{{ false }}">
+      <h1 class="h1">Check and submit</h1>
+      <p class="lead">You can’t edit these after submitting, but you can start again if something’s wrong.</p>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>ID document</dt><dd>{{review.doc}}</dd></div>
+          <div><dt>Issuing country</dt><dd>{{review.country}}</dd></div>
+          <div><dt>Photos</dt><dd>{{review.photos}}</dd></div>
+          <div><dt>Selfie</dt><dd>Captured</dd></div>
+          <div><dt>Proof of address</dt><dd>{{review.addr}}</dd></div>
+        </dl>
+      </div>
+      <label class="check" style="margin-top: 18px">
+        <input type="checkbox" checked="{{consent}}" onChange="{{toggleConsent}}">
+        <span>I agree that [KYC provider] may process my ID and a biometric template of my face to verify my identity, as described in the <a class="link" href="{{L.legal}}">Privacy Policy</a> (draft v0.1).</span>
+      </label>
+      <sc-if value="{{consentErr}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 8px 0 0 30px">{{consentErr}}</p></sc-if>
+    </sc-if>
+
+    <sc-if value="{{v.done}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 40px">
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; background: var(--warn-soft); color: var(--warn)"><svg class="ic" viewBox="0 0 24 24" style="width: 26px; height: 26px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>
+        <h1 class="h1">Submitted for review</h1>
+        <p class="lead" style="margin: 0">Most reviews finish within a few hours. We’ll notify you when your status changes — you don’t need to keep the app open.</p>
+      </div>
+      <div class="card" style="margin-top: 20px">
+        <dl class="kv">
+          <div><dt>Reference</dt><dd style="font-family: 'Geist Mono', monospace; font-size: 12.5px">KYC-PROTO-0042</dd></div>
+          <div><dt>Status</dt><dd>In review</dd></div>
+          <div><dt>Meanwhile you can</dt><dd>Deposit XRP</dd></div>
+        </dl>
+      </div>
+    </sc-if>
+  </div>
+
+  <div class="footer">
+    <sc-if value="{{f.photoUntaken}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="btn btn-primary" onClick="{{capture}}">{{f.captureLabel}}</button>
+    </sc-if>
+    <sc-if value="{{f.photoTaken}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="btn btn-secondary" onClick="{{retake}}">Retake</button>
+      <button type="button" class="btn btn-primary" onClick="{{next}}">Use photo</button>
+    </sc-if>
+    <sc-if value="{{f.plain}}" hint-placeholder-val="{{ true }}">
+      <button type="button" class="btn btn-primary" onClick="{{next}}">{{f.nextLabel}}</button>
+    </sc-if>
+    <sc-if value="{{f.done}}" hint-placeholder-val="{{ false }}">
+      <a class="btn btn-secondary" href="{{L.verify}}">View status</a>
+      <a class="btn btn-primary" href="{{L.home}}">Go to Home</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var VARIANT = 'light';
+var SUF = VARIANT === 'light' ? 'Light' : '';
+function to(n) { return n + SUF + '.dc.html'; }
+function isDark(p) { if (p === true || p === 'true') return true; if (p === false || p === 'false') return false; return VARIANT === 'dark'; }
+var DOCS = [
+  { id: 'passport', label: 'Passport', hint: 'Photo page only', sides: 1 },
+  { id: 'national', label: 'National ID card', hint: 'Front and back', sides: 2 },
+  { id: 'licence', label: 'Driver’s licence', hint: 'Front and back', sides: 2 }
+];
+var COUNTRIES = { NG: 'Nigeria', GH: 'Ghana', GB: 'United Kingdom', OTHER: 'Other' };
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { i: 0, doc: 'national', country: 'NG', front: false, backSide: false, selfie: false, addrDoc: 'bank', file: false, fileTried: false, consent: false, consentTried: false }; }
+  steps() {
+    var d = DOCS.filter(function (x) { return x.id === this.state.doc; }, this)[0];
+    var s = ['doc', 'front'];
+    if (d.sides === 2) s.push('back');
+    return s.concat(['selfie', 'address', 'review', 'done']);
+  }
+  renderVals() {
+    var self = this, s = this.state, steps = this.steps(), cur = steps[s.i];
+    var total = steps.length - 1;
+    var doc = DOCS.filter(function (x) { return x.id === s.doc; })[0];
+    var isPhoto = cur === 'front' || cur === 'back';
+    var taken = cur === 'front' ? s.front : (cur === 'back' ? s.backSide : (cur === 'selfie' ? s.selfie : false));
+    var captureStep = isPhoto || cur === 'selfie';
+    function go(n) { self.setState({ i: Math.max(0, Math.min(steps.length - 1, n)) }); }
+    return {
+      themeCls: isDark(this.props.dark) ? 'dark' : '',
+      L: { verify: to('Verify'), home: to('Home'), legal: to('Legal') },
+      stepLabel: cur === 'done' ? 'Identity' : 'Step ' + (s.i + 1) + ' of ' + total + ' · Identity',
+      showSteps: cur !== 'done', canBack: s.i > 0 && cur !== 'done', noBack: s.i === 0 || cur === 'done',
+      bar: steps.slice(0, total).map(function (x, k) { return { cls: k <= s.i ? 'on' : '' }; }),
+      v: { doc: cur === 'doc', photo: isPhoto, selfie: cur === 'selfie', address: cur === 'address', review: cur === 'review', done: cur === 'done' },
+      docs: DOCS.map(function (d) { return { label: d.label, hint: d.hint, on: d.id === s.doc, cls: d.id === s.doc ? 'on' : '', pick: function () { self.setState({ doc: d.id, front: false, backSide: false }); } }; }),
+      country: s.country,
+      photo: {
+        title: cur === 'back' ? 'Back of your ' + doc.label.toLowerCase() : (doc.id === 'passport' ? 'Passport photo page' : 'Front of your ' + doc.label.toLowerCase()),
+        lead: cur === 'back' ? 'Turn it over and fit the back inside the frame.' : 'Fit the document inside the frame. We’ll capture automatically when it’s sharp.',
+        taken: taken, notTaken: !taken, cls: taken ? 'done' : '',
+        aria: taken ? 'Document photo captured' : 'Camera preview with document guide'
+      },
+      selfie: {
+        taken: s.selfie, notTaken: !s.selfie, cls: s.selfie ? 'done' : '',
+        aria: s.selfie ? 'Selfie captured' : 'Camera preview with face guide',
+        hint: s.selfie ? 'Looks good. Continue when you’re ready.' : 'Remove glasses and hats. Make sure your face is well lit.'
+      },
+      addrDocs: [{ id: 'bank', label: 'Bank statement' }, { id: 'utility', label: 'Utility bill' }].map(function (d) { return { label: d.label, on: d.id === s.addrDoc, cls: d.id === s.addrDoc ? 'on' : '', pick: function () { self.setState({ addrDoc: d.id }); } }; }),
+      file: { has: s.file, none: !s.file, name: s.addrDoc === 'bank' ? 'bank-statement-sep.pdf' : 'utility-bill-sep.pdf', err: s.fileTried && !s.file ? 'Add a document to continue.' : '' },
+      review: {
+        doc: doc.label, country: COUNTRIES[s.country],
+        photos: doc.sides === 2 ? 'Front and back' : 'Photo page',
+        addr: (s.addrDoc === 'bank' ? 'Bank statement' : 'Utility bill')
+      },
+      consent: s.consent, consentErr: s.consentTried && !s.consent ? 'You need to agree before we can verify your identity.' : '',
+      f: {
+        photoUntaken: captureStep && !taken, photoTaken: captureStep && taken,
+        captureLabel: cur === 'selfie' ? 'Start selfie' : 'Take photo',
+        plain: !captureStep && cur !== 'done', done: cur === 'done',
+        nextLabel: cur === 'review' ? 'Submit for review' : 'Continue'
+      },
+      onCountry: function (e) { self.setState({ country: e.target.value }); },
+      capture: function () { var p = {}; p[cur === 'back' ? 'backSide' : cur] = true; self.setState(p); },
+      retake: function () { var p = {}; p[cur === 'back' ? 'backSide' : cur] = false; self.setState(p); },
+      chooseFile: function () { self.setState({ file: true }); },
+      removeFile: function () { self.setState({ file: false }); },
+      toggleConsent: function () { self.setState({ consent: !s.consent }); },
+      back: function () { go(s.i - 1); },
+      next: function () {
+        if (cur === 'address' && !s.file) { self.setState({ fileTried: true }); return; }
+        if (cur === 'review' && !s.consent) { self.setState({ consentTried: true }); return; }
+        go(s.i + 1);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

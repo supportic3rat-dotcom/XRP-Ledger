@@ -1,0 +1,7 @@
+node_modules
+reference
+.expo
+.next
+dist
+pnpm-lock.yaml
+*.sql

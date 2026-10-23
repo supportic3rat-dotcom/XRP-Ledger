@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Identity verification (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn-block{width:100%}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.sec{margin:24px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.row{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-top:1px solid var(--border)}
+.row:first-child{border-top:0}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text-2);white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}.status.bad{color:var(--neg)}.status.off{color:var(--text-3)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.hero-ic{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:16px}
+.hero-ic.ok{background:var(--accent-soft);color:var(--accent-text)}
+.hero-ic.wait{background:var(--warn-soft);color:var(--warn)}
+.hero-ic.bad{background:var(--neg-soft);color:var(--neg)}
+.hero-ic.off{background:var(--sunken);color:var(--text-2)}
+.progress{display:flex;gap:6px}
+.progress span{flex:1;height:3px;border-radius:2px;background:var(--accent)}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="CreateAccountLight.dc.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <span style="flex: 1; font-size: 13px; color: var(--text-3); text-align: center; margin-right: 44px">Step 3 of 3 · Identity</span>
+    </div>
+    <div class="progress" aria-hidden="true" style="margin-bottom: 28px"><span></span><span></span><span></span></div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span class="hero-ic {{st.tone}}" aria-hidden="true">
+        <svg class="ic" viewBox="0 0 24 24" style="width: 26px; height: 26px"><path d="{{st.icon}}"></path></svg>
+      </span>
+      <span class="status {{st.tone}}">{{st.label}}</span>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance">{{st.title}}</h1>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2)">{{st.body}}</p>
+    </div>
+
+    <sc-if value="{{showChecklist}}" hint-placeholder-val="{{ true }}">
+      <div class="sec">What we’ll check</div>
+      <div class="card">
+        <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+          <div class="row">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px">
+              <span style="font-weight: 500">{{c.label}}</span>
+              <span style="font-size: 12.5px; color: var(--text-3)">{{c.hint}}</span>
+            </span>
+            <span class="status {{c.tone}}">{{c.status}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <div class="sec">What verification unlocks</div>
+    <div class="card">
+      <sc-for list="{{unlocks}}" as="u" hint-placeholder-count="5">
+        <div class="row">
+          <span style="flex: 1; font-weight: 500">{{u.label}}</span>
+          <span class="status {{u.tone}}">{{u.status}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px">
+      <sc-if value="{{st.ctaAction}}" hint-placeholder-val="{{ true }}">
+        <a class="btn btn-primary btn-block" href="{{st.href}}">{{st.cta}}</a>
+      </sc-if>
+      <sc-if value="{{st.ctaHome}}" hint-placeholder-val="{{ false }}">
+        <a class="btn btn-primary btn-block" href="HomeLight.dc.html">{{st.cta}}</a>
+      </sc-if>
+      <a class="btn btn-secondary btn-block" href="HomeLight.dc.html">{{secondary}}</a>
+    </div>
+
+    <div class="banner info" style="margin-top: 20px">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+      <span>Your status comes from our verification provider, [KYC provider]. This screen only displays it and can’t change it.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"status":{"editor":"enum","options":["not_started","in_progress","verified","more_info","rejected","restricted"],"default":"not_started"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var I_ID = 'M4 6.5h16v11H4zM8 10.5h3M8 13.5h5M15.5 10.5h1.5';
+var I_OK = 'M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1zM8.8 12.2l2.2 2.2 4.2-4.4';
+var I_CLOCK = 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2';
+var I_ALERT = 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.8v5M12 16.2h.01';
+var I_X = 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM9 9l6 6M15 9l-6 6';
+var I_LOCK = 'M5 10.5h14v10H5zM8 10.5V8a4 4 0 0 1 8 0v2.5';
+var STATES = {
+  not_started: { label: 'Not started', tone: 'off', icon: I_ID, title: 'Verify your identity', body: 'It takes about 5 minutes. You’ll need a government-issued photo ID and a well-lit place to take a selfie.', cta: 'Start verification', action: true, secondary: 'Do this later' },
+  in_progress: { label: 'In progress', tone: 'wait', icon: I_CLOCK, title: 'We’re reviewing your details', body: 'Most reviews finish within a few hours. We’ll notify you when there’s an update — you don’t need to keep the app open.', cta: 'Go to Home', home: true, secondary: 'Go to Home' },
+  verified: { label: 'Verified', tone: 'ok', icon: I_OK, title: 'You’re verified', body: 'Your custodial account is set up and your XRP deposit address is ready.', cta: 'Go to Home', home: true, secondary: 'View custody account' },
+  more_info: { label: 'Additional information required', tone: 'wait', icon: I_ALERT, title: 'We need one more document', body: 'Your proof of address couldn’t be read. Upload a bank statement or utility bill from the last 3 months.', cta: 'Upload document', action: true, secondary: 'Do this later' },
+  rejected: { label: 'Rejected', tone: 'bad', icon: I_X, title: 'We couldn’t verify your identity', body: 'Your application didn’t meet our verification requirements. You can contact support to ask about next steps.', cta: 'Contact support', action: true, secondary: 'Go to Home' },
+  restricted: { label: 'Restricted', tone: 'bad', icon: I_LOCK, title: 'Your account is restricted', body: 'Some services are paused on your account. You can still sign in and see your balances. Contact support for details.', cta: 'Contact support', action: true, secondary: 'Go to Home' }
+};
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { override: null }; }
+  componentDidUpdate(prev) { if (prev.status !== this.props.status && this.state.override) this.setState({ override: null }); }
+  renderVals() {
+    var self = this;
+    var key = this.state.override || this.props.status || 'not_started';
+    var st = STATES[key] || STATES.not_started;
+    var verified = key === 'verified', restricted = key === 'restricted' || key === 'rejected';
+    function unlock(label, needsVerified, extra) {
+      if (verified) return { label: label, status: extra || 'Available', tone: extra ? 'off' : 'ok' };
+      if (restricted) return { label: label, status: 'Unavailable', tone: 'bad' };
+      return { label: label, status: 'Needs verification', tone: 'off' };
+    }
+    var checkMap = {
+      not_started: ['Not started', 'off', 'Not started', 'off', 'Not started', 'off'],
+      in_progress: ['Received', 'ok', 'Received', 'ok', 'In review', 'wait'],
+      more_info: ['Received', 'ok', 'Received', 'ok', 'Action needed', 'bad']
+    }[key];
+    var checks = checkMap ? [
+      { label: 'Photo ID', hint: 'Passport, national ID or driver’s licence', status: checkMap[0], tone: checkMap[1] },
+      { label: 'Selfie', hint: 'Matched against your ID photo', status: checkMap[2], tone: checkMap[3] },
+      { label: 'Proof of address', hint: 'Dated within the last 3 months', status: checkMap[4], tone: checkMap[5] }
+    ] : [];
+    return {
+      themeCls: this.props.dark === true ? 'dark' : '',
+      st: { label: st.label, tone: st.tone, icon: st.icon, title: st.title, body: st.body, cta: st.cta, ctaAction: !!st.action, ctaHome: !!st.home, href: (key === 'rejected' || key === 'restricted' ? 'Support' : 'IdentityCapture') + 'Light.dc.html' },
+      secondary: st.secondary,
+      showChecklist: checks.length > 0, checks: checks,
+      unlocks: [
+        unlock('Deposits', true), unlock('Withdrawals', true), unlock('Exchange requests', true),
+        unlock('Yield products', true, verified ? 'Separate agreement' : ''), unlock('Borrowing', true, verified ? 'Separate agreement' : '')
+      ],
+      start: function () { if (key === 'not_started' || key === 'more_info') self.setState({ override: 'in_progress' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

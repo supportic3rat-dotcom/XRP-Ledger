@@ -1,0 +1,18 @@
+# Withdraw 100 XRP: destination → amount → review (fees come out of the amount) → authenticator code → submitted.
+# Not yet run on a simulator; see docs/testing.md.
+appId: com.example.xrpledger
+---
+- runFlow: sign-in.yaml
+- tapOn: "Withdraw"
+- tapOn: "r…"
+- inputText: "rRecipXk3PaKcV9tYwZ2hNproto7Hd"
+- tapOn: "Continue"
+- tapOn: "0.00"
+- inputText: "100"
+- tapOn: "Continue"
+- assertVisible: "99.749988 XRP"
+- tapOn: "Continue to confirm"
+- inputText: "123456"
+- tapOn: "Submit withdrawal request"
+- assertVisible: "Balance reserved"
+- assertVisible: "Cancel request"

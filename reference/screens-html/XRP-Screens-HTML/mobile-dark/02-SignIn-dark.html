@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — SignIn (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select,.m textarea{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.link{border:0;background:none;padding:8px 4px;margin:-8px -4px;color:var(--accent-text);font-size:13.5px;font-weight:500;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.h1{margin:0 0 6px;font-size:24px;font-weight:600;letter-spacing:-.02em}
+.lead{margin:0 0 22px;font-size:14px;line-height:1.5;color:var(--text-2)}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:50px;border:0;outline:0;background:transparent;font-size:15px}
+.otp{width:100%;height:60px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);text-align:center;font-size:26px;letter-spacing:.4em;outline:0}
+.otp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.otp.invalid{border-color:var(--neg)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.banner.error{background:var(--neg-soft);color:var(--neg)}
+.hero{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;background:var(--accent-soft);color:var(--accent-text);margin-bottom:14px}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m dark">
+  <div class="scroll">
+    <div class="topbar">
+      
+        <a class="icon-btn" href="01-Welcome-dark.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      
+      
+    </div>
+
+    
+    
+      <h1 class="h1">Welcome back</h1>
+      <p class="lead">Sign in to your custodial account.</p>
+      
+      <form novalidate="" style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="field">
+          <label class="label" for="si-email">Email</label>
+          <div class="input-wrap "><input id="si-email" type="email" placeholder="you@example.com" value="" inputmode="email" autocomplete="username"></div>
+          
+        </div>
+        <div class="field">
+          <label class="label" for="si-pass">Password</label>
+          <div class="input-wrap ">
+            <input id="si-pass" type="password" value="" autocomplete="current-password">
+            <button type="button" style="border: 0px; background: none; padding: 0px 2px; font-size: 13px; font-weight: 500; color: var(--accent-text); cursor: pointer;"><span class="sc-interp">Show</span></button>
+          </div>
+          
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: -4px;"><button type="button" class="link">Forgot password?</button></div>
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </form>
+      <p class="help" style="margin: 16px 0px 0px; text-align: center;">Prototype: use any email and a password of 8+ characters. “wrong” as the password shows the error state.</p>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 28px; font-size: 13.5px; color: var(--text-2);">
+        New here? <a href="04-CreateAccount-dark.html" style="color: var(--accent-text); font-weight: 500;">Create an account</a>
+      </div>
+    
+
+    
+    
+
+    
+    
+
+    
+    
+  </div></div></div>
+</body>
+</html>

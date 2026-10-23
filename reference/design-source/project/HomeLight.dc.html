@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Home (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:8px 16px 112px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}.ic-xs{width:14px;height:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.icon-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:15px;background:var(--accent-soft);color:var(--accent-text);font-size:12px;font-weight:500;white-space:nowrap;text-decoration:none}
+.chips{display:flex;justify-content:space-between;gap:2px}
+.chip{flex:1;height:32px;border:0;border-radius:8px;background:transparent;color:var(--text-3);font-size:12px;font-weight:500;cursor:pointer}
+.chip.on{background:var(--sunken);color:var(--text)}
+.sec{display:flex;align-items:center;justify-content:space-between;margin:24px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.qa{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:76px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);font-size:12.5px;font-weight:500;text-decoration:none;cursor:pointer}
+.qa-btn .qa-ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent-text)}
+.qa-btn.off{color:var(--text-3);background:var(--sunken)}
+.qa-btn.off .qa-ic{background:var(--border);color:var(--text-3)}
+.line{display:flex;align-items:baseline;gap:12px;padding:11px 14px;border-top:1px solid var(--border);font-size:13.5px}
+.line:first-child{border-top:0}
+.line .k{flex:1;color:var(--text-2)}
+.line .v{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.line .s{display:block;font-size:12px;font-weight:400;color:var(--text-3)}
+.swatch{width:8px;height:8px;border-radius:2px;flex:none;align-self:center}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer;color:var(--text)}
+.row:first-child{border-top:0}
+.row:active{background:var(--sunken)}
+.row .chev{color:var(--text-3)}
+.tx-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--sunken);color:var(--text-2);flex:none}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text-2);white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}.status.bad{color:var(--neg)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.error{background:var(--neg-soft);color:var(--neg)}
+.link-btn{border:0;background:none;padding:6px 4px;margin:-6px -4px;color:var(--accent-text);font-size:13px;font-weight:500;cursor:pointer;text-decoration:none}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 8px 26px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--border);z-index:5}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:500;color:var(--text-3);text-decoration:none;border-radius:10px}
+.tab.on{color:var(--accent-text)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:20;max-height:82%;overflow-y:auto;padding:20px 16px 32px;background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -12px 32px -16px rgba(0,0,0,.25)}
+.sheet.top{z-index:26;max-height:90%}
+.scrim{position:absolute;inset:0;z-index:15;border:0;padding:0;background:rgba(5,10,8,.5);cursor:default}
+.scrim.top{z-index:25}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--border-strong);margin:-8px auto 14px}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3);flex:none}.kv dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+.tl{list-style:none;margin:0;padding:14px;display:flex;flex-direction:column}
+.tl li{position:relative;display:flex;gap:12px;padding-bottom:14px;font-size:13.5px}
+.tl li::before{content:"";position:absolute;left:7px;top:18px;bottom:-2px;width:2px;background:var(--border)}
+.tl li:last-child{padding-bottom:0}.tl li:last-child::before{display:none}
+.tl .dot{position:relative;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none}
+.tl li.done .dot{border-color:var(--accent);background:var(--accent)}
+.tl li.done::before{background:var(--accent)}
+.tl li.now .dot{border-color:var(--dot-warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.tl li.bad .dot{border-color:var(--neg);background:var(--neg)}
+.toast{position:absolute;left:16px;right:16px;bottom:100px;z-index:40;padding:12px 14px;border-radius:12px;background:var(--text);color:var(--bg);font-size:13px}
+.copy{display:inline-flex;align-items:center;height:28px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-size:12px;font-weight:500;cursor:pointer}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <header style="display: flex; align-items: center; gap: 8px; min-height: 52px">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" style="flex: none"><rect width="28" height="28" rx="7" style="fill: var(--accent)"></rect><path d="M8 9.5h12M8 14h7.5M12.5 18.5H20" style="fill: none; stroke: var(--on-accent); stroke-width: 2.2; stroke-linecap: round"></path></svg>
+      <a class="pill" href="CustodyLight.dc.html" style="margin-left: 4px">
+        <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+        Custodial account
+      </a>
+      <span style="flex: 1"></span>
+      <a class="icon-btn" href="NotificationsLight.dc.html" aria-label="Notifications, 2 unread">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 11px; right: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--neg); box-shadow: 0 0 0 2px var(--bg)"></span>
+      </a>
+    </header>
+
+    <section class="card" aria-labelledby="h-total" style="padding: 18px 16px 12px; margin-top: 8px">
+      <h1 id="h-total" style="margin: 0; font-size: 13px; font-weight: 500; color: var(--text-2)">Total custodial value</h1>
+      <div class="num" style="margin-top: 6px; font-size: 36px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1">$15,279<span style="color: var(--text-3)">.84</span></div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px">
+        <span class="num" style="font-weight: 500; color: {{pf.color}}">{{pf.change}}</span>
+        <span style="color: var(--text-3)">{{pf.suffix}}</span>
+      </div>
+      <div style="position: relative; height: 112px; margin: 14px 0 6px" role="img" aria-label="{{pf.aria}}">
+        <svg aria-hidden="true" viewBox="0 0 1000 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible">
+          <path d="{{pf.area}}" style="fill: var(--accent); fill-opacity: 0.08; stroke: none"></path>
+          <path d="{{pf.line}}" style="fill: none; stroke: var(--accent); stroke-width: 2px; stroke-linejoin: round; vector-effect: non-scaling-stroke"></path>
+        </svg>
+        <span aria-hidden="true" style="position: absolute; left: 100%; top: {{pf.endTop}}%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--surface)"></span>
+      </div>
+      <div class="chips" role="group" aria-label="Chart period">
+        <sc-for list="{{periods}}" as="p" hint-placeholder-count="7">
+          <button type="button" class="chip {{p.cls}}" aria-pressed="{{p.on}}" onClick="{{p.pick}}">{{p.id}}</button>
+        </sc-for>
+      </div>
+      <p style="margin: 10px 0 0; font-size: 11.5px; color: var(--text-3)">{{priceNote}}</p>
+    </section>
+
+    <sc-if value="{{stale}}" hint-placeholder-val="{{ false }}">
+      <div class="banner warn" role="alert" style="margin-top: 10px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+        <span>Prices haven’t updated since 10:41. Fiat values may be out of date; your XRP balances are unaffected.</span>
+      </div>
+    </sc-if>
+
+    <div class="sec" style="margin-top: 20px"><span>Quick actions</span></div>
+    <div class="qa">
+      <sc-for list="{{actions}}" as="q" hint-placeholder-count="6">
+        <sc-if value="{{q.enabled}}" hint-placeholder-val="{{ true }}">
+          <a class="qa-btn" href="{{q.href}}"><span class="qa-ic" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="{{q.icon}}"></path></svg></span>{{q.label}}</a>
+        </sc-if>
+        <sc-if value="{{q.disabled}}" hint-placeholder-val="{{ false }}">
+          <button type="button" class="qa-btn off" aria-disabled="true" onClick="{{q.explain}}"><span class="qa-ic" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="{{q.icon}}"></path></svg></span>{{q.label}}</button>
+        </sc-if>
+        <sc-if value="{{q.isHistory}}" hint-placeholder-val="{{ false }}">
+          <button type="button" class="qa-btn" onClick="{{q.explain}}"><span class="qa-ic" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="{{q.icon}}"></path></svg></span>{{q.label}}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+    <sc-if value="{{reason}}" hint-placeholder-val="{{ false }}">
+      <div class="banner info" role="status" style="margin-top: 10px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>
+        <span style="flex: 1">{{reason}}</span>
+        <a class="link-btn" href="VerifyLight.dc.html">Verify</a>
+      </div>
+    </sc-if>
+
+    <div class="sec"><span>Where your XRP is · 6,420.10</span><a class="link-btn" href="AssetDetailLight.dc.html">XRP details</a></div>
+    <div class="card">
+      <div style="display: flex; height: 8px; margin: 14px 14px 4px; border-radius: 4px; overflow: hidden; gap: 2px" aria-hidden="true">
+        <span style="flex: 4170.10; background: var(--accent)"></span>
+        <span style="flex: 1500; background: var(--accent); opacity: 0.55"></span>
+        <span style="flex: 750; background: var(--text-3); opacity: 0.6"></span>
+      </div>
+      <div class="line"><span class="swatch" style="background: var(--accent)"></span><span class="k">Available</span><span class="v">$9,924.84<span class="s">4,170.10 XRP</span></span></div>
+      <div class="line"><span class="swatch" style="background: var(--accent); opacity: 0.55"></span><span class="k">Allocated to yield</span><span class="v">$3,570.00<span class="s">1,500.00 XRP</span></span></div>
+      <div class="line"><span class="swatch" style="background: var(--text-3); opacity: 0.6"></span><span class="k">Locked as loan collateral</span><span class="v">$1,785.00<span class="s">750.00 XRP</span></span></div>
+      <div class="line"><span class="swatch" style="background: var(--border-strong)"></span><span class="k">Reserved for withdrawals</span><span class="v">$0.00<span class="s">0.00 XRP</span></span></div>
+    </div>
+
+    <div class="sec"><span>Not included in the total</span></div>
+    <div class="card">
+      <div class="line"><span class="k">Pending deposits<span class="s">Credited after ledger validation</span></span><span class="v">1,250.00 XRP<span class="s">$2,975.00</span></span></div>
+      <div class="line"><span class="k">Outstanding borrowing<span class="s">Principal + accrued interest</span></span><span class="v">$604.93<span class="s">1 loan</span></span></div>
+      <div class="line"><span class="k">Estimated accrued rewards<span class="s">Not yet confirmed or credited</span></span><span class="v">≈ 1.97 XRP<span class="s">≈ $4.69</span></span></div>
+    </div>
+
+    <div class="sec"><span>Recent activity</span><button type="button" class="link-btn" onClick="{{openHistory}}">History</button></div>
+    <div class="card">
+      <sc-for list="{{recent}}" as="t" hint-placeholder-count="3">
+        <button type="button" class="row" onClick="{{t.open}}" aria-label="{{t.aria}}">
+          <span class="tx-ic" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="{{t.icon}}"></path></svg></span>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0"><span style="font-weight: 500">{{t.title}}</span><span style="font-size: 12px; color: var(--text-3)">{{t.date}}</span></span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="num" style="font-weight: 500">{{t.amount}}</span><span class="status {{t.tone}}">{{t.status}}</span></span>
+          <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      </sc-for>
+    </div>
+    <p style="margin: 20px 0 0; font-size: 11.5px; color: var(--text-3); text-align: center">Sample data · prototype</p>
+  </div>
+
+  <!-- History list -->
+  <sc-if value="{{history}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim" aria-label="Close history" tabIndex="-1" onClick="{{closeHistory}}"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hist-title">
+      <div class="grab"></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 4px 12px">
+        <h2 id="hist-title" style="margin: 0; font-size: 18px; font-weight: 600">Transaction history</h2>
+        <button type="button" class="icon-btn" aria-label="Close" onClick="{{closeHistory}}" style="margin-right: -10px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div class="card">
+        <sc-for list="{{all}}" as="t" hint-placeholder-count="6">
+          <button type="button" class="row" onClick="{{t.open}}" aria-label="{{t.aria}}">
+            <span class="tx-ic" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="{{t.icon}}"></path></svg></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0"><span style="font-weight: 500">{{t.title}}</span><span style="font-size: 12px; color: var(--text-3)">{{t.date}}</span></span>
+            <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="num" style="font-weight: 500">{{t.amount}}</span><span class="status {{t.tone}}">{{t.status}}</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Transaction detail -->
+  <sc-if value="{{tx.open}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim top" aria-label="Close details" tabIndex="-1" onClick="{{closeTx}}"></button>
+    <div class="sheet top" role="dialog" aria-modal="true" aria-labelledby="tx-title">
+      <div class="grab"></div>
+      <div style="display: flex; align-items: center; gap: 12px; margin: 0 0 14px">
+        <span class="tx-ic" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="{{tx.icon}}"></path></svg></span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0">
+          <h2 id="tx-title" style="margin: 0; font-size: 17px; font-weight: 600">{{tx.title}}</h2>
+          <span style="font-size: 12.5px; color: var(--text-3)">{{tx.when}}</span>
+        </span>
+        <button type="button" class="icon-btn" aria-label="{{tx.closeLabel}}" onClick="{{closeTx}}" style="margin-right: -10px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 16px">
+        <span class="num" style="font-size: 30px; font-weight: 500; letter-spacing: -0.02em">{{tx.amount}}</span>
+        <span class="num" style="font-size: 13px; color: var(--text-3)">{{tx.fiat}}</span>
+        <span class="status {{tx.tone}}" style="margin-top: 6px">{{tx.status}}</span>
+      </div>
+
+      <div class="card">
+        <dl class="kv">
+          <sc-for list="{{tx.rows}}" as="r" hint-placeholder-count="6">
+            <div><dt>{{r.k}}</dt><dd class="{{r.cls}}">{{r.v}}</dd></div>
+          </sc-for>
+        </dl>
+      </div>
+
+      <div style="margin: 18px 4px 8px; font-size: 13px; font-weight: 600; color: var(--text-2)">Progress</div>
+      <div class="card">
+        <ol class="tl">
+          <sc-for list="{{tx.steps}}" as="s" hint-placeholder-count="4">
+            <li class="{{s.cls}}">
+              <span class="dot" aria-hidden="true"></span>
+              <span style="flex: 1; display: flex; justify-content: space-between; gap: 12px"><span style="font-weight: 500">{{s.label}}</span><span class="num" style="font-size: 12px; color: var(--text-3)">{{s.at}}</span></span>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+
+      <div class="banner {{tx.noteCls}}" style="margin-top: 12px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>{{tx.note}}</span>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px">
+        <button type="button" class="copy" onClick="{{copyRef}}" style="height: 44px; flex: 1; justify-content: center; font-size: 13.5px">{{tx.copyLabel}}</button>
+        <a class="copy" href="SupportLight.dc.html" style="height: 44px; flex: 1; justify-content: center; font-size: 13.5px; text-decoration: none; color: var(--text)">Get help with this</a>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status">{{toast}}</div></sc-if>
+
+  <nav class="tabbar" aria-label="Primary">
+    <a class="tab on" href="HomeLight.dc.html" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V20h-5.5v-6h-5v6H4z"></path></svg>Home</a>
+    <a class="tab" href="MarketsLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20h17"></path><path d="M5 15.5l4-4.5 3.5 2.5L19 6"></path></svg>Markets</a>
+    <a class="tab" href="EarnLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.5" rx="7" ry="2.5"></ellipse><path d="M5 6.5v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6.5"></path><path d="M5 12v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V12"></path></svg>Earn</a>
+    <a class="tab" href="BorrowLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5h16M6 13.5h12M8 9.5h8M10 5.5h4"></path></svg>Borrow</a>
+    <a class="tab" href="ProfileLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20c1.2-3.4 3.9-5 7-5s5.8 1.6 7 5"></path></svg>Profile</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"verified":{"editor":"boolean","default":true},"stalePrices":{"editor":"boolean","default":false},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var LINKS = { deposit: 'DepositLight.dc.html', withdraw: 'WithdrawLight.dc.html', exchange: 'ExchangeLight.dc.html', earn: 'EarnLight.dc.html', borrow: 'BorrowLight.dc.html' };
+var TOTAL = 15279.84;
+var PERIODS = [
+  { id: '1D', pct: 3.10, suffix: 'today', n: 48 }, { id: '1W', pct: 6.4, suffix: 'past week', n: 42 },
+  { id: '1M', pct: 12.8, suffix: 'past month', n: 30 }, { id: '3M', pct: -4.6, suffix: 'past 3 months', n: 45 },
+  { id: '6M', pct: 23.8, suffix: 'past 6 months', n: 52 }, { id: '1Y', pct: 58.2, suffix: 'past year', n: 52 },
+  { id: 'ALL', pct: 240, suffix: 'since Oct 2021', n: 60 }
+];
+var I = {
+  deposit: 'M12 4v11M7 10l5 5 5-5M5 19.5h14', withdraw: 'M12 20V9M7 14l5-5 5 5M5 4.5h14',
+  exchange: 'M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5', earn: 'M12 20V10M12 10c0-3 2-5 6-5 0 3.5-2 5-6 5zM12 13c0-2.5-1.7-4-5-4 0 3 1.7 4 5 4z',
+  borrow: 'M4 17.5h16M6 13.5h12M8 9.5h8M10 5.5h4', history: 'M4 12a8 8 0 1 0 2.3-5.7M4 5v4h4M12 8v4l3 2',
+  recv: 'M17 7L7 17M15 17H7V9', send: 'M7 17L17 7M9 7h8v8', reward: 'M12 5v14M5 12h14'
+};
+function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function series(p) {
+  var r = rng(p.n * 13 + 7), w = [0], i, n = p.n;
+  for (i = 1; i < n; i++) w.push(w[i - 1] + (r() - 0.5));
+  var last = w[n - 1], m = 0, b = [];
+  for (i = 0; i < n; i++) { b.push(w[i] - last * i / (n - 1)); m = Math.max(m, Math.abs(b[i])); }
+  var start = TOTAL / (1 + p.pct / 100), out = [];
+  for (i = 0; i < n; i++) out.push(i === n - 1 ? TOTAL : (start + (TOTAL - start) * i / (n - 1)) * (1 + 0.035 * (m ? b[i] / m : 0)));
+  return out;
+}
+function usd(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+// steps: [label, time, state] where state is 'done' | 'now' | 'bad' | ''
+var TXS = [
+  { id: 'dep2041', icon: I.recv, title: 'Deposit · XRP', date: 'Today, 11:42', when: 'Mon, Oct 19 · 11:42 WAT', amount: '+1,250.00 XRP', fiat: '≈ $2,975.00 at $2.38', status: 'Validating', tone: 'wait', ref: 'DEP-PROTO-2041',
+    rows: [['Type', 'Deposit'], ['Network', 'XRP Ledger'], ['From', 'rSendr…proto9Qa', 'mono'], ['Destination tag', '48201937', 'mono'], ['Fee', 'None'], ['Ledger hash', 'Available after validation'], ['Reference', 'DEP-PROTO-2041', 'mono']],
+    steps: [['Detected on ledger', '11:42', 'done'], ['Validated', '', 'now'], ['Compliance screening', '', ''], ['Credited to balance', '', '']],
+    note: 'Not in your available balance yet. It’s credited once the ledger validates it and screening passes.', noteCls: 'warn' },
+  { id: 'yld0098', icon: I.reward, title: 'Yield reward', date: 'Oct 3', when: 'Sat, Oct 3 · 09:00 WAT', amount: '+1.89 XRP', fiat: '≈ $4.50 at $2.38', status: 'Credited', tone: 'ok', ref: 'YLD-PROTO-0098',
+    rows: [['Type', 'Yield payout'], ['Product', 'XRP Flexible'], ['Provider', '[Yield provider]'], ['Period', 'Sep 16 – Oct 3'], ['Gross reward', '2.10 XRP'], ['Platform fee (10%)', '0.21 XRP'], ['Reference', 'YLD-PROTO-0098', 'mono']],
+    steps: [['Accrued', 'Oct 3', 'done'], ['Confirmed by provider', 'Oct 3, 08:12', 'done'], ['Credited to balance', 'Oct 3, 09:00', 'done']],
+    note: 'Reward confirmed against the provider’s records before it was credited.', noteCls: 'info' },
+  { id: 'wd1988', icon: I.send, title: 'Withdrawal · XRP', date: 'Oct 12', when: 'Mon, Oct 12 · 16:08 WAT', amount: '−300.00 XRP', fiat: '≈ $714.00 at $2.38', status: 'Completed', tone: 'ok', ref: 'WD-PROTO-1988',
+    rows: [['Type', 'Withdrawal'], ['Network', 'XRP Ledger'], ['To', 'rRecip…proto7Hd', 'mono'], ['Destination tag', '10293847', 'mono'], ['Platform fee', '0.25 XRP'], ['Network fee', '0.000012 XRP'], ['Recipient received', '299.749988 XRP'], ['Ledger hash', '3F9C…PROTO (sample)', 'mono'], ['Reference', 'WD-PROTO-1988', 'mono']],
+    steps: [['Submitted', '15:21', 'done'], ['Balance reserved', '15:21', 'done'], ['Compliance review', '15:40', 'done'], ['Approved', '15:52', 'done'], ['Sent to custody provider', '16:02', 'done'], ['Validated on ledger', '16:08', 'done'], ['Completed', '16:08', 'done']],
+    note: 'Completed only after the transaction was validated on the XRP Ledger. It can’t be reversed.', noteCls: 'info' },
+  { id: 'ex0301', icon: I.exchange, title: 'Exchange · XRP → USD', date: 'Oct 9', when: 'Fri, Oct 9 · 10:15 WAT', amount: '−500.00 XRP', fiat: 'Indicative ≈ $1,175.04', status: 'Rejected', tone: 'bad', ref: 'EX-PROTO-0301',
+    rows: [['Type', 'Exchange request'], ['Sell', '500.00 XRP'], ['Receive', 'USD to [Bank account •••• 0000]'], ['Fees charged', 'None'], ['Reason', 'Payout account not yet verified'], ['Reference', 'EX-PROTO-0301', 'mono']],
+    steps: [['Submitted', '10:15', 'done'], ['Under review', '10:31', 'done'], ['Rejected', '11:02', 'bad']],
+    note: 'No XRP was reserved because the quote was never accepted. Verify your payout account, then submit a new request.', noteCls: 'error' },
+  { id: 'ln0007', icon: I.borrow, title: 'Loan funded', date: 'Sep 19', when: 'Sat, Sep 19 · 14:30 WAT', amount: '+$600.00', fiat: 'Loan LN-PROTO-0007', status: 'Completed', tone: 'ok', ref: 'LN-PROTO-0007',
+    rows: [['Type', 'Loan disbursement'], ['Provider', '[Lending provider]'], ['Collateral locked', '750.00 XRP'], ['Starting LTV', '33.6%'], ['Interest', '10.00% APR · fixed'], ['Origination fee', '$6.00'], ['Paid to', '[Bank account •••• 0000]'], ['Reference', 'LN-PROTO-0007', 'mono']],
+    steps: [['Application submitted', 'Sep 18', 'done'], ['Provider approved', 'Sep 19, 10:05', 'done'], ['Collateral locked', 'Sep 19, 10:06', 'done'], ['Funds settled', 'Sep 19, 14:30', 'done']],
+    note: 'Funded after the provider confirmed settlement to your bank account.', noteCls: 'info' },
+  { id: 'dep1650', icon: I.recv, title: 'Deposit · XRP', date: 'Sep 21', when: 'Mon, Sep 21 · 08:47 WAT', amount: '+2,000.00 XRP', fiat: '≈ $4,760.00 at today’s price', status: 'Credited', tone: 'ok', ref: 'DEP-PROTO-1650',
+    rows: [['Type', 'Deposit'], ['Network', 'XRP Ledger'], ['From', 'rExt…proto9 (your connected wallet)', 'mono'], ['Destination tag', '48201937', 'mono'], ['Fee', 'None'], ['Ledger hash', '9A1D…PROTO (sample)', 'mono'], ['Reference', 'DEP-PROTO-1650', 'mono']],
+    steps: [['Detected on ledger', '08:47', 'done'], ['Validated', '08:47', 'done'], ['Compliance screening', '08:49', 'done'], ['Credited to balance', '08:49', 'done']],
+    note: 'Credited after validation and screening.', noteCls: 'info' }
+];
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { period: '1M', reason: null, history: false, txId: null, toast: null }; }
+  componentWillUnmount() { clearTimeout(this.t); }
+  toast(m) { var self = this; clearTimeout(this.t); this.setState({ toast: m }); this.t = setTimeout(function () { self.setState({ toast: null }); }, 2600); }
+  renderVals() {
+    var self = this, s = this.state, verified = this.props.verified !== false;
+    var p = PERIODS.filter(function (x) { return x.id === s.period; })[0];
+    var v = series(p), mn = Math.min.apply(null, v), mx = Math.max.apply(null, v), rg = (mx - mn) || 1;
+    var lo = mn - rg * 0.1, hi = mx + rg * 0.15, n = v.length;
+    function Y(x) { return 100 - (x - lo) / (hi - lo) * 100; }
+    var line = v.map(function (x, i) { return (i ? 'L' : 'M') + (i / (n - 1) * 1000).toFixed(1) + ' ' + Y(x).toFixed(2); }).join(' ');
+    var change = TOTAL - v[0];
+    var acts = [
+      { key: 'deposit', label: 'Deposit', needs: false }, { key: 'withdraw', label: 'Withdraw', needs: true },
+      { key: 'exchange', label: 'Exchange', needs: true }, { key: 'earn', label: 'Earn', needs: true },
+      { key: 'borrow', label: 'Borrow', needs: true }, { key: 'history', label: 'History', needs: false }
+    ];
+    function view(t) {
+      return {
+        icon: t.icon, title: t.title, date: t.date, amount: t.amount, status: t.status, tone: t.tone,
+        aria: t.title + ', ' + t.amount + ', ' + t.status + ', ' + t.date + '. Show details',
+        open: function () { self.setState({ txId: t.id }); }
+      };
+    }
+    var sel = TXS.filter(function (t) { return t.id === s.txId; })[0];
+    var tx = { open: !!sel };
+    if (sel) {
+      tx = {
+        open: true, icon: sel.icon, title: sel.title, when: sel.when, amount: sel.amount, fiat: sel.fiat, status: sel.status, tone: sel.tone,
+        rows: sel.rows.map(function (r) { return { k: r[0], v: r[1], cls: r[2] || '' }; }),
+        steps: sel.steps.map(function (x) { return { label: x[0], at: x[1], cls: x[2] }; }),
+        note: sel.note, noteCls: sel.noteCls,
+        closeLabel: s.history ? 'Back to history' : 'Close',
+        copyLabel: s.toast === 'Reference copied' ? 'Copied' : 'Copy reference'
+      };
+    }
+    return {
+      themeCls: this.props.dark === true ? 'dark' : '',
+      stale: !!this.props.stalePrices,
+      priceNote: this.props.stalePrices ? 'XRP $2.38 · last update 10:41 WAT (stale) · [Market data provider]' : 'XRP $2.38 · updated 12:50 WAT · [Market data provider]. Change reflects price only, not deposits or withdrawals.',
+      pf: {
+        line: line, area: line + ' L1000 100 L0 100 Z', endTop: Y(TOTAL).toFixed(2),
+        change: (change >= 0 ? '+' : '−') + usd(Math.abs(change)) + ' (' + Math.abs(p.pct).toFixed(2) + '%)',
+        color: change >= 0 ? 'var(--pos)' : 'var(--neg)', suffix: p.suffix,
+        aria: 'Custodial value chart, ' + p.suffix + ', ' + (change >= 0 ? 'up ' : 'down ') + Math.abs(p.pct).toFixed(2) + ' percent'
+      },
+      periods: PERIODS.map(function (x) { return { id: x.id, on: x.id === s.period, cls: x.id === s.period ? 'on' : '', pick: function () { self.setState({ period: x.id }); } }; }),
+      actions: acts.map(function (a) {
+        var enabled = (!a.needs || verified) && a.key !== 'history';
+        return {
+          label: a.label, href: LINKS[a.key] || '', icon: I[a.key], enabled: enabled, disabled: a.needs && !verified, isHistory: a.key === 'history',
+          explain: function () {
+            if (a.key === 'history') { self.setState({ history: true }); return; }
+            self.setState({ reason: a.label + ' is unavailable until your identity is verified. Deposits stay open so you can fund your account.' });
+          }
+        };
+      }),
+      reason: s.reason && !verified ? s.reason : null,
+      recent: TXS.slice(0, 3).map(view), all: TXS.map(view), history: s.history,
+      tx: tx, toast: s.toast,
+      openHistory: function () { self.setState({ history: true }); },
+      closeHistory: function () { self.setState({ history: false, txId: null }); },
+      closeTx: function () { self.setState({ txId: null }); },
+      copyRef: function () { try { if (navigator.clipboard && sel) navigator.clipboard.writeText(sel.ref); } catch (e) {} self.toast('Reference copied'); },
+      getHelp: function () { self.toast('Support would open with ' + (sel ? sel.ref : 'this transaction') + ' attached (simulated).'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

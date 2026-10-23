@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Security (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.mini{height:32px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-size:12.5px;font-weight:500;cursor:pointer;flex:none}
+.mini.danger{color:var(--neg)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:22px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;color:var(--text);cursor:pointer}
+.row:first-child{border-top:0}
+.row.static{cursor:default}
+.val{font-size:12.5px;color:var(--text-3)}
+.chev{color:var(--text-3)}
+.toggle{position:relative;width:44px;height:26px;flex:none;border:0;border-radius:13px;background:var(--border-strong);cursor:pointer}
+.toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.toggle.on{background:var(--accent)}
+.toggle.on .knob{transform:translateX(18px);background:var(--on-accent)}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;min-height:50px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:48px;border:0;outline:0;background:transparent;font-size:15px}
+.codes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.codes span{padding:10px;border-radius:8px;background:var(--sunken);text-align:center;font-size:14px;letter-spacing:.06em}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:20;max-height:88%;overflow-y:auto;padding:20px 16px 32px;background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -12px 32px -16px rgba(0,0,0,.4)}
+.scrim{position:absolute;inset:0;z-index:15;border:0;padding:0;background:rgba(0,0,0,.55);cursor:default}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--border-strong);margin:-8px auto 14px}
+.toast{position:absolute;left:16px;right:16px;bottom:32px;z-index:40;padding:12px 14px;border-radius:12px;background:var(--text);color:var(--bg);font-size:13px}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="{{L.profile}}" aria-label="Back to Profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">Security</h1>
+      <span style="width: 44px"></span>
+    </div>
+
+    <div class="sec" style="margin-top: 8px"><span>Sign-in</span></div>
+    <div class="card">
+      <div class="row static">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span id="s-2fa" style="font-weight: 500">Two-factor authentication</span><span class="val">Authenticator app · required for withdrawals</span></span>
+        <button type="button" role="switch" class="toggle {{tw.cls}}" aria-checked="{{tw.on}}" aria-labelledby="s-2fa" onClick="{{toggle2fa}}"><span class="knob"></span></button>
+      </div>
+      <sc-if value="{{tw.off}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 0 14px 12px"><div class="banner warn">Turning off two-factor takes effect after a 24-hour hold, and withdrawals pause during that time.</div></div>
+      </sc-if>
+      <button type="button" class="row" onClick="{{openCodes}}">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Backup codes</span><span class="val">{{codesLeft}} of 8 unused</span></span>
+        <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button type="button" class="row" onClick="{{openPassword}}">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Password</span><span class="val">{{pwChanged}}</span></span>
+        <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+    </div>
+
+    <div class="sec"><span>Withdrawal allowlist</span></div>
+    <div class="card">
+      <div class="row static">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span id="s-allow" style="font-weight: 500">Only allow saved addresses</span><span class="val">{{al.hint}}</span></span>
+        <button type="button" role="switch" class="toggle {{al.cls}}" aria-checked="{{al.on}}" aria-labelledby="s-allow" onClick="{{toggleAllow}}"><span class="knob"></span></button>
+      </div>
+      <sc-for list="{{addrs}}" as="a" hint-placeholder-count="2">
+        <div class="row static">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-weight: 500">{{a.label}}</span>
+            <span class="mono" style="font-size: 12px; color: var(--text-3)">{{a.short}}</span>
+            <span class="status {{a.tone}}">{{a.status}}</span>
+          </span>
+          <button type="button" class="mini danger" onClick="{{a.remove}}" aria-label="{{a.removeAria}}">Remove</button>
+        </div>
+      </sc-for>
+      <button type="button" class="row" onClick="{{openAdd}}" style="color: var(--accent-text); font-weight: 500">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        Add address
+      </button>
+    </div>
+
+    <div class="sec"><span>Signed-in devices</span></div>
+    <div class="card">
+      <sc-for list="{{devices}}" as="d" hint-placeholder-count="2">
+        <div class="row static">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-2)"><path d="{{d.icon}}"></path></svg>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{d.name}}</span><span class="val">{{d.meta}}</span></span>
+          <sc-if value="{{d.current}}" hint-placeholder-val="{{ false }}"><span class="val">This device</span></sc-if>
+          <sc-if value="{{d.other}}" hint-placeholder-val="{{ true }}"><button type="button" class="mini danger" onClick="{{d.revoke}}">Sign out</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div class="sec"><span>Recent security activity</span></div>
+    <div class="card">
+      <sc-for list="{{activity}}" as="e" hint-placeholder-count="4">
+        <div class="row static"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{e.title}}</span><span class="val">{{e.meta}}</span></span></div>
+      </sc-for>
+    </div>
+    <p class="help" style="margin: 14px 4px 0">Something you don’t recognise? <a href="{{L.support}}" style="color: var(--accent-text)">Contact support</a> — we’ll never ask for your password or codes.</p>
+  </div>
+
+  <!-- Backup codes -->
+  <sc-if value="{{sheet.codes}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim" aria-label="Close" tabIndex="-1" onClick="{{closeSheet}}"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="codes-title">
+      <div class="grab"></div>
+      <h2 id="codes-title" style="margin: 0 0 6px; font-size: 18px; font-weight: 600">Backup codes</h2>
+      <p class="help" style="margin: 0 0 14px">Each code works once if you lose your authenticator. Store them somewhere safe and offline.</p>
+      <div class="codes mono" aria-label="Sample backup codes">
+        <sc-for list="{{codes}}" as="c" hint-placeholder-count="8"><span>{{c}}</span></sc-for>
+      </div>
+      <p class="help" style="margin: 10px 0 0">Sample codes — not real.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+        <button type="button" class="btn btn-secondary" onClick="{{regen}}">Generate new codes</button>
+        <button type="button" class="btn btn-primary" onClick="{{closeSheet}}">Done</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Change password -->
+  <sc-if value="{{sheet.pw}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim" aria-label="Close" tabIndex="-1" onClick="{{closeSheet}}"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pw-title">
+      <div class="grab"></div>
+      <h2 id="pw-title" style="margin: 0 0 14px; font-size: 18px; font-weight: 600">Change password</h2>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div class="field"><label class="label" for="pw-cur">Current password</label><div class="input-wrap {{pw.curCls}}"><input id="pw-cur" type="password" autoComplete="current-password" value="{{pw.cur}}" onChange="{{onCur}}"></div><sc-if value="{{pw.curErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{pw.curErr}}</span></sc-if></div>
+        <div class="field"><label class="label" for="pw-new">New password</label><div class="input-wrap {{pw.newCls}}"><input id="pw-new" type="password" autoComplete="new-password" value="{{pw.next}}" onChange="{{onNew}}"></div><span class="help">12+ characters with a number and upper and lower case.</span><sc-if value="{{pw.newErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{pw.newErr}}</span></sc-if></div>
+        <div class="field"><label class="label" for="pw-conf">Confirm new password</label><div class="input-wrap {{pw.confCls}}"><input id="pw-conf" type="password" autoComplete="new-password" value="{{pw.conf}}" onChange="{{onConf}}"></div><sc-if value="{{pw.confErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{pw.confErr}}</span></sc-if></div>
+      </div>
+      <div class="banner warn" style="margin-top: 14px">Other devices will be signed out, and withdrawals pause for 24 hours.</div>
+      <button type="button" class="btn btn-primary" onClick="{{savePw}}" style="margin-top: 14px">Update password</button>
+    </div>
+  </sc-if>
+
+  <!-- Add address -->
+  <sc-if value="{{sheet.add}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim" aria-label="Close" tabIndex="-1" onClick="{{closeSheet}}"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="add-title">
+      <div class="grab"></div>
+      <h2 id="add-title" style="margin: 0 0 14px; font-size: 18px; font-weight: 600">Add withdrawal address</h2>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div class="field"><label class="label" for="ad-label">Name</label><div class="input-wrap {{ad.labelCls}}"><input id="ad-label" placeholder="e.g. My hardware wallet" value="{{ad.label}}" onChange="{{onAdLabel}}"></div><sc-if value="{{ad.labelErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{ad.labelErr}}</span></sc-if></div>
+        <div class="field"><label class="label" for="ad-addr">XRP Ledger address</label><div class="input-wrap {{ad.addrCls}}"><input id="ad-addr" class="mono" spellCheck="false" autoComplete="off" placeholder="r…" value="{{ad.addr}}" onChange="{{onAdAddr}}" style="font-size: 13.5px"></div><sc-if value="{{ad.addrErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{ad.addrErr}}</span></sc-if></div>
+        <div class="field"><label class="label" for="ad-tag">Destination tag <span style="font-weight: 400; color: var(--text-3)">· optional</span></label><div class="input-wrap"><input id="ad-tag" class="mono" inputMode="numeric" value="{{ad.tag}}" onChange="{{onAdTag}}"></div></div>
+      </div>
+      <div class="banner info" style="margin-top: 14px">New addresses activate after 24 hours, and we’ll email you to confirm. This protects you if someone gets into your account.</div>
+      <button type="button" class="btn btn-primary" onClick="{{saveAddr}}" style="margin-top: 14px">Add address</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status">{{toast}}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var VARIANT = 'light';
+var SUF = VARIANT === 'light' ? 'Light' : '';
+function to(n) { return n + SUF + '.dc.html'; }
+function isDark(p) { if (p === true || p === 'true') return true; if (p === false || p === 'false') return false; return VARIANT === 'dark'; }
+var B58 = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/;
+var CODES_A = ['4K7Q-9MXD', 'T2PZ-H8WN', 'R6CV-3JLB', 'Y9EF-5QAS', 'M3GH-7UTK', 'B8ND-2XWR', 'P5ZL-6CYJ', 'W4QS-1HVE'];
+var CODES_B = ['H7XC-2NPA', 'L9QD-4WTE', 'F3MZ-8BKR', 'V6JN-5SUY', 'C2TG-9HLX', 'Q8RW-3PDM', 'N5YK-7EVB', 'S4AF-6ZJC'];
+var PHONE = 'M7 3.5h10v17H7zM11 17.5h2', LAPTOP = 'M5 6h14v9H5zM3 18h18';
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      twofa: true, allow: true, sheet: null, toast: null, regen: false, pwDone: false,
+      addrs: [
+        { id: 'a1', label: 'Hardware wallet', addr: 'rHwProtoWallet9xQb7mKcV9tYwZ2A', tag: '', status: 'Active', tone: 'ok' },
+        { id: 'a2', label: 'Exchange account', addr: 'rExchProtoDeposit4xQb7mKcV9tY', tag: '10293847', status: 'Activates in 6h', tone: 'wait' }
+      ],
+      devices: [
+        { id: 'd1', name: 'iPhone 15 · XRP Ledger app', meta: 'Lagos · active now', icon: PHONE, current: true },
+        { id: 'd2', name: 'Chrome on macOS', meta: 'Lagos · today 09:14', icon: LAPTOP, current: false }
+      ],
+      pw: { cur: '', next: '', conf: '', tried: false },
+      ad: { label: '', addr: '', tag: '', tried: false }
+    };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  toast(m) { var self = this; clearTimeout(this.t); this.setState({ toast: m }); this.t = setTimeout(function () { self.setState({ toast: null }); }, 2800); }
+  renderVals() {
+    var self = this, s = this.state, pw = s.pw, ad = s.ad;
+    var strong = pw.next.length >= 12 && /\d/.test(pw.next) && /[a-z]/.test(pw.next) && /[A-Z]/.test(pw.next);
+    var pwe = {
+      curErr: pw.tried && pw.cur.length < 8 ? 'Enter your current password.' : '',
+      newErr: pw.tried && !strong ? 'Your new password doesn’t meet the rules.' : '',
+      confErr: pw.tried && pw.conf !== pw.next ? 'Passwords don’t match.' : ''
+    };
+    var ade = {
+      labelErr: ad.tried && !ad.label.trim() ? 'Give this address a name.' : '',
+      addrErr: ad.tried && !B58.test(ad.addr.trim()) ? 'Enter a valid XRP Ledger address.' : ''
+    };
+    function setPw(k) { return function (e) { var n = Object.assign({}, self.state.pw); n[k] = e.target.value; self.setState({ pw: n }); }; }
+    function setAd(k) { return function (e) { var n = Object.assign({}, self.state.ad); n[k] = e.target.value; self.setState({ ad: n }); }; }
+    return {
+      themeCls: isDark(this.props.dark) ? 'dark' : '',
+      L: { profile: to('Profile'), support: to('Support') },
+      tw: { on: s.twofa, off: !s.twofa, cls: s.twofa ? 'on' : '' },
+      al: { on: s.allow, cls: s.allow ? 'on' : '', hint: s.allow ? 'Withdrawals only go to the addresses below' : 'Off · any valid address can receive withdrawals' },
+      codesLeft: s.regen ? 8 : 6, codes: s.regen ? CODES_B : CODES_A,
+      pwChanged: s.pwDone ? 'Changed just now' : 'Last changed 3 months ago',
+      addrs: s.addrs.map(function (a) {
+        return {
+          label: a.label, short: a.addr.slice(0, 8) + '…' + a.addr.slice(-6) + (a.tag ? ' · tag ' + a.tag : ''), status: a.status, tone: a.tone,
+          removeAria: 'Remove ' + a.label,
+          remove: function () { self.setState({ addrs: self.state.addrs.filter(function (x) { return x.id !== a.id; }) }); self.toast(a.label + ' removed from your allowlist.'); }
+        };
+      }),
+      devices: s.devices.map(function (d) {
+        return {
+          name: d.name, meta: d.meta, icon: d.icon, current: d.current, other: !d.current,
+          revoke: function () { self.setState({ devices: self.state.devices.filter(function (x) { return x.id !== d.id; }) }); self.toast(d.name + ' signed out.'); }
+        };
+      }),
+      activity: [
+        { title: 'New sign-in · Chrome on macOS', meta: 'Today 09:14 · Lagos' },
+        { title: 'Allowlist address added', meta: 'Oct 18 · Exchange account' },
+        { title: 'Two-factor turned on', meta: 'Sep 2 · iPhone 15' },
+        { title: 'Account created', meta: 'Sep 2' }
+      ],
+      sheet: { codes: s.sheet === 'codes', pw: s.sheet === 'pw', add: s.sheet === 'add' },
+      pw: {
+        cur: pw.cur, next: pw.next, conf: pw.conf,
+        curErr: pwe.curErr, newErr: pwe.newErr, confErr: pwe.confErr,
+        curCls: pwe.curErr ? 'invalid' : '', newCls: pwe.newErr ? 'invalid' : '', confCls: pwe.confErr ? 'invalid' : ''
+      },
+      ad: { label: ad.label, addr: ad.addr, tag: ad.tag, labelErr: ade.labelErr, addrErr: ade.addrErr, labelCls: ade.labelErr ? 'invalid' : '', addrCls: ade.addrErr ? 'invalid' : '' },
+      toast: s.toast,
+      toggle2fa: function () { self.setState({ twofa: !s.twofa }); },
+      toggleAllow: function () { self.setState({ allow: !s.allow }); },
+      openCodes: function () { self.setState({ sheet: 'codes' }); },
+      openPassword: function () { self.setState({ sheet: 'pw', pw: { cur: '', next: '', conf: '', tried: false } }); },
+      openAdd: function () { self.setState({ sheet: 'add', ad: { label: '', addr: '', tag: '', tried: false } }); },
+      closeSheet: function () { self.setState({ sheet: null }); },
+      regen: function () { self.setState({ regen: true }); self.toast('New codes generated. The old ones no longer work.'); },
+      onCur: setPw('cur'), onNew: setPw('next'), onConf: setPw('conf'),
+      onAdLabel: setAd('label'), onAdAddr: setAd('addr'), onAdTag: function (e) { var n = Object.assign({}, self.state.ad); n.tag = e.target.value.replace(/\D/g, ''); self.setState({ ad: n }); },
+      savePw: function () {
+        if (pwe.curErr || pwe.newErr || pwe.confErr || pw.cur.length < 8) { self.setState({ pw: Object.assign({}, pw, { tried: true }) }); return; }
+        self.setState({ sheet: null, pwDone: true, devices: self.state.devices.filter(function (d) { return d.current; }) });
+        self.toast('Password updated. Other devices were signed out.');
+      },
+      saveAddr: function () {
+        if (!ad.label.trim() || !B58.test(ad.addr.trim())) { self.setState({ ad: Object.assign({}, ad, { tried: true }) }); return; }
+        var n = { id: 'a' + Date.now(), label: ad.label.trim(), addr: ad.addr.trim(), tag: ad.tag, status: 'Activates in 24h', tone: 'wait' };
+        self.setState({ sheet: null, addrs: self.state.addrs.concat([n]) });
+        self.toast('Address added. Check your email to confirm it.');
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

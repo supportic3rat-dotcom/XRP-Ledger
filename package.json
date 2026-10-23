@@ -1,0 +1,23 @@
+{
+  "name": "xrp-ledger-wallet",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "mobile": "pnpm --filter @xrp/mobile start",
+    "admin": "pnpm --filter @xrp/admin dev",
+    "web": "pnpm --filter @xrp/web dev"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10",
+    "turbo": "^2.11.10",
+    "typescript": "~5.9.3"
+  }
+}

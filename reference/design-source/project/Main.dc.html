@@ -1,0 +1,1455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F7F8F6}
+*{box-sizing:border-box}
+a{color:#176B5B}a:hover{color:#125A4C}
+.app{--canvas:#F7F8F6;--surface:#FFFFFF;--border:#E2E6E2;--border-strong:#D2D9D4;--text:#17211D;--text-2:#4C5A54;--text-3:#5F6D66;--pos:#13704C;--neg:#B13A2B;--warn:#875D00;--warn-dot:#D49711;--hover:#F3F5F2;--accent-soft:color-mix(in oklab,var(--accent) 9%,white);--accent-line:color-mix(in oklab,var(--accent) 22%,white);--accent-hover:color-mix(in oklab,var(--accent) 85%,black);--accent-text:color-mix(in oklab,var(--accent) 82%,black);-webkit-font-smoothing:antialiased}
+.app button,.app input,.app select{font:inherit;color:inherit}
+.app :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.ic-xs{width:14px;height:14px;stroke-width:1.8}
+
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--text-2);font-size:14px;font-weight:500;cursor:pointer;text-align:left;transition:background-color .15s,color .15s}
+.nav-item:hover{background:var(--hover);color:var(--text)}
+.nav-item.is-active{background:var(--accent-soft);color:var(--accent-text);font-weight:600}
+.account-btn{display:flex;align-items:center;gap:12px;width:100%;padding:8px;border:1px solid transparent;border-radius:10px;background:transparent;cursor:pointer;text-align:left}
+.account-btn:hover{background:var(--hover);border-color:var(--border)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 20px 12px}
+.card-title{margin:0;font-size:15px;font-weight:600;letter-spacing:-0.005em}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background-color .15s,border-color .15s,transform .1s}
+.btn:active{transform:scale(.98)}
+.app .btn-primary{background:var(--accent);border:1px solid var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-secondary{background:var(--surface);border:1px solid var(--border-strong);color:var(--text)}
+.btn-secondary:hover{background:var(--hover)}
+.btn-sm{height:36px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.link-btn{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 6px;margin-right:-6px;border:0;border-radius:6px;background:transparent;color:var(--accent-text);font-size:13px;font-weight:500;cursor:pointer}
+.link-btn:hover{background:var(--accent-soft)}
+.icon-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-2);cursor:pointer}
+.icon-btn:hover{background:var(--hover);color:var(--text)}
+.icon-btn.plain{border-color:transparent;background:transparent}
+
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#EEF1ED}
+.seg-btn{height:30px;min-width:40px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--text-2);font-size:12.5px;font-weight:500;cursor:pointer;font-variant-numeric:tabular-nums}
+.seg-btn:hover{color:var(--text)}
+.seg-btn.is-on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--border),0 1px 2px rgba(23,33,29,.06)}
+.seg.full{display:flex}.seg.full .seg-btn{flex:1;height:36px}
+
+.row{display:grid;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 20px;border:0;border-top:1px solid #EEF1ED;background:transparent;text-align:left;cursor:pointer;transition:background-color .12s}
+.row:hover{background:#FAFBF9}
+.row.static{cursor:default}.row.static:hover{background:transparent}
+.cols-asset{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 76px}
+.cols-tx{grid-template-columns:36px minmax(0,1fr) auto}
+.cols-market{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 88px minmax(0,1fr) 24px}
+.col-head{display:grid;gap:12px;padding:0 20px 8px;font-size:12px;font-weight:500;color:var(--text-3)}
+.r{text-align:right}
+
+.glyph{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;color:#fff;font-size:15px;font-weight:600;flex:none}
+.glyph.lg{width:44px;height:44px;font-size:20px}
+.tx-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#F0F3EF;color:var(--text-2)}
+
+.chg{display:inline-flex;align-items:center;justify-content:flex-end;gap:2px;font-size:12.5px;font-weight:500;font-variant-numeric:tabular-nums}
+.chg.up{color:var(--pos)}.chg.down{color:var(--neg)}.chg.flat{color:var(--text-3)}
+
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text-2)}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.completed{color:var(--pos)}
+.status.pending,.status.review{color:var(--warn)}
+.status.pending::before,.status.review::before{background:var(--warn-dot)}
+.status.failed{color:var(--neg)}
+
+.banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.45}
+.banner.info{background:#F1F4F1;color:var(--text-2)}
+.banner.warn{background:#FBF4E4;color:#6E4C00}
+.banner.error{background:#FBEDEA;color:#8E2D21}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500;color:var(--text)}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:15px}
+.input-wrap.lg{height:56px}.input-wrap.lg input{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.readonly{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#F7F8F6;font-size:14px}
+
+.kv{display:flex;flex-direction:column}
+.kv-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid #EEF1ED;font-size:13.5px}
+.kv-row:first-child{border-top:0}
+.kv-row dt{color:var(--text-3)}
+.kv-row dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+.overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-start;justify-content:center;padding:72px 16px 24px;overflow-y:auto}
+.backdrop{position:fixed;inset:0;border:0;padding:0;background:rgba(23,33,29,.32);cursor:default}
+.dialog{position:relative;width:100%;max-width:460px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 48px -12px rgba(23,33,29,.22);outline:0;animation:dlg-in .18s ease-out}
+.dialog.is-drawer{position:fixed;top:12px;right:12px;bottom:12px;max-width:420px;overflow-y:auto;animation:drawer-in .2s ease-out}
+.dlg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 20px 0}
+.dlg-body{display:flex;flex-direction:column;gap:18px;padding:18px 20px 20px}
+.dlg-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 20px;border-top:1px solid #EEF1ED}
+.dlg-foot .btn{flex:1}
+@keyframes dlg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes drawer-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+
+.steps{display:flex;gap:6px}
+.step{flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--text-3)}
+.step::before{content:"";height:3px;border-radius:2px;background:#E6EAE6}
+.step.done,.step.current{color:var(--text)}
+.step.done::before,.step.current::before{background:var(--accent)}
+
+.menu{position:absolute;top:48px;right:0;z-index:30;width:260px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 32px -12px rgba(23,33,29,.18)}
+.menu-item{display:flex;align-items:center;gap:10px;width:100%;height:40px;padding:0 10px;border:0;border-radius:8px;background:transparent;font-size:13.5px;cursor:pointer;text-align:left}
+.menu-item:hover{background:var(--hover)}
+.menu-backdrop{position:fixed;inset:0;z-index:20;border:0;padding:0;background:transparent;cursor:default}
+
+.toggle{position:relative;width:40px;height:24px;flex:none;border:0;border-radius:12px;background:#CBD3CE;cursor:pointer;transition:background-color .15s}
+.toggle .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.toggle.is-on{background:var(--accent)}
+.toggle.is-on .knob{transform:translateX(16px)}
+
+.skel{border-radius:6px;background:linear-gradient(90deg,#EDF0EC 0%,#F5F7F4 50%,#EDF0EC 100%);background-size:200% 100%;animation:skel 1.4s linear infinite}
+@keyframes skel{from{background-position:200% 0}to{background-position:-200% 0}}
+
+.toast{position:fixed;left:50%;bottom:24px;z-index:60;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);padding:12px 16px;border-radius:10px;background:#17211D;color:#fff;font-size:13.5px;box-shadow:0 12px 24px -8px rgba(23,33,29,.35);animation:dlg-in .18s ease-out}
+
+.accordion-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:12px 20px;border:0;border-top:1px solid #EEF1ED;background:transparent;font-size:14px;font-weight:500;text-align:left;cursor:pointer}
+.accordion-btn:hover{background:#FAFBF9}
+.accordion-btn .chev{transition:transform .15s;color:var(--text-3)}
+.accordion-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+
+@media (prefers-reduced-motion: reduce){.app *{animation:none !important;transition:none !important}}
+@media (max-width: 760px){
+  .sidebar{flex-basis:100% !important;min-height:0 !important;padding:12px 16px !important;border-right:0 !important;border-bottom:1px solid var(--border)}
+  .sidebar .nav{flex-direction:row !important;overflow-x:auto}
+  .sidebar .nav-item{width:auto;flex:none}
+  .sidebar .side-foot{display:none !important}
+  .main{padding:20px 16px 40px !important}
+  .cols-asset{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 64px}
+  .cols-asset .hide-sm{display:none}
+  .cols-market{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 72px 20px}
+  .cols-market .hide-sm{display:none}
+  .balance{font-size:34px !important}
+}
+</style>
+</helmet>
+
+<div class="app" style="--accent: {{accent}}; display: flex; flex-wrap: wrap; min-height: 100vh; background: #F7F8F6; color: #17211D; font-family: Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.4">
+
+  <!-- Sidebar navigation -->
+  <aside class="sidebar" aria-label="Primary" style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 28px; padding: 20px 16px; border-right: 1px solid #E2E6E2; background: #FBFCFA; min-height: 100vh">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" style="flex: none"><rect width="28" height="28" rx="7" style="fill: var(--accent)"></rect><path d="M8 9.5h12M8 14h7.5M12.5 18.5H20" style="fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round"></path></svg>
+      <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">XRP Ledger</span>
+    </div>
+
+    <nav class="nav" style="display: flex; flex-direction: column; gap: 2px">
+      <button type="button" class="nav-item {{nav.overview}}" aria-current="{{nav.overviewCur}}" onClick="{{goOverview}}">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></svg>
+        Overview
+      </button>
+      <button type="button" class="nav-item {{nav.activity}}" aria-current="{{nav.activityCur}}" onClick="{{goActivity}}">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M4 17l3 3 3-3M17 20V4M14 7l3-3 3 3"></path></svg>
+        Activity
+      </button>
+      <button type="button" class="nav-item {{nav.markets}}" aria-current="{{nav.marketsCur}}" onClick="{{goMarkets}}">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20h17"></path><path d="M5 15.5l4-4.5 3.5 2.5L19 6"></path></svg>
+        Markets
+      </button>
+      <button type="button" class="nav-item {{nav.earn}}" aria-current="{{nav.earnCur}}" onClick="{{goEarn}}">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.5" rx="7" ry="2.5"></ellipse><path d="M5 6.5v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6.5"></path><path d="M5 12v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V12"></path></svg>
+        Earn
+      </button>
+    </nav>
+
+    <div class="side-foot" style="margin-top: auto; display: flex; flex-direction: column; gap: 2px">
+      <button type="button" class="nav-item {{nav.help}}" aria-current="{{nav.helpCur}}" onClick="{{goHelp}}">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M9.6 9.6a2.5 2.5 0 0 1 4.8.8c0 1.7-2.4 2-2.4 3.6"></path><path d="M12 17h.01"></path></svg>
+        Help &amp; Support
+      </button>
+      <button type="button" class="nav-item {{nav.settings}}" aria-current="{{nav.settingsCur}}" onClick="{{goSettings}}">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M18 7h2M4 17h3M11 17h9"></path><circle cx="15.5" cy="7" r="2.2"></circle><circle cx="8.5" cy="17" r="2.2"></circle></svg>
+        Settings
+      </button>
+      <div style="height: 1px; background: #E2E6E2; margin: 12px 4px"></div>
+      <button type="button" class="account-btn" onClick="{{goSettings}}" aria-label="Brendan M., verified account. Open settings">
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: #DCE7E2; color: #17453B; font-size: 12.5px; font-weight: 600; flex: none">BM</span>
+        <span style="display: flex; flex-direction: column; min-width: 0">
+          <span style="font-size: 13.5px; font-weight: 600">Brendan M.</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #4C5A54">
+            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" style="fill: var(--accent)"></circle><path d="M5 8.2l2 2 4-4.2" style="fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round"></path></svg>
+            Verified
+          </span>
+        </span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main" style="flex: 999 1 560px; min-width: 0; padding: 24px 40px 48px">
+    <div style="max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+      <!-- Header -->
+      <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px">
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <sc-if value="{{isAsset}}" hint-placeholder-val="{{ false }}">
+            <button type="button" class="link-btn" onClick="{{goOverview}}" style="align-self: flex-start; margin: 0 0 2px -6px; color: #4C5A54">
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+              Overview
+            </button>
+          </sc-if>
+          <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em">{{page.title}}</h1>
+          <p style="margin: 0; font-size: 14px; color: #4C5A54">{{page.sub}}</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="display: inline-flex; align-items: center; gap: 6px; margin-right: 8px; font-size: 12.5px; color: #5F6D66">
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+            Prototype · fictional data
+          </span>
+          <div style="position: relative">
+            <button type="button" class="icon-btn" aria-label="{{notifLabel}}" aria-expanded="{{menu.notif}}" onClick="{{toggleNotif}}">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+              <sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}">
+                <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: #B13A2B; box-shadow: 0 0 0 2px #fff"></span>
+              </sc-if>
+            </button>
+            <sc-if value="{{menu.notif}}" hint-placeholder-val="{{ false }}">
+              <button type="button" class="menu-backdrop" tabIndex="-1" aria-label="Close notifications" onClick="{{closeMenus}}"></button>
+              <div class="menu" role="region" aria-label="Notifications" onKeyDown="{{onMenuKey}}" style="width: 320px">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 6px">
+                  <span style="font-size: 13.5px; font-weight: 600">Notifications</span>
+                  <button type="button" class="link-btn" onClick="{{markRead}}">Mark all read</button>
+                </div>
+                <sc-for list="{{notifications}}" as="n" hint-placeholder-count="2">
+                  <div style="display: flex; gap: 10px; padding: 10px; border-top: 1px solid #EEF1ED">
+                    <span aria-hidden="true" style="width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; flex: none; background: {{n.dot}}"></span>
+                    <span style="display: flex; flex-direction: column; gap: 2px">
+                      <span style="font-size: 13px; line-height: 1.4">{{n.text}}</span>
+                      <span style="font-size: 12px; color: #5F6D66">{{n.time}}</span>
+                    </span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div style="position: relative">
+            <button type="button" class="icon-btn" aria-label="Account menu" aria-expanded="{{menu.profile}}" onClick="{{toggleProfile}}" style="width: auto; gap: 6px; padding: 0 8px 0 4px">
+              <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; background: #DCE7E2; color: #17453B; font-size: 12px; font-weight: 600">BM</span>
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+            </button>
+            <sc-if value="{{menu.profile}}" hint-placeholder-val="{{ false }}">
+              <button type="button" class="menu-backdrop" tabIndex="-1" aria-label="Close account menu" onClick="{{closeMenus}}"></button>
+              <div class="menu" role="menu" aria-label="Account" onKeyDown="{{onMenuKey}}">
+                <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px 10px 12px; border-bottom: 1px solid #EEF1ED; margin-bottom: 4px">
+                  <span style="font-size: 13.5px; font-weight: 600">Brendan M.</span>
+                  <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #4C5A54">
+                    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" style="fill: var(--accent)"></circle><path d="M5 8.2l2 2 4-4.2" style="fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round"></path></svg>
+                    Verified account
+                  </span>
+                </div>
+                <button type="button" role="menuitem" class="menu-item" onClick="{{goSettings}}">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20c1.2-3.4 3.9-5 7-5s5.8 1.6 7 5"></path></svg>
+                  Profile &amp; settings
+                </button>
+                <button type="button" role="menuitem" class="menu-item" onClick="{{goSettings}}">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+                  Security
+                </button>
+                <button type="button" role="menuitem" class="menu-item" onClick="{{goHelp}}">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M9.6 9.6a2.5 2.5 0 0 1 4.8.8c0 1.7-2.4 2-2.4 3.6"></path><path d="M12 17h.01"></path></svg>
+                  Help &amp; Support
+                </button>
+                <div style="height: 1px; background: #EEF1ED; margin: 4px 0"></div>
+                <button type="button" role="menuitem" class="menu-item" onClick="{{signOut}}">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"></path></svg>
+                  Sign out
+                </button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </header>
+
+      <!-- ===================== OVERVIEW ===================== -->
+      <sc-if value="{{isOverview}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+
+            <!-- Portfolio balance -->
+            <section class="card" aria-labelledby="pf-label" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+              <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 24px 8px">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+                  <h2 id="pf-label" style="margin: 0; font-size: 13.5px; font-weight: 500; color: #4C5A54">Total portfolio value</h2>
+                  <sc-if value="{{state.loading}}" hint-placeholder-val="{{ false }}">
+                    <div class="skel" style="width: 260px; height: 44px; margin: 4px 0"></div>
+                    <div class="skel" style="width: 180px; height: 16px"></div>
+                  </sc-if>
+                  <sc-if value="{{state.notLoading}}" hint-placeholder-val="{{ true }}">
+                    <div class="balance num" style="font-size: 42px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1">{{pf.whole}}<span style="color: #5F6D66">{{pf.cents}}</span></div>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13.5px">
+                      <span class="chg {{pf.chgCls}}" style="font-size: 13.5px">
+                        <sc-if value="{{pf.up}}" hint-placeholder-val="{{ true }}"><svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18V6M7 11l5-5 5 5"></path></svg></sc-if>
+                        <sc-if value="{{pf.down}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M7 13l5 5 5-5"></path></svg></sc-if>
+                        {{pf.chgText}}
+                      </span>
+                      <span style="color: #5F6D66">{{pf.suffix}}</span>
+                    </div>
+                  </sc-if>
+                </div>
+                <div class="seg" role="group" aria-label="Chart period">
+                  <sc-for list="{{periods}}" as="p" hint-placeholder-count="6">
+                    <button type="button" class="seg-btn {{p.cls}}" aria-pressed="{{p.on}}" onClick="{{p.pick}}">{{p.id}}</button>
+                  </sc-for>
+                </div>
+              </div>
+
+              <sc-if value="{{state.error}}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 8px 24px 0">
+                  <div class="banner error" role="alert">
+                    <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+                    <span style="flex: 1">Couldn’t refresh prices. Values shown are from 12:41 and may be out of date.</span>
+                    <button type="button" class="link-btn" onClick="{{retry}}" style="height: 24px; color: #8E2D21">Retry</button>
+                  </div>
+                </div>
+              </sc-if>
+
+              <div style="padding: 12px 24px 4px; flex: 1">
+                <sc-if value="{{state.loading}}" hint-placeholder-val="{{ false }}">
+                  <div class="skel" style="height: 248px; border-radius: 8px"></div>
+                </sc-if>
+                <sc-if value="{{state.empty}}" hint-placeholder-val="{{ false }}">
+                  <div style="height: 248px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px dashed #D2D9D4; border-radius: 10px; text-align: center; padding: 24px">
+                    <span style="font-size: 14px; font-weight: 500">No performance to show yet</span>
+                    <span style="font-size: 13px; color: #5F6D66; max-width: 320px">Your portfolio chart appears after your first deposit is credited.</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{state.hasChart}}" hint-placeholder-val="{{ true }}">
+                  <dc-import name="PerformanceChart" points="{{chart.points}}" height="220" accent="{{accent}}" hint-size="100%,256px"></dc-import>
+                </sc-if>
+              </div>
+
+              <!-- Primary actions -->
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px 24px; border-top: 1px solid #EEF1ED; margin-top: 8px">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px">
+                  <button type="button" class="btn btn-primary" onClick="{{openReceive}}">
+                    <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"></path><path d="M5 19.5h14"></path></svg>
+                    Receive
+                  </button>
+                  <button type="button" class="btn btn-secondary" onClick="{{openSend}}" disabled="{{state.empty}}">
+                    <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+                    Send
+                  </button>
+                  <button type="button" class="btn btn-secondary" onClick="{{openBuy}}">
+                    <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"></rect><path d="M3 10h18M7 14.5h3"></path></svg>
+                    Buy crypto
+                  </button>
+                </div>
+                <span style="font-size: 12.5px; color: #5F6D66">Fiat values are indicative, in USD</span>
+              </div>
+            </section>
+
+            <!-- Secondary panel -->
+            <div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 20px; min-width: 0">
+              <section class="card" aria-labelledby="sec-title">
+                <div class="card-head" style="padding-bottom: 4px">
+                  <h2 id="sec-title" class="card-title">Account security</h2>
+                  <button type="button" class="link-btn" onClick="{{goSettings}}">Manage</button>
+                </div>
+                <ul style="list-style: none; margin: 0; padding: 4px 20px 16px; display: flex; flex-direction: column">
+                  <sc-for list="{{security}}" as="s" hint-placeholder-count="4">
+                    <li style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid #EEF1ED">
+                      <sc-if value="{{s.ok}}" hint-placeholder-val="{{ true }}">
+                        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: #13704C; margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12.2l2.3 2.3 4.7-4.8"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{s.warn}}" hint-placeholder-val="{{ false }}">
+                        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: #875D00; margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{s.neutral}}" hint-placeholder-val="{{ false }}">
+                        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: #5F6D66; margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>
+                      </sc-if>
+                      <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0">
+                        <span style="font-size: 13.5px; font-weight: 500">{{s.label}}</span>
+                        <span style="font-size: 12.5px; color: #5F6D66">{{s.value}}</span>
+                      </span>
+                      <sc-if value="{{s.warn}}" hint-placeholder-val="{{ false }}">
+                        <button type="button" class="btn btn-secondary btn-sm" onClick="{{goSettings}}" style="height: 30px">Set up</button>
+                      </sc-if>
+                    </li>
+                  </sc-for>
+                </ul>
+              </section>
+
+              <section class="card" aria-labelledby="learn-title" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: #FBFCFA">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4C5A54">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3z"></path><path d="M5 17a3 3 0 0 1 3-3h9.5"></path></svg>
+                  Before you deposit
+                </span>
+                <h2 id="learn-title" class="card-title">XRP needs a destination tag</h2>
+                <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #4C5A54">Your XRP deposit address is shared, so every deposit must carry your destination tag. Without it, funds reach us but can’t be matched to your account automatically.</p>
+                <button type="button" class="link-btn" onClick="{{openTagGuide}}" style="align-self: flex-start; margin-left: -6px">
+                  Read the guide
+                  <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                </button>
+              </section>
+            </div>
+          </div>
+
+          <!-- Holdings + Activity -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 20px; align-items: start">
+            <section class="card" aria-labelledby="assets-title" style="overflow: hidden">
+              <div class="card-head">
+                <h2 id="assets-title" class="card-title">Assets</h2>
+                <button type="button" class="link-btn" onClick="{{goMarkets}}">View all
+                  <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                </button>
+              </div>
+              <sc-if value="{{state.loading}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 0; padding: 0 20px 12px">
+                  <sc-for list="{{skeletonRows}}" as="k" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 12px; height: 60px; border-top: 1px solid #EEF1ED">
+                      <div class="skel" style="width: 32px; height: 32px; border-radius: 50%"></div>
+                      <div class="skel" style="width: 120px; height: 14px"></div>
+                      <div class="skel" style="width: 80px; height: 14px; margin-left: auto"></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{state.empty}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 20px 32px; border-top: 1px solid #EEF1ED; text-align: center">
+                  <span style="font-size: 14px; font-weight: 500">No assets yet</span>
+                  <span style="font-size: 13px; color: #5F6D66">Deposit XRP, Bitcoin or Ethereum to see your holdings here.</span>
+                  <button type="button" class="btn btn-secondary btn-sm" onClick="{{openReceive}}" style="margin-top: 6px">Receive crypto</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{state.hasData}}" hint-placeholder-val="{{ true }}">
+                <div class="col-head cols-asset" aria-hidden="true">
+                  <span>Asset</span><span class="r hide-sm">Balance</span><span class="r">Value</span><span class="r">24h</span>
+                </div>
+                <div role="list">
+                  <sc-for list="{{holdings}}" as="a" hint-placeholder-count="3">
+                    <button type="button" role="listitem" class="row cols-asset" onClick="{{a.open}}" aria-label="{{a.aria}}">
+                      <span style="display: flex; align-items: center; gap: 12px; min-width: 0">
+                        <span class="glyph" aria-hidden="true" style="background: {{a.color}}">{{a.glyph}}</span>
+                        <span style="display: flex; flex-direction: column; min-width: 0">
+                          <span style="font-size: 14px; font-weight: 500">{{a.name}}</span>
+                          <span class="num" style="font-size: 12.5px; color: #5F6D66">{{a.priceText}}</span>
+                        </span>
+                      </span>
+                      <span class="num r hide-sm" style="font-size: 13.5px; color: #4C5A54">{{a.qtyText}}</span>
+                      <span class="num r" style="font-size: 14px; font-weight: 500">{{a.valueText}}</span>
+                      <span class="chg {{a.chgCls}}">
+                        <sc-if value="{{a.up}}" hint-placeholder-val="{{ true }}"><svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18V6M7 11l5-5 5 5"></path></svg></sc-if>
+                        <sc-if value="{{a.down}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M7 13l5 5 5-5"></path></svg></sc-if>
+                        {{a.chgText}}
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </section>
+
+            <section class="card" aria-labelledby="act-title" style="overflow: hidden">
+              <div class="card-head">
+                <h2 id="act-title" class="card-title">Recent activity</h2>
+                <button type="button" class="link-btn" onClick="{{goActivity}}">View activity
+                  <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                </button>
+              </div>
+              <sc-if value="{{state.loading}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; padding: 0 20px 12px">
+                  <sc-for list="{{skeletonRows}}" as="k" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 12px; height: 60px; border-top: 1px solid #EEF1ED">
+                      <div class="skel" style="width: 36px; height: 36px; border-radius: 50%"></div>
+                      <div class="skel" style="width: 140px; height: 14px"></div>
+                      <div class="skel" style="width: 90px; height: 14px; margin-left: auto"></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{state.empty}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 20px 32px; border-top: 1px solid #EEF1ED; text-align: center">
+                  <span style="font-size: 14px; font-weight: 500">No activity yet</span>
+                  <span style="font-size: 13px; color: #5F6D66">Deposits, withdrawals and exchanges will be listed here.</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{state.error}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 20px 32px; border-top: 1px solid #EEF1ED; text-align: center">
+                  <span style="font-size: 14px; font-weight: 500">Couldn’t load recent activity</span>
+                  <span style="font-size: 13px; color: #5F6D66">Your balances aren’t affected. Try again in a moment.</span>
+                  <button type="button" class="btn btn-secondary btn-sm" onClick="{{retry}}" style="margin-top: 6px">
+                    <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 5v6h-6"></path></svg>
+                    Retry
+                  </button>
+                </div>
+              </sc-if>
+              <sc-if value="{{state.live}}" hint-placeholder-val="{{ true }}">
+                <div role="list">
+                  <sc-for list="{{recentTxs}}" as="t" hint-placeholder-count="4">
+                    <button type="button" role="listitem" class="row cols-tx" onClick="{{t.open}}" aria-label="{{t.aria}}">
+                      <span class="tx-ic" aria-hidden="true">
+                        <sc-if value="{{t.isReceive}}" hint-placeholder-val="{{ true }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M17 7L7 17M15 17H7V9"></path></svg></sc-if>
+                        <sc-if value="{{t.isSend}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"></path></svg></sc-if>
+                        <sc-if value="{{t.isExchange}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"></path></svg></sc-if>
+                        <sc-if value="{{t.isBuy}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+                      </span>
+                      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+                        <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+                        <span style="font-size: 12.5px; color: #5F6D66">{{t.date}}</span>
+                      </span>
+                      <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+                        <span class="num" style="font-size: 14px; font-weight: 500; color: {{t.amountColor}}">{{t.amount}}</span>
+                        <span class="status {{t.statusCls}}">{{t.statusLabel}}</span>
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </section>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===================== ASSET DETAIL ===================== -->
+      <sc-if value="{{isAsset}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <section class="card" aria-labelledby="asset-price-label">
+            <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 24px 8px">
+              <div style="display: flex; align-items: center; gap: 14px">
+                <span class="glyph lg" aria-hidden="true" style="background: {{asset.color}}">{{asset.glyph}}</span>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <span id="asset-price-label" style="font-size: 13.5px; font-weight: 500; color: #4C5A54">{{asset.name}} indicative price</span>
+                  <span class="num" style="font-size: 32px; font-weight: 500; letter-spacing: -0.025em; line-height: 1.1">{{asset.priceText}}</span>
+                  <span style="display: flex; align-items: center; gap: 8px">
+                    <span class="chg {{asset.periodCls}}" style="font-size: 13.5px">{{asset.periodText}}</span>
+                    <span style="font-size: 13.5px; color: #5F6D66">{{asset.periodSuffix}}</span>
+                  </span>
+                </div>
+              </div>
+              <div class="seg" role="group" aria-label="Chart period">
+                <sc-for list="{{periods}}" as="p" hint-placeholder-count="6">
+                  <button type="button" class="seg-btn {{p.cls}}" aria-pressed="{{p.on}}" onClick="{{p.pick}}">{{p.id}}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="padding: 12px 24px 20px">
+              <dc-import name="PerformanceChart" points="{{chart.points}}" height="220" accent="{{accent}}" hint-size="100%,256px"></dc-import>
+            </div>
+          </section>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 20px; align-items: start">
+            <section class="card" aria-labelledby="asset-hold-title" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
+              <h2 id="asset-hold-title" class="card-title">Your {{asset.name}}</h2>
+              <dl class="kv" style="margin: 0">
+                <div class="kv-row"><dt>Balance</dt><dd>{{asset.qtyText}}</dd></div>
+                <div class="kv-row"><dt>Indicative value</dt><dd>{{asset.valueText}}</dd></div>
+                <div class="kv-row"><dt>24h change</dt><dd><span class="chg {{asset.chgCls}}">{{asset.chgText}}</span></dd></div>
+                <div class="kv-row"><dt>Share of portfolio</dt><dd>{{asset.shareText}}</dd></div>
+                <div class="kv-row"><dt>Network</dt><dd>{{asset.network}}</dd></div>
+              </dl>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px">
+                <button type="button" class="btn btn-primary" onClick="{{asset.receive}}" style="flex: 1">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"></path><path d="M5 19.5h14"></path></svg>
+                  Receive {{asset.ticker}}
+                </button>
+                <button type="button" class="btn btn-secondary" onClick="{{asset.send}}" style="flex: 1">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+                  Send {{asset.ticker}}
+                </button>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="asset-act-title" style="overflow: hidden">
+              <div class="card-head">
+                <h2 id="asset-act-title" class="card-title">{{asset.name}} activity</h2>
+                <button type="button" class="link-btn" onClick="{{goActivity}}">All activity</button>
+              </div>
+              <sc-if value="{{asset.noTxs}}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 24px 20px 28px; border-top: 1px solid #EEF1ED; text-align: center; font-size: 13px; color: #5F6D66">No {{asset.name}} activity yet.</div>
+              </sc-if>
+              <div role="list">
+                <sc-for list="{{asset.txs}}" as="t" hint-placeholder-count="2">
+                  <button type="button" role="listitem" class="row cols-tx" onClick="{{t.open}}" aria-label="{{t.aria}}">
+                    <span class="tx-ic" aria-hidden="true">
+                      <sc-if value="{{t.isReceive}}" hint-placeholder-val="{{ true }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M17 7L7 17M15 17H7V9"></path></svg></sc-if>
+                      <sc-if value="{{t.isSend}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"></path></svg></sc-if>
+                      <sc-if value="{{t.isExchange}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"></path></svg></sc-if>
+                      <sc-if value="{{t.isBuy}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+                    </span>
+                    <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+                      <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+                      <span style="font-size: 12.5px; color: #5F6D66">{{t.date}}</span>
+                    </span>
+                    <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+                      <span class="num" style="font-size: 14px; font-weight: 500; color: {{t.amountColor}}">{{t.amount}}</span>
+                      <span class="status {{t.statusCls}}">{{t.statusLabel}}</span>
+                    </span>
+                  </button>
+                </sc-for>
+              </div>
+            </section>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===================== ACTIVITY ===================== -->
+      <sc-if value="{{isActivity}}" hint-placeholder-val="{{ false }}">
+        <section class="card" aria-labelledby="all-act-title" style="overflow: hidden">
+          <div class="card-head" style="flex-wrap: wrap">
+            <h2 id="all-act-title" class="card-title">All transactions</h2>
+            <div class="seg" role="group" aria-label="Filter transactions">
+              <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+                <button type="button" class="seg-btn {{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{noFilteredTxs}}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 32px 20px; border-top: 1px solid #EEF1ED; text-align: center; font-size: 13px; color: #5F6D66">No transactions match this filter.</div>
+          </sc-if>
+          <div role="list">
+            <sc-for list="{{filteredTxs}}" as="t" hint-placeholder-count="6">
+              <button type="button" role="listitem" class="row cols-tx" onClick="{{t.open}}" aria-label="{{t.aria}}">
+                <span class="tx-ic" aria-hidden="true">
+                  <sc-if value="{{t.isReceive}}" hint-placeholder-val="{{ true }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M17 7L7 17M15 17H7V9"></path></svg></sc-if>
+                  <sc-if value="{{t.isSend}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"></path></svg></sc-if>
+                  <sc-if value="{{t.isExchange}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"></path></svg></sc-if>
+                  <sc-if value="{{t.isBuy}}" hint-placeholder-val="{{ false }}"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+                </span>
+                <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+                  <span style="font-size: 12.5px; color: #5F6D66">{{t.date}} · {{t.network}}</span>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+                  <span class="num" style="font-size: 14px; font-weight: 500; color: {{t.amountColor}}">{{t.amount}}</span>
+                  <span class="num" style="font-size: 12.5px; color: #5F6D66">{{t.fiat}}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- ===================== MARKETS ===================== -->
+      <sc-if value="{{isMarkets}}" hint-placeholder-val="{{ false }}">
+        <section class="card" aria-labelledby="mk-title" style="overflow: hidden">
+          <div class="card-head">
+            <h2 id="mk-title" class="card-title">Supported assets</h2>
+            <span style="font-size: 12.5px; color: #5F6D66">Indicative prices · USD</span>
+          </div>
+          <div class="col-head cols-market" aria-hidden="true">
+            <span>Asset</span><span class="r">Price</span><span class="r">24h</span><span class="r hide-sm">You hold</span><span></span>
+          </div>
+          <div role="list">
+            <sc-for list="{{markets}}" as="m" hint-placeholder-count="5">
+              <sc-if value="{{m.held}}" hint-placeholder-val="{{ true }}">
+                <button type="button" role="listitem" class="row cols-market" onClick="{{m.open}}" aria-label="{{m.aria}}">
+                  <span style="display: flex; align-items: center; gap: 12px; min-width: 0">
+                    <span class="glyph" aria-hidden="true" style="background: {{m.color}}">{{m.glyph}}</span>
+                    <span style="display: flex; flex-direction: column"><span style="font-weight: 500">{{m.name}}</span><span style="font-size: 12.5px; color: #5F6D66">{{m.ticker}}</span></span>
+                  </span>
+                  <span class="num r" style="font-weight: 500">{{m.priceText}}</span>
+                  <span class="chg {{m.chgCls}}">{{m.chgText}}</span>
+                  <span class="num r hide-sm" style="color: #4C5A54">{{m.holdText}}</span>
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: #5F6D66"><path d="M9 6l6 6-6 6"></path></svg>
+                </button>
+              </sc-if>
+              <sc-if value="{{m.notHeld}}" hint-placeholder-val="{{ false }}">
+                <div role="listitem" class="row static cols-market">
+                  <span style="display: flex; align-items: center; gap: 12px; min-width: 0">
+                    <span class="glyph" aria-hidden="true" style="background: {{m.color}}">{{m.glyph}}</span>
+                    <span style="display: flex; flex-direction: column"><span style="font-weight: 500">{{m.name}}</span><span style="font-size: 12.5px; color: #5F6D66">{{m.ticker}}</span></span>
+                  </span>
+                  <span class="num r" style="font-weight: 500">{{m.priceText}}</span>
+                  <span class="chg {{m.chgCls}}">{{m.chgText}}</span>
+                  <span class="r hide-sm" style="color: #5F6D66">—</span>
+                  <span></span>
+                </div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- ===================== EARN ===================== -->
+      <sc-if value="{{isEarn}}" hint-placeholder-val="{{ false }}">
+        <section class="card" style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 24px; text-align: center">
+          <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; background: #F0F3EF; color: #4C5A54">
+            <svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.5"></ellipse><path d="M5 6.5v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6.5"></path><path d="M5 12v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V12"></path></svg>
+          </span>
+          <h2 style="margin: 4px 0 0; font-size: 16px; font-weight: 600">No Earn programs are available</h2>
+          <p style="margin: 0; max-width: 420px; font-size: 13.5px; line-height: 1.55; color: #4C5A54">This prototype doesn’t offer staking or lending, so no rates are shown. When a program is added, its terms, risks and how rewards are calculated will appear here first.</p>
+          <button type="button" class="btn btn-secondary btn-sm" onClick="{{goOverview}}" style="margin-top: 8px">Back to overview</button>
+        </section>
+      </sc-if>
+
+      <!-- ===================== SETTINGS ===================== -->
+      <sc-if value="{{isSettings}}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 20px; align-items: start">
+          <section class="card" aria-labelledby="set-profile" style="padding: 20px; display: flex; flex-direction: column; gap: 12px">
+            <h2 id="set-profile" class="card-title">Profile</h2>
+            <dl class="kv" style="margin: 0">
+              <div class="kv-row"><dt>Name</dt><dd>Brendan M.</dd></div>
+              <div class="kv-row"><dt>Identity verification</dt><dd><span class="status completed">Verified</span></dd></div>
+              <div class="kv-row"><dt>Email</dt><dd>[account email]</dd></div>
+              <div class="kv-row"><dt>Display currency</dt><dd>USD</dd></div>
+            </dl>
+          </section>
+          <section class="card" aria-labelledby="set-security" style="padding: 20px; display: flex; flex-direction: column; gap: 4px">
+            <h2 id="set-security" class="card-title" style="margin-bottom: 8px">Security</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid #EEF1ED">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span id="lbl-2fa" style="font-weight: 500">Two-factor authentication</span><span class="help">Required to sign in and to approve withdrawals.</span></span>
+              <button type="button" role="switch" class="toggle {{st.twofaCls}}" aria-checked="{{st.twofa}}" aria-labelledby="lbl-2fa" onClick="{{toggleTwofa}}"><span class="knob"></span></button>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid #EEF1ED">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span id="lbl-allow" style="font-weight: 500">Withdrawal address allowlist</span><span class="help">Only allow withdrawals to addresses you’ve saved.</span></span>
+              <button type="button" role="switch" class="toggle {{st.allowCls}}" aria-checked="{{st.allowlist}}" aria-labelledby="lbl-allow" onClick="{{toggleAllow}}"><span class="knob"></span></button>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0 0; border-top: 1px solid #EEF1ED">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Password</span><span class="help">Last changed 3 months ago</span></span>
+              <button type="button" class="btn btn-secondary btn-sm" onClick="{{changePassword}}">Change</button>
+            </div>
+          </section>
+          <section class="card" aria-labelledby="set-notif" style="padding: 20px; display: flex; flex-direction: column; gap: 4px">
+            <h2 id="set-notif" class="card-title" style="margin-bottom: 8px">Notifications</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid #EEF1ED">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span id="lbl-receipts" style="font-weight: 500">Transaction emails</span><span class="help">A receipt for every deposit and withdrawal.</span></span>
+              <button type="button" role="switch" class="toggle {{st.receiptsCls}}" aria-checked="{{st.receipts}}" aria-labelledby="lbl-receipts" onClick="{{toggleReceipts}}"><span class="knob"></span></button>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0 0; border-top: 1px solid #EEF1ED">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span id="lbl-alerts" style="font-weight: 500">Price alerts</span><span class="help">Notify me when an asset I hold moves more than 5% in a day.</span></span>
+              <button type="button" role="switch" class="toggle {{st.alertsCls}}" aria-checked="{{st.alerts}}" aria-labelledby="lbl-alerts" onClick="{{toggleAlerts}}"><span class="knob"></span></button>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===================== HELP ===================== -->
+      <sc-if value="{{isHelp}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+          <section class="card" aria-labelledby="help-guides" style="flex: 999 1 520px; min-width: 0; overflow: hidden">
+            <div class="card-head"><h2 id="help-guides" class="card-title">Guides</h2></div>
+            <sc-for list="{{guides}}" as="g" hint-placeholder-count="4">
+              <div>
+                <button type="button" class="accordion-btn" aria-expanded="{{g.open}}" onClick="{{g.toggle}}">
+                  {{g.title}}
+                  <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+                </button>
+                <sc-if value="{{g.open}}" hint-placeholder-val="{{ false }}">
+                  <p style="margin: 0; padding: 0 20px 16px; font-size: 13.5px; line-height: 1.6; color: #4C5A54; max-width: 640px">{{g.body}}</p>
+                </sc-if>
+              </div>
+            </sc-for>
+          </section>
+          <section class="card" aria-labelledby="help-contact" style="flex: 1 1 280px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+            <h2 id="help-contact" class="card-title">Contact support</h2>
+            <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #4C5A54">Support will never ask for your password, two-factor codes or a recovery phrase.</p>
+            <button type="button" class="btn btn-primary" onClick="{{contactSupport}}" style="align-self: flex-start">Message support</button>
+          </section>
+        </div>
+      </sc-if>
+
+      <p style="margin: 8px 0 0; font-size: 12px; color: #5F6D66; text-align: center">Design prototype. All balances, prices, addresses and transactions are fictional. No wallet is connected and no funds can move.</p>
+    </div>
+  </main>
+
+  <!-- ===================== MODALS ===================== -->
+  <sc-if value="{{modalOpen}}" hint-placeholder-val="{{ false }}">
+    <div class="overlay" onKeyDown="{{onModalKey}}">
+      <button type="button" class="backdrop" tabIndex="-1" aria-label="Close dialog" onClick="{{closeModal}}"></button>
+      <div class="dialog {{dialogCls}}" role="dialog" aria-modal="true" aria-labelledby="dlg-title" tabIndex="-1" ref="{{setDialog}}">
+
+        <!-- Receive -->
+        <sc-if value="{{m.receive}}" hint-placeholder-val="{{ false }}">
+          <div class="dlg-head">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <h2 id="dlg-title" style="margin: 0; font-size: 17px; font-weight: 600">Receive {{recv.name}}</h2>
+              <span style="font-size: 13px; color: #5F6D66">Deposit to your XRP Ledger account</span>
+            </div>
+            <button type="button" class="icon-btn plain" aria-label="Close" onClick="{{closeModal}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div class="dlg-body">
+            <div class="seg full" role="group" aria-label="Asset">
+              <sc-for list="{{recvAssets}}" as="o" hint-placeholder-count="3">
+                <button type="button" class="seg-btn {{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.ticker}}</button>
+              </sc-for>
+            </div>
+            <div class="field">
+              <span class="label">Network</span>
+              <div class="readonly">
+                <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: #5F6D66"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>
+                <span style="font-weight: 500">{{recv.network}}</span>
+              </div>
+              <span class="help">Only send {{recv.ticker}} on the {{recv.network}} network. Other networks can’t be recovered.</span>
+            </div>
+            <div style="display: flex; gap: 16px; align-items: stretch">
+              <div aria-hidden="true" style="width: 112px; height: 112px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px dashed #D2D9D4; border-radius: 10px; color: #5F6D66; font-size: 11px; text-align: center">
+                <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 18h2v2h-2zM18 14h2M14 18v2"></path></svg>
+                QR code
+              </div>
+              <div class="field" style="flex: 1; min-width: 0">
+                <span class="label">Deposit address</span>
+                <div class="readonly" style="align-items: flex-start">
+                  <span class="mono" style="flex: 1; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere">{{recv.addr}}</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onClick="{{copyAddr}}" style="align-self: flex-start">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2"></rect><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"></path></svg>
+                  {{recv.copyAddrLabel}}
+                </button>
+              </div>
+            </div>
+            <sc-if value="{{recv.usesTag}}" hint-placeholder-val="{{ true }}">
+              <div class="field">
+                <span class="label">Destination tag</span>
+                <div class="readonly" style="justify-content: space-between">
+                  <span class="mono" style="font-size: 15px; font-weight: 500">{{recv.tag}}</span>
+                  <button type="button" class="link-btn" onClick="{{copyTag}}">{{recv.copyTagLabel}}</button>
+                </div>
+              </div>
+              <div class="banner warn" role="note">
+                <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+                <span>Include destination tag <b class="mono">{{recv.tag}}</b> with every XRP deposit, or it can’t be credited to your account automatically.</span>
+              </div>
+            </sc-if>
+            <div class="banner info">
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+              <span>Prototype address. It isn’t valid on any network — don’t send funds to it.</span>
+            </div>
+          </div>
+          <div class="dlg-foot"><button type="button" class="btn btn-secondary" onClick="{{closeModal}}">Done</button></div>
+        </sc-if>
+
+        <!-- Send -->
+        <sc-if value="{{m.send}}" hint-placeholder-val="{{ false }}">
+          <div class="dlg-head">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <h2 id="dlg-title" style="margin: 0; font-size: 17px; font-weight: 600">{{send.title}}</h2>
+              <span style="font-size: 13px; color: #5F6D66">{{send.subtitle}}</span>
+            </div>
+            <button type="button" class="icon-btn plain" aria-label="Close" onClick="{{closeModal}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div class="dlg-body">
+            <sc-if value="{{send.showSteps}}" hint-placeholder-val="{{ true }}">
+              <ol class="steps" aria-label="Withdrawal steps" style="list-style: none; margin: 0; padding: 0">
+                <sc-for list="{{send.steps}}" as="s" hint-placeholder-count="3">
+                  <li class="step {{s.cls}}" aria-current="{{s.cur}}">{{s.label}}</li>
+                </sc-for>
+              </ol>
+            </sc-if>
+
+            <!-- Step 1: amount -->
+            <sc-if value="{{send.s1}}" hint-placeholder-val="{{ true }}">
+              <div class="field">
+                <span class="label">Asset</span>
+                <div class="seg full" role="group" aria-label="Asset to send">
+                  <sc-for list="{{sendAssets}}" as="o" hint-placeholder-count="3">
+                    <button type="button" class="seg-btn {{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.ticker}}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label" for="send-amount">Amount</label>
+                <div class="input-wrap lg {{send.amountCls}}">
+                  <input id="send-amount" inputMode="decimal" autoComplete="off" placeholder="0.00" value="{{send.amount}}" onChange="{{onAmount}}" aria-describedby="send-amount-help">
+                  <span style="font-size: 15px; font-weight: 500; color: #4C5A54">{{send.ticker}}</span>
+                  <button type="button" class="btn btn-secondary btn-sm" onClick="{{setMax}}" style="height: 30px; padding: 0 10px">Max</button>
+                </div>
+                <div id="send-amount-help" style="display: flex; justify-content: space-between; gap: 12px">
+                  <span class="help num">{{send.fiatText}}</span>
+                  <span class="help num">Available {{send.availText}}</span>
+                </div>
+                <sc-if value="{{send.amountErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{send.amountErr}}</span></sc-if>
+              </div>
+            </sc-if>
+
+            <!-- Step 2: destination -->
+            <sc-if value="{{send.s2}}" hint-placeholder-val="{{ false }}">
+              <div class="field">
+                <label class="label" for="send-addr">Destination address</label>
+                <div class="input-wrap {{send.addrCls}}">
+                  <input id="send-addr" class="mono" autoComplete="off" spellCheck="false" placeholder="{{send.addrPlaceholder}}" value="{{send.address}}" onChange="{{onAddress}}" style="font-size: 13.5px">
+                </div>
+                <sc-if value="{{send.addrErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{send.addrErr}}</span></sc-if>
+              </div>
+              <sc-if value="{{send.usesTag}}" hint-placeholder-val="{{ true }}">
+                <div class="field">
+                  <label class="label" for="send-tag">Destination tag <span style="font-weight: 400; color: #5F6D66">· optional</span></label>
+                  <div class="input-wrap {{send.tagCls}}">
+                    <input id="send-tag" inputMode="numeric" autoComplete="off" placeholder="e.g. 10293847" value="{{send.tag}}" onChange="{{onTag}}">
+                  </div>
+                  <span class="help">Exchanges and custodial wallets usually require one. Check with the recipient.</span>
+                  <sc-if value="{{send.tagErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{send.tagErr}}</span></sc-if>
+                </div>
+              </sc-if>
+              <div class="field">
+                <span class="label">Network</span>
+                <div class="readonly">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: #5F6D66"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>
+                  <span style="font-weight: 500">{{send.network}}</span>
+                </div>
+                <span class="help">{{send.ticker}} withdrawals are only supported on {{send.network}}. Make sure the recipient accepts this network.</span>
+              </div>
+            </sc-if>
+
+            <!-- Step 3: review -->
+            <sc-if value="{{send.s3}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 8px">
+                <span style="font-size: 13px; color: #5F6D66">You’re sending</span>
+                <span class="num" style="font-size: 28px; font-weight: 500; letter-spacing: -0.02em">{{send.amountText}}</span>
+                <span class="num" style="font-size: 13px; color: #5F6D66">{{send.fiatText}}</span>
+              </div>
+              <dl class="kv" style="margin: 0; padding: 4px 14px; border: 1px solid #E2E6E2; border-radius: 10px">
+                <div class="kv-row"><dt>To</dt><dd class="mono" style="font-size: 12.5px; font-weight: 400">{{send.address}}</dd></div>
+                <sc-if value="{{send.usesTag}}" hint-placeholder-val="{{ true }}">
+                  <div class="kv-row"><dt>Destination tag</dt><dd class="mono">{{send.tagText}}</dd></div>
+                </sc-if>
+                <div class="kv-row"><dt>Network</dt><dd>{{send.network}}</dd></div>
+                <div class="kv-row"><dt>Network fee</dt><dd>{{send.feeText}}</dd></div>
+                <div class="kv-row"><dt>Total from balance</dt><dd>{{send.totalText}}</dd></div>
+                <div class="kv-row"><dt>Recipient receives</dt><dd>{{send.amountText}}</dd></div>
+              </dl>
+              <div class="banner info">
+                <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+                <span>Withdrawals are reviewed before they’re broadcast. Once broadcast, they can’t be reversed.</span>
+              </div>
+              <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; line-height: 1.45; cursor: pointer">
+                <input type="checkbox" checked="{{send.confirm}}" onChange="{{toggleConfirm}}" style="width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); flex: none">
+                <span>I’ve checked the address{{send.tagClause}} and network.</span>
+              </label>
+              <sc-if value="{{send.confirmErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{send.confirmErr}}</span></sc-if>
+            </sc-if>
+
+            <!-- Step 4: submitted -->
+            <sc-if value="{{send.s4}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0 4px; text-align: center">
+                <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #FBF4E4; color: #875D00">
+                  <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>
+                </span>
+                <span class="num" style="font-size: 22px; font-weight: 500">{{send.amountText}}</span>
+                <span class="status review">Pending review</span>
+              </div>
+              <dl class="kv" style="margin: 0; padding: 4px 14px; border: 1px solid #E2E6E2; border-radius: 10px">
+                <div class="kv-row"><dt>Request reference</dt><dd class="mono">{{send.ref}}</dd></div>
+                <div class="kv-row"><dt>To</dt><dd class="mono" style="font-size: 12.5px; font-weight: 400">{{send.address}}</dd></div>
+                <div class="kv-row"><dt>Network</dt><dd>{{send.network}}</dd></div>
+              </dl>
+              <div class="banner info">
+                <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+                <span>Prototype only: nothing was signed or broadcast, and your balance hasn’t changed.</span>
+              </div>
+            </sc-if>
+          </div>
+          <div class="dlg-foot">
+            <sc-if value="{{send.showBack}}" hint-placeholder-val="{{ false }}">
+              <button type="button" class="btn btn-secondary" onClick="{{sendBack}}">Back</button>
+            </sc-if>
+            <sc-if value="{{send.s4}}" hint-placeholder-val="{{ false }}">
+              <button type="button" class="btn btn-secondary" onClick="{{viewActivity}}">View in activity</button>
+            </sc-if>
+            <button type="button" class="btn btn-primary" onClick="{{sendNext}}">{{send.nextLabel}}</button>
+          </div>
+        </sc-if>
+
+        <!-- Buy -->
+        <sc-if value="{{m.buy}}" hint-placeholder-val="{{ false }}">
+          <div class="dlg-head">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <h2 id="dlg-title" style="margin: 0; font-size: 17px; font-weight: 600">Buy crypto</h2>
+              <span style="font-size: 13px; color: #5F6D66">Preview of the purchase flow</span>
+            </div>
+            <button type="button" class="icon-btn plain" aria-label="Close" onClick="{{closeModal}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div class="dlg-body">
+            <div class="seg full" role="group" aria-label="Asset to buy">
+              <sc-for list="{{buyAssets}}" as="o" hint-placeholder-count="3">
+                <button type="button" class="seg-btn {{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.ticker}}</button>
+              </sc-for>
+            </div>
+            <div class="field">
+              <label class="label" for="buy-amount">Spend</label>
+              <div class="input-wrap lg">
+                <span style="font-size: 22px; font-weight: 500; color: #4C5A54">$</span>
+                <input id="buy-amount" inputMode="decimal" autoComplete="off" placeholder="0.00" value="{{buy.amount}}" onChange="{{onBuyAmount}}">
+                <span style="font-size: 15px; font-weight: 500; color: #4C5A54">USD</span>
+              </div>
+              <span class="help num">{{buy.estimate}}</span>
+            </div>
+            <div class="field">
+              <span class="label">Pay with</span>
+              <div class="readonly" style="color: #5F6D66">[Payment method]</div>
+            </div>
+            <div class="banner info">
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+              <span>Purchases are disabled in this prototype. Final price and fees would be quoted before you confirm.</span>
+            </div>
+          </div>
+          <div class="dlg-foot">
+            <button type="button" class="btn btn-secondary" onClick="{{closeModal}}">Cancel</button>
+            <button type="button" class="btn btn-primary" onClick="{{reviewBuy}}">Review purchase</button>
+          </div>
+        </sc-if>
+
+        <!-- Transaction detail -->
+        <sc-if value="{{m.tx}}" hint-placeholder-val="{{ false }}">
+          <div class="dlg-head">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <h2 id="dlg-title" style="margin: 0; font-size: 17px; font-weight: 600">{{tx.title}}</h2>
+              <span style="font-size: 13px; color: #5F6D66">{{tx.date}}</span>
+            </div>
+            <button type="button" class="icon-btn plain" aria-label="Close" onClick="{{closeModal}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div class="dlg-body">
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 0">
+              <span class="num" style="font-size: 30px; font-weight: 500; letter-spacing: -0.02em; color: {{tx.amountColor}}">{{tx.amount}}</span>
+              <span class="num" style="font-size: 13.5px; color: #5F6D66">{{tx.fiat}}</span>
+              <span class="status {{tx.statusCls}}" style="margin-top: 6px">{{tx.statusLabel}}</span>
+            </div>
+            <dl class="kv" style="margin: 0">
+              <div class="kv-row"><dt>Type</dt><dd>{{tx.typeLabel}}</dd></div>
+              <sc-if value="{{tx.secondary}}" hint-placeholder-val="{{ false }}">
+                <div class="kv-row"><dt>Paid</dt><dd>{{tx.secondary}}</dd></div>
+              </sc-if>
+              <div class="kv-row"><dt>Network</dt><dd>{{tx.network}}</dd></div>
+              <div class="kv-row"><dt>{{tx.partyLabel}}</dt><dd class="mono" style="font-size: 12.5px; font-weight: 400">{{tx.party}}</dd></div>
+              <div class="kv-row"><dt>Fee</dt><dd>{{tx.fee}}</dd></div>
+              <div class="kv-row"><dt>Reference</dt><dd class="mono" style="font-size: 12.5px">{{tx.ref}}</dd></div>
+              <div class="kv-row"><dt>Ledger record</dt><dd style="font-weight: 400; color: #5F6D66">Not available in prototype</dd></div>
+            </dl>
+            <div class="banner {{tx.noteCls}}">
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+              <span>{{tx.note}}</span>
+            </div>
+          </div>
+          <div class="dlg-foot"><button type="button" class="btn btn-secondary" onClick="{{closeModal}}">Close</button></div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <div aria-live="polite" role="status">
+    <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+      <div class="toast">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        {{toast}}
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dataState":{"editor":"enum","options":["live","loading","empty","error"],"default":"live","section":"Prototype state"},"startView":{"editor":"enum","options":["overview","activity","markets","earn","settings","help"],"default":"overview","section":"Prototype state"},"accent":{"editor":"color","default":"#0A0A0A","options":["#0A0A0A","#176B5B","#1F5A7A","#7A4E12"]},"$preview":{"width":1440,"height":1040}}'>
+var END = new Date(2026, 9, 19, 12, 50);
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var PORTFOLIO = 24680.42;
+var PERIODS = [
+  { id: '1D', n: 49, step: 30, change: 482.16, suffix: 'today', vol: 0.004, fmt: 'time' },
+  { id: '1W', n: 43, step: 240, change: 1104.30, suffix: 'past week', vol: 0.01, fmt: 'weekday' },
+  { id: '1M', n: 31, step: 1440, change: 2316.88, suffix: 'past month', vol: 0.02, fmt: 'date' },
+  { id: '3M', n: 46, step: 2880, change: -640.20, suffix: 'past 3 months', vol: 0.03, fmt: 'date' },
+  { id: '1Y', n: 53, step: 10080, change: 9812.55, suffix: 'past year', vol: 0.05, fmt: 'date' },
+  { id: 'ALL', n: 61, months: true, change: 18940.10, suffix: 'since Oct 2021', vol: 0.07, fmt: 'month' }
+];
+var ASSETS = [
+  { id: 'XRP', name: 'XRP', ticker: 'XRP', qty: 6420.10, dec: 2, price: 2.38, value: 15279.84, chg: 3.10, network: 'XRP Ledger', glyph: 'X', color: '#17211D', fee: 0.25, usesTag: true,
+    addr: 'rP9prototype0not0a0real0address', tag: '48201937', placeholder: 'r…', seed: 11, pct: { '1D': 3.10, '1W': 6.4, '1M': 12.8, '3M': -4.6, '1Y': 58.2, 'ALL': 240 } },
+  { id: 'BTC', name: 'Bitcoin', ticker: 'BTC', qty: 0.07210, dec: 5, price: 98000.00, value: 7065.80, chg: 0.60, network: 'Bitcoin', glyph: '₿', color: '#B8640A', fee: 0.00012, usesTag: false,
+    addr: 'bc1q-prototype-not-a-real-address-000', placeholder: 'bc1…', seed: 23, pct: { '1D': 0.60, '1W': 2.1, '1M': 7.4, '3M': 3.2, '1Y': 41.0, 'ALL': 160 } },
+  { id: 'ETH', name: 'Ethereum', ticker: 'ETH', qty: 0.6142, dec: 4, price: 3801.33, value: 2334.78, chg: -0.85, network: 'Ethereum', glyph: 'Ξ', color: '#4B5563', fee: 0.0016, usesTag: false,
+    addr: '0xPROTOTYPE-not-a-real-address-0000', placeholder: '0x…', seed: 37, pct: { '1D': -0.85, '1W': -1.9, '1M': 4.2, '3M': -6.8, '1Y': 22.5, 'ALL': 95 } }
+];
+var OTHER_MARKETS = [
+  { id: 'SOL', name: 'Solana', ticker: 'SOL', price: 182.40, chg: 1.92, glyph: 'S', color: '#3F4F5F' },
+  { id: 'LTC', name: 'Litecoin', ticker: 'LTC', price: 94.15, chg: -0.37, glyph: 'Ł', color: '#5A6670' }
+];
+var BASE_TXS = [
+  { id: 't1', kind: 'receive', asset: 'XRP', title: 'Received XRP', date: 'Today, 11:42', amount: '+1,250.00 XRP', fiat: '$2,975.00', status: 'pending', party: 'rSender…prototype', fee: 'None', ref: 'DEP-PROTO-2041' },
+  { id: 't2', kind: 'send', asset: 'XRP', title: 'Sent XRP', date: 'Oct 17, 16:08', amount: '−300.00 XRP', fiat: '$714.00', status: 'completed', party: 'rRecipient…prototype', fee: '0.25 XRP', ref: 'WD-PROTO-1988' },
+  { id: 't3', kind: 'receive', asset: 'BTC', title: 'Received Bitcoin', date: 'Oct 15, 09:21', amount: '+0.01500 BTC', fiat: '$1,470.00', status: 'completed', party: 'bc1q…prototype', fee: 'None', ref: 'DEP-PROTO-1954' },
+  { id: 't4', kind: 'exchange', asset: 'XRP', title: 'Exchanged ETH for XRP', date: 'Oct 12, 14:55', amount: '+319.44 XRP', secondary: '−0.2000 ETH', fiat: '$760.27', status: 'completed', party: 'Internal exchange', fee: '$1.52', ref: 'EX-PROTO-1903' },
+  { id: 't5', kind: 'send', asset: 'BTC', title: 'Sent Bitcoin', date: 'Oct 8, 18:30', amount: '−0.00500 BTC', fiat: '$490.00', status: 'failed', party: 'bc1q…prototype', fee: 'Refunded', ref: 'WD-PROTO-1871' },
+  { id: 't6', kind: 'buy', asset: 'XRP', title: 'Bought XRP', date: 'Sep 28, 10:02', amount: '+500.00 XRP', fiat: '$1,190.00', status: 'completed', party: '[Payment method]', fee: '$4.76', ref: 'BUY-PROTO-1790' },
+  { id: 't7', kind: 'receive', asset: 'ETH', title: 'Received Ethereum', date: 'Sep 21, 08:47', amount: '+0.2500 ETH', fiat: '$950.33', status: 'completed', party: '0x…prototype', fee: 'None', ref: 'DEP-PROTO-1722' }
+];
+var STATUS = {
+  completed: { label: 'Completed', note: 'Status is prototype data and has not been verified on a ledger.', noteCls: 'info' },
+  pending: { label: 'Pending', note: 'Waiting for network confirmation (simulated). It won’t count toward your balance until it’s credited.', noteCls: 'warn' },
+  review: { label: 'Pending review', note: 'Awaiting review. Nothing has been signed or broadcast.', noteCls: 'warn' },
+  failed: { label: 'Failed', note: 'This withdrawal failed and the amount was returned to your balance (simulated).', noteCls: 'error' }
+};
+var GUIDES = [
+  { id: 'tag', title: 'Sending XRP with a destination tag', body: 'Custodial XRP accounts share one deposit address, so the destination tag tells the receiver which customer the funds belong to. Copy both the address and the tag when you deposit, and ask for a tag when you withdraw to an exchange.' },
+  { id: 'pending', title: 'Why is my deposit still pending?', body: 'A deposit stays Pending until the network confirms it and it is credited to your account. XRP Ledger transactions usually confirm within seconds; Bitcoin and Ethereum need several block confirmations, which can take longer when networks are busy.' },
+  { id: 'network', title: 'Choosing the right network', body: 'Each asset here can only be sent and received on its own network. Sending an asset on a network the recipient doesn’t support can make the funds unrecoverable, so confirm the network with the recipient before you withdraw.' },
+  { id: 'secure', title: 'Keeping your account secure', body: 'Keep two-factor authentication on and consider turning on the withdrawal allowlist. We will never ask for your password, two-factor codes or a recovery phrase, by email, chat or phone.' }
+];
+var USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+function usd(v) { return USD.format(v); }
+function priceFmt(v) { return v < 10 ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : usd(v); }
+function qty(v, d) { return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function hm(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function md(d) { return MONTHS[d.getMonth()] + ' ' + d.getDate(); }
+function findAsset(id) { for (var i = 0; i < ASSETS.length; i++) if (ASSETS[i].id === id) return ASSETS[i]; return ASSETS[0]; }
+function findPeriod(id) { for (var i = 0; i < PERIODS.length; i++) if (PERIODS[i].id === id) return PERIODS[i]; return PERIODS[2]; }
+function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function bridge(n, seed) {
+  var r = rng(seed), w = [0], i;
+  for (i = 1; i < n; i++) w.push(w[i - 1] + (r() - 0.5));
+  var last = w[n - 1], m = 0, b = [];
+  for (i = 0; i < n; i++) { var x = w[i] - last * i / (n - 1); b.push(x); m = Math.max(m, Math.abs(x)); }
+  return b.map(function (x) { return m ? x / m : 0; });
+}
+function pointDate(p, i) {
+  if (p.months) return new Date(END.getFullYear(), END.getMonth() - (p.n - 1 - i), 1);
+  return new Date(END.getTime() - (p.n - 1 - i) * p.step * 60000);
+}
+function labelsFor(p, d) {
+  if (p.fmt === 'time') return { axis: hm(d), tip: (d.getDate() === END.getDate() ? 'Today' : 'Yesterday') + ', ' + hm(d) };
+  if (p.fmt === 'weekday') return { axis: WEEKDAYS[d.getDay()], tip: WEEKDAYS[d.getDay()] + ' ' + md(d) + ', ' + hm(d) };
+  if (p.fmt === 'date') return { axis: md(d), tip: md(d) + ', ' + d.getFullYear() };
+  return { axis: MONTHS[d.getMonth()] + ' ' + d.getFullYear(), tip: MONTHS[d.getMonth()] + ' ' + d.getFullYear() };
+}
+function buildSeries(p, end, change, vol, seed) {
+  var start = end - change, b = bridge(p.n, seed), out = [];
+  for (var i = 0; i < p.n; i++) {
+    var trend = start + change * i / (p.n - 1);
+    var v = i === 0 ? start : (i === p.n - 1 ? end : trend * (1 + vol * b[i]));
+    var l = labelsFor(p, pointDate(p, i));
+    out.push({ v: Math.round(v * 10000) / 10000, axis: l.axis, tip: l.tip });
+  }
+  return out;
+}
+var SERIES_CACHE = {};
+function seriesFor(assetId, periodId) {
+  var key = (assetId || 'PF') + '|' + periodId;
+  if (SERIES_CACHE[key]) return SERIES_CACHE[key];
+  var p = findPeriod(periodId), s;
+  if (!assetId) s = buildSeries(p, PORTFOLIO, p.change, p.vol, 101 + p.n);
+  else {
+    var a = findAsset(assetId), pct = a.pct[periodId], start = a.price / (1 + pct / 100);
+    s = buildSeries(p, a.price, a.price - start, p.vol * 1.6, a.seed * 7 + p.n);
+  }
+  SERIES_CACHE[key] = s;
+  return s;
+}
+function chgParts(pct) {
+  return { cls: pct > 0 ? 'up' : (pct < 0 ? 'down' : 'flat'), up: pct > 0, down: pct < 0, text: Math.abs(pct).toFixed(2) + '%' };
+}
+function parseNum(s) { var n = parseFloat(String(s || '').replace(/,/g, '')); return isNaN(n) ? NaN : n; }
+function freshSend(assetId) { return { step: 1, asset: assetId || 'XRP', amount: '', address: '', tag: '', confirm: false, tried1: false, tried2: false, tried3: false, ref: '' }; }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      view: props.startView || 'overview', period: '1M', assetId: null,
+      modal: null, menu: null, txId: null,
+      recvAsset: 'XRP', copied: null,
+      send: freshSend('XRP'),
+      buy: { asset: 'XRP', amount: '' },
+      txs: BASE_TXS.slice(), filter: 'all',
+      unread: true, toast: null, guide: null, wdCount: 2042,
+      settings: { twofa: true, allowlist: false, receipts: true, alerts: false }
+    };
+  }
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.modal && this.state.modal !== prevState.modal && this.dialogEl) this.dialogEl.focus();
+    if (!this.state.modal && prevState.modal && this.lastTrigger && this.lastTrigger.focus) this.lastTrigger.focus();
+    if (prevProps.startView !== this.props.startView && this.props.startView) this.setState({ view: this.props.startView });
+  }
+  componentWillUnmount() { clearTimeout(this.toastTimer); clearTimeout(this.copyTimer); }
+
+  showToast(msg) {
+    var self = this;
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: msg });
+    this.toastTimer = setTimeout(function () { self.setState({ toast: null }); }, 3000);
+  }
+  remember() { this.lastTrigger = document.activeElement; }
+  go(view) { this.setState({ view: view, menu: null, modal: null, assetId: view === 'asset' ? this.state.assetId : null }); }
+  openModal(name, extra) { this.remember(); this.setState(Object.assign({ modal: name, menu: null }, extra || {})); }
+  copy(text, which) {
+    var self = this;
+    try { if (navigator.clipboard) navigator.clipboard.writeText(text); } catch (e) {}
+    clearTimeout(this.copyTimer);
+    this.setState({ copied: which });
+    this.copyTimer = setTimeout(function () { self.setState({ copied: null }); }, 1800);
+  }
+  patchSend(patch) { this.setState({ send: Object.assign({}, this.state.send, patch) }); }
+
+  txView(t) {
+    var self = this, st = STATUS[t.status], a = findAsset(t.asset);
+    var positive = t.amount.charAt(0) === '+';
+    var typeLabel = { receive: 'Deposit', send: 'Withdrawal', exchange: 'Exchange', buy: 'Purchase' }[t.kind];
+    return Object.assign({}, t, {
+      isReceive: t.kind === 'receive', isSend: t.kind === 'send', isExchange: t.kind === 'exchange', isBuy: t.kind === 'buy',
+      amountColor: positive ? '#13704C' : '#17211D',
+      statusCls: t.status, statusLabel: st.label, note: st.note, noteCls: st.noteCls,
+      typeLabel: typeLabel, network: t.kind === 'exchange' || t.kind === 'buy' ? 'Internal' : a.network,
+      partyLabel: t.kind === 'receive' ? 'From' : (t.kind === 'send' ? 'To' : 'Via'),
+      secondary: t.secondary || '',
+      aria: t.title + ', ' + t.amount + ', ' + t.date + ', ' + st.label,
+      open: function () { self.openModal('tx', { txId: t.id }); }
+    });
+  }
+
+  renderVals() {
+    var self = this, s = this.state, ds = this.props.dataState || 'live';
+    var accent = this.props.accent || '#0A0A0A';
+    var view = s.view;
+    var navKeys = ['overview', 'activity', 'markets', 'earn', 'help', 'settings'];
+    var nav = {};
+    navKeys.forEach(function (k) {
+      var on = view === k || (k === 'overview' && view === 'asset');
+      nav[k] = on ? 'is-active' : '';
+      nav[k + 'Cur'] = on ? 'page' : undefined;
+    });
+
+    var pages = {
+      overview: ['Overview', 'Your portfolio at a glance.'],
+      activity: ['Activity', 'Deposits, withdrawals and exchanges on your account.'],
+      markets: ['Markets', 'Indicative prices for supported assets.'],
+      earn: ['Earn', 'Programs for idle assets.'],
+      settings: ['Settings', 'Profile, security and notifications.'],
+      help: ['Help & Support', 'Guides and ways to reach the support team.']
+    };
+    var curAsset = s.assetId ? findAsset(s.assetId) : null;
+    var page = view === 'asset' && curAsset ? { title: curAsset.name, sub: curAsset.ticker + ' · ' + curAsset.network } : { title: pages[view][0], sub: pages[view][1] };
+
+    // Portfolio
+    var period = findPeriod(s.period);
+    var empty = ds === 'empty';
+    var whole = empty ? '$0' : usd(PORTFOLIO).split('.')[0];
+    var cents = empty ? '.00' : '.' + usd(PORTFOLIO).split('.')[1];
+    var startVal = PORTFOLIO - period.change;
+    var pfPct = period.change / startVal * 100;
+    var pf = {
+      whole: whole, cents: cents,
+      chgCls: empty ? 'flat' : (period.change >= 0 ? 'up' : 'down'),
+      up: !empty && period.change > 0, down: !empty && period.change < 0,
+      chgText: empty ? '$0.00' : (period.change >= 0 ? '+' : '−') + usd(Math.abs(period.change)) + ' (' + Math.abs(pfPct).toFixed(2) + '%)',
+      suffix: empty ? 'No deposits yet' : period.suffix
+    };
+
+    var periods = PERIODS.map(function (p) {
+      return { id: p.id, on: p.id === s.period, cls: p.id === s.period ? 'is-on' : '', pick: function () { self.setState({ period: p.id }); } };
+    });
+    var chart = { points: seriesFor(view === 'asset' && curAsset ? curAsset.id : null, s.period) };
+
+    var holdings = ASSETS.map(function (a) {
+      var c = chgParts(a.chg);
+      return {
+        name: a.name, glyph: a.glyph, color: a.color,
+        qtyText: qty(a.qty, a.dec) + ' ' + a.ticker, valueText: usd(a.value), priceText: priceFmt(a.price),
+        chgCls: c.cls, up: c.up, down: c.down, chgText: c.text,
+        aria: a.name + ', ' + qty(a.qty, a.dec) + ' ' + a.ticker + ', worth ' + usd(a.value) + ', ' + (a.chg >= 0 ? 'up ' : 'down ') + c.text + ' today',
+        open: function () { self.setState({ view: 'asset', assetId: a.id, menu: null }); }
+      };
+    });
+
+    var allTxs = s.txs.map(function (t) { return self.txView(t); });
+    var recentTxs = allTxs.slice(0, 4);
+    var filterDefs = [['all', 'All'], ['receive', 'Received'], ['send', 'Sent'], ['exchange', 'Exchanges']];
+    var filters = filterDefs.map(function (f) {
+      return { label: f[1], on: s.filter === f[0], cls: s.filter === f[0] ? 'is-on' : '', pick: function () { self.setState({ filter: f[0] }); } };
+    });
+    var filteredTxs = allTxs.filter(function (t) { return s.filter === 'all' || t.kind === s.filter || (s.filter === 'receive' && t.kind === 'buy'); });
+
+    // Asset detail
+    var asset = {};
+    if (curAsset) {
+      var pc = curAsset.pct[s.period], c = chgParts(curAsset.chg), ptxs = allTxs.filter(function (t) { return t.asset === curAsset.id; });
+      asset = {
+        name: curAsset.name, ticker: curAsset.ticker, glyph: curAsset.glyph, color: curAsset.color, network: curAsset.network,
+        priceText: priceFmt(curAsset.price),
+        periodCls: pc >= 0 ? 'up' : 'down', periodText: (pc >= 0 ? '+' : '−') + Math.abs(pc).toFixed(2) + '%', periodSuffix: period.suffix,
+        qtyText: qty(curAsset.qty, curAsset.dec) + ' ' + curAsset.ticker, valueText: usd(curAsset.value),
+        chgCls: c.cls, chgText: (curAsset.chg >= 0 ? '+' : '−') + c.text,
+        shareText: (curAsset.value / PORTFOLIO * 100).toFixed(1) + '%',
+        txs: ptxs, noTxs: ptxs.length === 0,
+        receive: function () { self.openModal('receive', { recvAsset: curAsset.id, copied: null }); },
+        send: function () { self.openModal('send', { send: freshSend(curAsset.id) }); }
+      };
+    }
+
+    var markets = ASSETS.concat(OTHER_MARKETS).map(function (m) {
+      var held = !!m.qty, c = chgParts(m.chg);
+      return {
+        name: m.name, ticker: m.ticker, glyph: m.glyph, color: m.color, held: held, notHeld: !held,
+        priceText: priceFmt(m.price), chgCls: c.cls, chgText: (m.chg >= 0 ? '+' : '−') + c.text,
+        holdText: held ? qty(m.qty, m.dec) : '',
+        aria: m.name + ', ' + priceFmt(m.price) + '. View details',
+        open: function () { self.setState({ view: 'asset', assetId: m.id }); }
+      };
+    });
+
+    var set = s.settings;
+    var security = [
+      { label: 'Two-factor authentication', value: set.twofa ? 'On · authenticator app' : 'Off — turn on to protect withdrawals', ok: set.twofa, warn: !set.twofa, neutral: false },
+      { label: 'Withdrawal allowlist', value: set.allowlist ? 'On · 2 saved addresses' : 'Off · any address allowed', ok: set.allowlist, warn: !set.allowlist, neutral: false },
+      { label: 'Identity verification', value: 'Verified', ok: true, warn: false, neutral: false },
+      { label: 'Last sign-in', value: 'Today, 09:14 · Chrome on macOS', ok: false, warn: false, neutral: true }
+    ];
+    var st = {
+      twofa: set.twofa, allowlist: set.allowlist, receipts: set.receipts, alerts: set.alerts,
+      twofaCls: set.twofa ? 'is-on' : '', allowCls: set.allowlist ? 'is-on' : '', receiptsCls: set.receipts ? 'is-on' : '', alertsCls: set.alerts ? 'is-on' : ''
+    };
+    function toggler(key) { return function () { var n = Object.assign({}, self.state.settings); n[key] = !n[key]; self.setState({ settings: n }); }; }
+
+    var guides = GUIDES.map(function (g) {
+      return { title: g.title, body: g.body, open: s.guide === g.id, toggle: function () { self.setState({ guide: self.state.guide === g.id ? null : g.id }); } };
+    });
+
+    // Receive
+    var ra = findAsset(s.recvAsset);
+    var recv = {
+      name: ra.name, ticker: ra.ticker, network: ra.network, addr: ra.addr, usesTag: ra.usesTag, tag: ra.tag || '',
+      copyAddrLabel: s.copied === 'addr' ? 'Copied' : 'Copy address', copyTagLabel: s.copied === 'tag' ? 'Copied' : 'Copy'
+    };
+    function assetPicker(current, onPick) {
+      return ASSETS.map(function (a) { return { ticker: a.ticker, on: a.id === current, cls: a.id === current ? 'is-on' : '', pick: function () { onPick(a.id); } }; });
+    }
+    var recvAssets = assetPicker(s.recvAsset, function (id) { self.setState({ recvAsset: id, copied: null }); });
+
+    // Send
+    var sd = s.send, sa = findAsset(sd.asset);
+    var amt = parseNum(sd.amount), maxAmt = Math.max(0, sa.qty - sa.fee);
+    var amountErr = '';
+    if (sd.amount !== '' && (isNaN(amt) || amt <= 0)) amountErr = 'Enter an amount greater than zero.';
+    else if (amt > maxAmt + 1e-9) amountErr = 'Amount plus the ' + qty(sa.fee, sa.dec) + ' ' + sa.ticker + ' network fee is more than your available balance.';
+    else if (sd.amount === '' && sd.tried1) amountErr = 'Enter an amount to send.';
+    var step1Ok = !isNaN(amt) && amt > 0 && amt <= maxAmt + 1e-9;
+    var addr = sd.address.trim();
+    var addrErr = '';
+    if (sd.tried2 && addr.length === 0) addrErr = 'Enter the ' + sa.network + ' address you’re sending to.';
+    else if (sd.tried2 && (addr.length < 25 || /\s/.test(addr))) addrErr = 'This doesn’t look like a complete ' + sa.network + ' address.';
+    var tagErr = sa.usesTag && sd.tag !== '' && !/^\d{1,10}$/.test(sd.tag) ? 'Destination tags are numbers only, up to 10 digits.' : '';
+    var step2Ok = addr.length >= 25 && !/\s/.test(addr) && !tagErr;
+    var stepLabels = ['Amount', 'Destination', 'Review'];
+    var send = {
+      title: sd.step === 4 ? 'Withdrawal requested' : 'Send ' + sa.name,
+      subtitle: sd.step === 4 ? 'Your request is in the review queue' : 'Step ' + sd.step + ' of 3 · ' + stepLabels[sd.step - 1],
+      showSteps: sd.step < 4,
+      steps: stepLabels.map(function (l, i) { var n = i + 1; return { label: l, cls: n < sd.step ? 'done' : (n === sd.step ? 'current' : ''), cur: n === sd.step ? 'step' : undefined }; }),
+      s1: sd.step === 1, s2: sd.step === 2, s3: sd.step === 3, s4: sd.step === 4,
+      ticker: sa.ticker, network: sa.network, usesTag: sa.usesTag,
+      amount: sd.amount, address: sd.address, tag: sd.tag, confirm: sd.confirm,
+      amountCls: amountErr ? 'invalid' : '', addrCls: addrErr ? 'invalid' : '', tagCls: tagErr ? 'invalid' : '',
+      amountErr: amountErr, addrErr: addrErr, tagErr: tagErr,
+      confirmErr: sd.tried3 && !sd.confirm ? 'Confirm you’ve checked the details to continue.' : '',
+      addrPlaceholder: sa.placeholder + ' ' + sa.network + ' address',
+      fiatText: step1Ok ? '≈ ' + usd(amt * sa.price) : '≈ $0.00',
+      availText: qty(sa.qty, sa.dec) + ' ' + sa.ticker,
+      amountText: step1Ok ? qty(amt, sa.dec) + ' ' + sa.ticker : '—',
+      feeText: qty(sa.fee, sa.dec) + ' ' + sa.ticker + ' (' + usd(sa.fee * sa.price) + ')',
+      totalText: step1Ok ? qty(amt + sa.fee, sa.dec) + ' ' + sa.ticker : '—',
+      tagText: sd.tag || 'None',
+      tagClause: sa.usesTag ? ', destination tag' : '',
+      ref: sd.ref,
+      showBack: sd.step === 2 || sd.step === 3,
+      nextLabel: sd.step === 3 ? 'Submit withdrawal request' : (sd.step === 4 ? 'Done' : 'Continue')
+    };
+    var sendAssets = assetPicker(sd.asset, function (id) { self.setState({ send: Object.assign(freshSend(id), {}) }); });
+
+    // Buy
+    var ba = findAsset(s.buy.asset), bAmt = parseNum(s.buy.amount);
+    var buy = { amount: s.buy.amount, estimate: bAmt > 0 ? '≈ ' + qty(bAmt / ba.price, ba.dec + 2) + ' ' + ba.ticker + ' at an indicative ' + priceFmt(ba.price) : 'Enter an amount to see an estimate' };
+    var buyAssets = assetPicker(s.buy.asset, function (id) { self.setState({ buy: Object.assign({}, self.state.buy, { asset: id }) }); });
+
+    var txSel = null;
+    for (var i = 0; i < allTxs.length; i++) if (allTxs[i].id === s.txId) txSel = allTxs[i];
+
+    return {
+      accent: accent, nav: nav, page: page,
+      isOverview: view === 'overview', isActivity: view === 'activity', isMarkets: view === 'markets', isEarn: view === 'earn',
+      isSettings: view === 'settings', isHelp: view === 'help', isAsset: view === 'asset' && !!curAsset,
+      state: {
+        live: ds === 'live', loading: ds === 'loading', notLoading: ds !== 'loading', empty: empty, error: ds === 'error',
+        hasChart: ds === 'live' || ds === 'error', hasData: ds === 'live' || ds === 'error'
+      },
+      skeletonRows: [1, 2, 3],
+      pf: pf, periods: periods, chart: chart, holdings: holdings, recentTxs: recentTxs,
+      filters: filters, filteredTxs: filteredTxs, noFilteredTxs: filteredTxs.length === 0,
+      asset: asset, markets: markets, security: security, st: st, guides: guides,
+      menu: { notif: s.menu === 'notif', profile: s.menu === 'profile' },
+      hasUnread: s.unread, notifLabel: s.unread ? 'Notifications, 2 unread' : 'Notifications',
+      notifications: [
+        { text: 'Deposit of 1,250.00 XRP is waiting for network confirmation.', time: 'Today, 11:42', dot: s.unread ? '#D49711' : '#D2D9D4' },
+        { text: 'New sign-in from Chrome on macOS.', time: 'Today, 09:14', dot: s.unread ? 'var(--accent)' : '#D2D9D4' }
+      ],
+      modalOpen: !!s.modal, dialogCls: s.modal === 'tx' ? 'is-drawer' : '',
+      m: { receive: s.modal === 'receive', send: s.modal === 'send', buy: s.modal === 'buy', tx: s.modal === 'tx' && !!txSel },
+      recv: recv, recvAssets: recvAssets, send: send, sendAssets: sendAssets, buy: buy, buyAssets: buyAssets,
+      tx: txSel || {},
+      toast: s.toast,
+
+      goOverview: function () { self.go('overview'); },
+      goActivity: function () { self.go('activity'); },
+      goMarkets: function () { self.go('markets'); },
+      goEarn: function () { self.go('earn'); },
+      goHelp: function () { self.go('help'); },
+      goSettings: function () { self.go('settings'); },
+      openTagGuide: function () { self.setState({ view: 'help', guide: 'tag', menu: null }); },
+      toggleNotif: function () { self.setState({ menu: self.state.menu === 'notif' ? null : 'notif' }); },
+      toggleProfile: function () { self.setState({ menu: self.state.menu === 'profile' ? null : 'profile' }); },
+      closeMenus: function () { self.setState({ menu: null }); },
+      onMenuKey: function (e) { if (e.key === 'Escape') self.setState({ menu: null }); },
+      markRead: function () { self.setState({ unread: false }); },
+      signOut: function () { self.setState({ menu: null }); self.showToast('Sign-out is disabled in this prototype.'); },
+      retry: function () { self.showToast('Retrying… (simulated — switch the prototype state to see live data)'); },
+      changePassword: function () { self.showToast('Password changes aren’t available in this prototype.'); },
+      contactSupport: function () { self.showToast('Support chat is simulated in this prototype.'); },
+      toggleTwofa: toggler('twofa'), toggleAllow: toggler('allowlist'), toggleReceipts: toggler('receipts'), toggleAlerts: toggler('alerts'),
+
+      openReceive: function () { self.openModal('receive', { recvAsset: 'XRP', copied: null }); },
+      openSend: function () { self.openModal('send', { send: freshSend('XRP') }); },
+      openBuy: function () { self.openModal('buy', { buy: { asset: 'XRP', amount: '' } }); },
+      closeModal: function () { self.setState({ modal: null }); },
+      onModalKey: function (e) { if (e.key === 'Escape') self.setState({ modal: null }); },
+      setDialog: function (el) { self.dialogEl = el; },
+      copyAddr: function () { self.copy(ra.addr, 'addr'); },
+      copyTag: function () { self.copy(ra.tag || '', 'tag'); },
+
+      onAmount: function (e) { self.patchSend({ amount: e.target.value.replace(/[^0-9.,]/g, '') }); },
+      setMax: function () { self.patchSend({ amount: String(Math.floor(maxAmt * Math.pow(10, sa.dec)) / Math.pow(10, sa.dec)) }); },
+      onAddress: function (e) { self.patchSend({ address: e.target.value }); },
+      onTag: function (e) { self.patchSend({ tag: e.target.value.replace(/\s/g, '') }); },
+      toggleConfirm: function () { self.patchSend({ confirm: !self.state.send.confirm }); },
+      sendBack: function () { self.patchSend({ step: Math.max(1, sd.step - 1) }); },
+      sendNext: function () {
+        if (sd.step === 1) { if (step1Ok) self.patchSend({ step: 2 }); else self.patchSend({ tried1: true }); return; }
+        if (sd.step === 2) { if (step2Ok) self.patchSend({ step: 3 }); else self.patchSend({ tried2: true }); return; }
+        if (sd.step === 3) {
+          if (!sd.confirm) { self.patchSend({ tried3: true }); return; }
+          var ref = 'WD-PROTO-' + self.state.wdCount;
+          var a2 = addr.length > 16 ? addr.slice(0, 8) + '…' + addr.slice(-6) : addr;
+          var newTx = { id: 'wd' + self.state.wdCount, kind: 'send', asset: sa.id, title: 'Withdrawal request · ' + sa.ticker, date: 'Today, 12:52', amount: '−' + qty(amt, sa.dec) + ' ' + sa.ticker, fiat: usd(amt * sa.price), status: 'review', party: a2, fee: qty(sa.fee, sa.dec) + ' ' + sa.ticker, ref: ref };
+          self.setState({ txs: [newTx].concat(self.state.txs), wdCount: self.state.wdCount + 1, send: Object.assign({}, sd, { step: 4, ref: ref }) });
+          return;
+        }
+        self.setState({ modal: null });
+      },
+      viewActivity: function () { self.setState({ modal: null, view: 'activity', filter: 'all' }); },
+
+      onBuyAmount: function (e) { self.setState({ buy: Object.assign({}, self.state.buy, { amount: e.target.value.replace(/[^0-9.,]/g, '') }) }); },
+      reviewBuy: function () { self.setState({ modal: null }); self.showToast('Purchases are simulated — no order was placed.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

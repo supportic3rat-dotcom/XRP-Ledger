@@ -1,0 +1,13 @@
+{
+  "compilerOptions": { "strict": true, "noUncheckedIndexedAccess": true },
+  "imports": {
+    "zod": "npm:zod@^4.6.7",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.118.0",
+    "@xrp/types": "../../packages/types/src/index.ts",
+    "@xrp/ledger": "../../packages/ledger/src/index.ts",
+    "@xrp/schemas": "../../packages/schemas/src/index.ts",
+    "@xrp/providers": "../../packages/providers/src/index.ts"
+  },
+  "lint": { "rules": { "tags": ["recommended"] } },
+  "fmt": { "lineWidth": 160, "singleQuote": true }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@xrp/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3300",
+    "build": "next build",
+    "start": "next start -p 3300",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
+    "@xrp/ledger": "workspace:*",
+    "@xrp/providers": "workspace:*",
+    "@xrp/schemas": "workspace:*",
+    "@xrp/tokens": "workspace:*",
+    "@xrp/types": "workspace:*",
+    "next": "16.4.2",
+    "qrcode.react": "^4.2.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

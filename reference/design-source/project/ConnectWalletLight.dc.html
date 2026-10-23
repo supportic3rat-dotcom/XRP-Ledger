@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Connect a wallet (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.num{font-variant-numeric:tabular-nums}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap;width:100%}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn-sm{height:40px;font-size:13.5px;width:auto;flex:1}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--sunken)}
+.seg-btn{flex:1;height:38px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer}
+.seg-btn.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--border)}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer;color:var(--text)}
+.opt:first-child{border-top:0}
+.opt-ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--sunken);color:var(--text-2);flex:none}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;height:52px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:14px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.banner.error{background:var(--neg-soft);color:var(--neg)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+.words{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.word{display:flex;align-items:center;gap:6px;height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;min-width:0}
+.word .n{width:16px;flex:none;font-size:11px;color:var(--text-3);text-align:right;font-variant-numeric:tabular-nums}
+.word .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.word.empty .w{color:var(--text-3)}
+.tick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2)}
+.spin{width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="WelcomeLight.dc.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <span style="flex: 1; font-size: 13px; color: var(--text-3); text-align: center; margin-right: 44px">Optional</span>
+    </div>
+
+    <sc-if value="{{isChoose}}" hint-placeholder-val="{{ true }}">
+      <h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Connect a wallet you already own</h1>
+      <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: var(--text-2)">Link it to see its balance, or import it with its recovery phrase to use it from this app. It stays separate from your custodial account.</p>
+
+      <div class="seg" role="group" aria-label="Connection method" style="margin-bottom: 16px">
+        <button type="button" class="seg-btn {{m.appCls}}" aria-pressed="{{m.app}}" onClick="{{useApp}}">Wallet app</button>
+        <button type="button" class="seg-btn {{m.addrCls}}" aria-pressed="{{m.addr}}" onClick="{{useAddr}}">Address</button>
+        <button type="button" class="seg-btn {{m.phraseCls}}" aria-pressed="{{m.phrase}}" onClick="{{usePhrase}}">Recovery phrase</button>
+      </div>
+
+      <!-- Wallet app -->
+      <sc-if value="{{m.app}}" hint-placeholder-val="{{ true }}">
+        <div class="card">
+          <button type="button" class="opt" onClick="{{pickMobile}}">
+            <span class="opt-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2"></rect><path d="M11 17.5h2"></path></svg></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">XRPL wallet on this phone</span><span class="help">Opens the app to approve</span></span>
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+          <button type="button" class="opt" onClick="{{pickQr}}">
+            <span class="opt-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 18h2v2h-2zM18 14h2M14 18v2"></path></svg></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Wallet on another device</span><span class="help">Scan a QR code to approve</span></span>
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+          <button type="button" class="opt" onClick="{{pickHw}}">
+            <span class="opt-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><rect x="6" y="3.5" width="12" height="17" rx="3"></rect><path d="M10 8h4M12 13.5v3"></path></svg></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Hardware wallet</span><span class="help">Through its companion app</span></span>
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+        <p class="help" style="margin: 10px 4px 0">Only your public address is shared. Supported wallets are listed after compatibility testing.</p>
+      </sc-if>
+
+      <!-- Public address -->
+      <sc-if value="{{m.addr}}" hint-placeholder-val="{{ false }}">
+        <div class="field">
+          <label class="label" for="cw-addr">Public XRP Ledger address</label>
+          <div class="input-wrap {{addrCls}}"><input id="cw-addr" class="mono" autoComplete="off" spellCheck="false" placeholder="r…" value="{{addr}}" onChange="{{onAddr}}"></div>
+          <sc-if value="{{addrErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{addrErr}}</span></sc-if>
+          <span class="help">Starts with “r”, 25–35 characters. Safe to share — it’s the address people send XRP to.</span>
+        </div>
+        <button type="button" class="btn btn-primary" onClick="{{watch}}" style="margin-top: 16px">Add as watch-only</button>
+      </sc-if>
+
+      <!-- Recovery phrase -->
+      <sc-if value="{{m.phrase}}" hint-placeholder-val="{{ false }}">
+        <div class="banner warn" role="note" style="margin-bottom: 14px">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+          <span>Your phrase is encrypted and stays on this phone. It’s never sent to us, and our staff will never ask for it — anyone who does is trying to steal your funds.</span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px">
+          <span class="label" id="ph-len">Phrase length</span>
+          <div class="seg" role="group" aria-labelledby="ph-len" style="width: 150px">
+            <button type="button" class="seg-btn {{ph.c12}}" aria-pressed="{{ph.is12}}" onClick="{{set12}}" style="height: 32px">12 words</button>
+            <button type="button" class="seg-btn {{ph.c24}}" aria-pressed="{{ph.is24}}" onClick="{{set24}}" style="height: 32px">24 words</button>
+          </div>
+        </div>
+
+        <div class="words" role="list" aria-label="Recovery phrase words">
+          <sc-for list="{{ph.slots}}" as="w" hint-placeholder-count="12">
+            <div class="word {{w.cls}}" role="listitem"><span class="n">{{w.n}}</span><span class="w mono">{{w.text}}</span></div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 10px">
+          <button type="button" class="btn btn-secondary btn-sm" onClick="{{fill}}">
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2"></rect><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"></path></svg>
+            {{ph.fillLabel}}
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onClick="{{toggleShow}}" disabled="{{ph.noWords}}">
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>
+            {{ph.showLabel}}
+          </button>
+        </div>
+
+        <sc-if value="{{ph.filled}}" hint-placeholder-val="{{ false }}">
+          <div class="tick" style="margin-top: 12px"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--pos)"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>All words recognised · checksum valid</div>
+        </sc-if>
+
+        <div class="card" style="margin-top: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12.5px; font-weight: 600; color: var(--text-2)">Before you import</span>
+          <span class="tick"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Nobody can see your screen</span>
+          <span class="tick"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>You’re not sharing your screen or on a call</span>
+          <span class="tick"><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>You keep your own paper backup — we can’t restore it</span>
+        </div>
+
+        <button type="button" class="btn btn-primary" onClick="{{importWallet}}" disabled="{{ph.noWords}}" style="margin-top: 16px">Import wallet</button>
+        <p class="help" style="margin: 10px 4px 0; text-align: center">Design prototype: word slots are display-only, so a real phrase can’t be typed on this shared page. Use “Fill sample words” to preview the filled state.</p>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{isWaiting}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 72px 8px 24px; text-align: center">
+        <span class="spin" aria-hidden="true"></span>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 600">{{waitTitle}}</h1>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2)">{{waitText}}</p>
+        <sc-if value="{{isRemote}}" hint-placeholder-val="{{ true }}">
+          <div class="card" style="width: 100%; text-align: left; margin-top: 8px">
+            <dl class="kv">
+              <div><dt>Requested by</dt><dd>XRP Ledger app</dd></div>
+              <div><dt>Shares</dt><dd>Public address only</dd></div>
+              <div><dt>Can move funds</dt><dd>No</dd></div>
+            </dl>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <button type="button" class="btn btn-primary" onClick="{{approve}}">{{approveLabel}}</button>
+        <button type="button" class="btn btn-secondary" onClick="{{cancel}}">Cancel</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 12px">
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-text)"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+        <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">{{done.title}}</h1>
+        <p style="margin: 0; font-size: 14px; color: var(--text-2)">{{done.text}}</p>
+      </div>
+      <div class="card" style="margin-top: 18px">
+        <dl class="kv">
+          <div><dt>Address</dt><dd class="mono" style="font-size: 12.5px">{{shortAddr}}</dd></div>
+          <div><dt>Balance on ledger</dt><dd class="num">312.40 XRP</dd></div>
+          <div><dt>Access</dt><dd>{{done.access}}</dd></div>
+          <div><dt>Held in custody</dt><dd>No</dd></div>
+        </dl>
+      </div>
+      <div class="banner info" style="margin-top: 12px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>{{done.note}}</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px">
+        <a class="btn btn-primary" href="CreateAccountLight.dc.html">Continue to custodial account</a>
+        <button type="button" class="btn btn-secondary" onClick="{{disconnect}}">{{done.removeLabel}}</button>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var B58 = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/;
+var SAMPLE = ['orbit', 'candle', 'maple', 'river', 'silent', 'harbor', 'velvet', 'copper', 'garden', 'lunar', 'pilot', 'meadow', 'anchor', 'timber', 'shadow', 'violet', 'summit', 'pepper', 'island', 'rocket', 'fabric', 'nephew', 'crystal', 'ember'];
+var WAIT = {
+  mobile: ['Approve in your wallet', 'We opened your wallet app. Check the request and tap Approve.'],
+  qr: ['Approve in your wallet', 'Scan the code with your wallet app, then approve the request there.'],
+  hw: ['Approve in your wallet', 'Open the companion app for your hardware wallet and confirm on the device.'],
+  phrase: ['Importing your wallet', 'Deriving your XRP Ledger address on this device. Nothing leaves your phone.']
+};
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { method: 'app', step: 'choose', via: 'mobile', addr: '', tried: false, connected: '', len: 12, filled: false, show: false, kind: 'watch' }; }
+  renderVals() {
+    var self = this, s = this.state;
+    var a = s.addr.trim(), ok = B58.test(a);
+    var err = s.tried && !ok ? (a ? 'That isn’t a valid XRP Ledger address.' : 'Enter a public address.') : '';
+    var conn = s.connected || 'rExtProtoWallet9xQb7mKcV9tYwZ2';
+    var slots = [];
+    for (var i = 0; i < s.len; i++) {
+      slots.push({ n: i + 1, text: s.filled ? (s.show ? SAMPLE[i] : '•••••') : 'word', cls: s.filled ? '' : 'empty' });
+    }
+    var imported = s.kind === 'import';
+    function go(via) { return function () { self.setState({ step: 'wait', via: via }); }; }
+    return {
+      themeCls: this.props.dark === true ? 'dark' : '',
+      isChoose: s.step === 'choose', isWaiting: s.step === 'wait', isDone: s.step === 'done',
+      m: {
+        app: s.method === 'app', addr: s.method === 'addr', phrase: s.method === 'phrase',
+        appCls: s.method === 'app' ? 'on' : '', addrCls: s.method === 'addr' ? 'on' : '', phraseCls: s.method === 'phrase' ? 'on' : ''
+      },
+      ph: {
+        is12: s.len === 12, is24: s.len === 24, c12: s.len === 12 ? 'on' : '', c24: s.len === 24 ? 'on' : '',
+        slots: slots, filled: s.filled, noWords: !s.filled,
+        fillLabel: s.filled ? 'Clear' : 'Fill sample words', showLabel: s.show ? 'Hide' : 'Show'
+      },
+      addr: s.addr, addrErr: err, addrCls: err ? 'invalid' : '',
+      isRemote: s.via !== 'phrase',
+      waitTitle: WAIT[s.via][0], waitText: WAIT[s.via][1],
+      approveLabel: s.via === 'phrase' ? 'Simulate import' : 'Simulate approval',
+      done: {
+        title: imported ? 'Wallet imported' : 'Wallet connected',
+        text: imported ? 'Your wallet is ready on this device. You can view it and sign transactions from here.' : (s.connected ? 'Added as watch-only. We’ll read its balance from the public ledger.' : 'Your wallet approved the connection and shared its public address.'),
+        access: imported ? 'Self-custody · keys on this phone' : 'Watch-only',
+        note: imported ? 'You control this wallet. If you lose this phone and your paper backup, we can’t recover it. It’s never counted in your custodial balance.' : 'To deposit, earn or borrow you’ll also need a custodial account. This wallet stays separate and is never counted in your custodial balance.',
+        removeLabel: imported ? 'Remove from this device' : 'Disconnect'
+      },
+      shortAddr: conn.slice(0, 8) + '…' + conn.slice(-6),
+      useApp: function () { self.setState({ method: 'app' }); },
+      useAddr: function () { self.setState({ method: 'addr' }); },
+      usePhrase: function () { self.setState({ method: 'phrase' }); },
+      set12: function () { self.setState({ len: 12 }); },
+      set24: function () { self.setState({ len: 24 }); },
+      fill: function () { self.setState({ filled: !self.state.filled, show: false }); },
+      toggleShow: function () { self.setState({ show: !self.state.show }); },
+      importWallet: function () { if (self.state.filled) self.setState({ step: 'wait', via: 'phrase' }); },
+      pickMobile: go('mobile'), pickQr: go('qr'), pickHw: go('hw'),
+      onAddr: function (e) { self.setState({ addr: e.target.value }); },
+      watch: function () { if (ok) self.setState({ step: 'done', connected: a, kind: 'watch' }); else self.setState({ tried: true }); },
+      approve: function () { self.setState({ step: 'done', connected: '', kind: self.state.via === 'phrase' ? 'import' : 'watch', filled: false, show: false }); },
+      cancel: function () { self.setState({ step: 'choose' }); },
+      disconnect: function () { self.setState({ step: 'choose', addr: '', tried: false, connected: '', filled: false, show: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

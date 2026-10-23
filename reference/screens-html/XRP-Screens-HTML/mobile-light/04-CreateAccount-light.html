@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — CreateAccount (light)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}.ic-xs{width:14px;height:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn-block{width:100%}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input,.input-wrap select{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:15px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--accent);flex:none}
+.rule{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-3)}
+.rule.met{color:var(--pos)}
+.progress{display:flex;gap:6px}
+.progress span{flex:1;height:3px;border-radius:2px;background:var(--border)}
+.progress span.on{background:var(--accent)}
+.link{color:var(--accent-text);text-decoration:underline;text-underline-offset:2px}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m ">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="01-Welcome-light.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <span style="flex: 1 1 0%; font-size: 13px; color: var(--text-3); text-align: center; margin-right: 44px;"><span class="sc-interp">Step 1 of 3 · Account</span></span>
+    </div>
+    <div class="progress" aria-hidden="true" style="margin-bottom: 24px;"><span class="on"></span><span class=""></span><span></span></div>
+
+    
+      <h1 style="margin: 0px 0px 6px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em;">Create your account</h1>
+      <p style="margin: 0px 0px 24px; font-size: 14px; color: var(--text-2);">We only ask for what we need to open a custodial account.</p>
+
+      <form novalidate="" style="display: flex; flex-direction: column; gap: 18px;">
+        <div class="field">
+          <label class="label" for="ca-name">Full legal name</label>
+          <div class="input-wrap "><input id="ca-name" placeholder="As shown on your ID" value="" autocomplete="name"></div>
+          
+        </div>
+        <div class="field">
+          <label class="label" for="ca-email">Email</label>
+          <div class="input-wrap "><input id="ca-email" type="email" placeholder="you@example.com" value="" autocomplete="email" inputmode="email"></div>
+          
+        </div>
+        <div class="field">
+          <label class="label" for="ca-pass">Password</label>
+          <div class="input-wrap ">
+            <input id="ca-pass" type="password" aria-describedby="ca-pass-rules" value="" autocomplete="new-password">
+            <button type="button" style="border: 0px; background: none; padding: 0px 2px; font-size: 13px; font-weight: 500; color: var(--accent-text); cursor: pointer;"><span class="sc-interp">Show</span></button>
+          </div>
+          <div id="ca-pass-rules" style="display: flex; flex-wrap: wrap; gap: 6px 14px;">
+            
+              <span class="rule ">
+                <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12h.01"></path></svg>
+                <span class="sc-interp">12+ characters</span>
+              </span>
+            
+              <span class="rule ">
+                <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12h.01"></path></svg>
+                <span class="sc-interp">A number</span>
+              </span>
+            
+              <span class="rule ">
+                <svg class="ic ic-xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12h.01"></path></svg>
+                <span class="sc-interp">Upper and lower case</span>
+              </span>
+            
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: minmax(0px, 1.4fr) minmax(0px, 1fr); gap: 12px;">
+          <div class="field">
+            <label class="label" for="ca-country">Country of residence</label>
+            <div class="input-wrap ">
+              <select id="ca-country">
+                <option value="">Select</option>
+                <option value="NG">Nigeria</option>
+                <option value="GH">Ghana</option>
+                <option value="GB">United Kingdom</option>
+                <option value="OTHER">Other</option>
+              </select>
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3);"><path d="M6 9l6 6 6-6"></path></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="ca-cur">Display currency</label>
+            <div class="input-wrap">
+              <select id="ca-cur">
+                <option value="USD">USD</option>
+                <option value="NGN">NGN</option>
+                <option value="GBP">GBP</option>
+                <option value="EUR">EUR</option>
+              </select>
+              <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3);"><path d="M6 9l6 6 6-6"></path></svg>
+            </div>
+          </div>
+        </div>
+        
+        
+
+        <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px;">
+          <label class="check">
+            <input type="checkbox">
+            <span>I accept the <a class="link" href="21-Legal-light.html">Terms of Service</a> and <a class="link" href="21-Legal-light.html">Privacy Policy</a> (draft v0.1), and understand this is a <b>custodial</b> account.</span>
+          </label>
+          
+          <label class="check" style="color: var(--text-2);">
+            <input type="checkbox">
+            <span>Email me product updates (optional)</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 4px;">Continue</button>
+      </form>
+      <p style="margin: 18px 0px 0px; text-align: center; font-size: 13.5px; color: var(--text-2);">Already have an account? <a href="02-SignIn-light.html" style="color: var(--accent-text); font-weight: 500;">Sign in</a></p>
+    
+
+    
+  </div></div></div>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Withdraw</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 4px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;height:52px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:15px}
+.readonly{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px;border:1px solid var(--border);border-radius:12px;background:var(--sunken)}
+.mini{height:32px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-size:12.5px;font-weight:500;cursor:pointer}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kv>div.total{font-size:14.5px}.kv>div.total dt{color:var(--text);font-weight:600}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.steps{display:flex;gap:6px;margin:4px 0 20px}
+.steps span{flex:1;height:3px;border-radius:2px;background:var(--border)}
+.steps span.on{background:var(--accent)}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:7px;font-size:12px;font-weight:500;white-space:nowrap}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.off{background:var(--sunken);color:var(--text-3)}
+.tl{list-style:none;margin:0;padding:14px;display:flex;flex-direction:column}
+.tl li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.tl li::before{content:"";position:absolute;left:7px;top:18px;bottom:-2px;width:2px;background:var(--border)}
+.tl li:last-child{padding-bottom:0}.tl li:last-child::before{display:none}
+.tl .dot{position:relative;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none}
+.tl li.done .dot{border-color:var(--accent);background:var(--accent)}
+.tl li.done::before{background:var(--accent)}
+.tl li.now .dot{border-color:var(--dot-warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.tl li.skip{opacity:.5}
+.footer{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.footer .btn{flex:1}
+.otp{width:100%;height:60px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);text-align:center;font-size:26px;letter-spacing:.4em;outline:0}
+.otp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <sc-if value="{{canBack}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="icon-btn" aria-label="Back" onClick="{{back}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+      </sc-if>
+      <sc-if value="{{noBack}}" hint-placeholder-val="{{ true }}">
+        <a class="icon-btn" href="Home.dc.html" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+      </sc-if>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">{{title}}</h1>
+      <span style="width: 44px"></span>
+    </div>
+    <sc-if value="{{showSteps}}" hint-placeholder-val="{{ true }}">
+      <div class="steps" aria-label="{{stepAria}}"><span class="{{st.a}}"></span><span class="{{st.b}}"></span><span class="{{st.c}}"></span><span class="{{st.d}}"></span></div>
+    </sc-if>
+
+    <!-- 1 destination -->
+    <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 18px">
+        <div class="field">
+          <span class="label">Asset and network</span>
+          <div class="readonly">
+            <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 13px; font-weight: 600">X</span>
+            <span style="flex: 1; font-weight: 500">XRP on XRP Ledger</span>
+            <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>
+          </div>
+          <span class="help">Other networks aren’t supported for withdrawals yet.</span>
+        </div>
+        <div class="field">
+          <label class="label" for="w-addr">Destination address</label>
+          <div class="input-wrap {{v.addrCls}}"><input id="w-addr" class="mono" autoComplete="off" spellCheck="false" placeholder="r…" value="{{f.addr}}" onChange="{{onAddr}}" style="font-size: 14px"><button type="button" class="mini" onClick="{{paste}}">Paste</button></div>
+          <sc-if value="{{v.addrErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{v.addrErr}}</span></sc-if>
+        </div>
+        <div class="field">
+          <label class="label" for="w-tag">Destination tag</label>
+          <div class="input-wrap {{v.tagCls}}"><input id="w-tag" class="mono" inputMode="numeric" autoComplete="off" placeholder="Required by most exchanges" value="{{f.tag}}" onChange="{{onTag}}"></div>
+          <sc-if value="{{v.tagErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{v.tagErr}}</span></sc-if>
+          <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-2); cursor: pointer; margin-top: 2px">
+            <input type="checkbox" checked="{{f.noTag}}" onChange="{{toggleNoTag}}" style="width: 18px; height: 18px; margin: 0; accent-color: var(--accent)">
+            The recipient doesn’t use a destination tag
+          </label>
+        </div>
+        <div class="banner info">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+          <span>New XRP Ledger accounts need a minimum reserve before they can receive. Sending less to an unactivated address will fail.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 2 amount -->
+    <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 18px">
+        <div class="field">
+          <label class="label" for="w-amt">Amount</label>
+          <div class="input-wrap {{v.amtCls}}" style="height: 64px">
+            <input id="w-amt" inputMode="decimal" autoComplete="off" placeholder="0.00" value="{{f.amount}}" onChange="{{onAmt}}" style="font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums">
+            <span style="font-weight: 500; color: var(--text-2)">XRP</span>
+            <button type="button" class="mini" onClick="{{setMax}}">Max</button>
+          </div>
+          <div style="display: flex; justify-content: space-between"><span class="help num">{{calc.fiat}}</span><span class="help num">Available 4,170.10 XRP</span></div>
+          <sc-if value="{{v.amtErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{v.amtErr}}</span></sc-if>
+        </div>
+        <div class="card">
+          <dl class="kv">
+            <div><dt>Network fee</dt><dd>{{calc.netFee}}</dd></div>
+            <div><dt>Platform fee</dt><dd>{{calc.platFee}}</dd></div>
+            <div class="total"><dt>Recipient receives</dt><dd>{{calc.receive}}</dd></div>
+          </dl>
+        </div>
+        <span class="help">Fees are deducted from the amount. Network fee is an estimate and may vary slightly.</span>
+      </div>
+    </sc-if>
+
+    <!-- 3 review -->
+    <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 16px">
+        <span style="font-size: 13px; color: var(--text-3)">You’re withdrawing</span>
+        <span class="num" style="font-size: 32px; font-weight: 500; letter-spacing: -0.02em">{{calc.amountText}}</span>
+        <span class="num" style="font-size: 13px; color: var(--text-3)">{{calc.fiat}}</span>
+      </div>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>To</dt><dd class="mono" style="font-size: 12.5px; font-weight: 400">{{f.addr}}</dd></div>
+          <div><dt>Destination tag</dt><dd class="mono">{{calc.tagText}}</dd></div>
+          <div><dt>Network</dt><dd>XRP Ledger</dd></div>
+          <div><dt>Network fee</dt><dd>{{calc.netFee}}</dd></div>
+          <div><dt>Platform fee</dt><dd>{{calc.platFee}}</dd></div>
+          <div class="total"><dt>Recipient receives</dt><dd>{{calc.receive}}</dd></div>
+        </dl>
+      </div>
+      <sc-if value="{{calc.highValue}}" hint-placeholder-val="{{ false }}">
+        <div class="banner warn" style="margin-top: 12px">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+          <span>Over 1,000 XRP: this withdrawal needs a second reviewer, which can add a few hours.</span>
+        </div>
+      </sc-if>
+      <div class="banner info" style="margin-top: 12px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>Withdrawals are reviewed before they’re sent. Once validated on the ledger they can’t be reversed.</span>
+      </div>
+    </sc-if>
+
+    <!-- 4 confirm -->
+    <sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 12px">
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-text)"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg></span>
+        <h2 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Confirm with your authenticator</h2>
+        <p style="margin: 0; font-size: 14px; color: var(--text-2)">Enter the 6-digit code from your authenticator app to submit this withdrawal request.</p>
+        <label class="label" for="w-otp" style="margin-top: 8px">Authentication code</label>
+        <input id="w-otp" class="otp mono" inputMode="numeric" autoComplete="one-time-code" maxLength="6" placeholder="······" value="{{f.otp}}" onChange="{{onOtp}}">
+        <sc-if value="{{v.otpErr}}" hint-placeholder-val="{{ false }}"><span class="err" role="alert">{{v.otpErr}}</span></sc-if>
+        <span class="help">Prototype: any 6 digits work.</span>
+      </div>
+    </sc-if>
+
+    <!-- 5 status -->
+    <sc-if value="{{s5}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0 18px; text-align: center">
+        <span class="num" style="font-size: 28px; font-weight: 500">{{calc.amountText}}</span>
+        <span class="tag {{life.tagCls}}">{{life.label}}</span>
+        <span class="mono" style="font-size: 12px; color: var(--text-3)">WD-PROTO-2042</span>
+      </div>
+      <div class="card">
+        <ol class="tl">
+          <sc-for list="{{life.steps}}" as="s" hint-placeholder-count="7">
+            <li class="{{s.cls}}">
+              <span class="dot" aria-hidden="true"></span>
+              <span style="display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{s.label}}</span><span style="font-size: 12px; color: var(--text-3)">{{s.note}}</span></span>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+      <div class="banner info" style="margin-top: 12px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>{{life.note}}</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <div class="footer">
+    <sc-if value="{{s5}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{life.canCancel}}" hint-placeholder-val="{{ true }}">
+        <button type="button" class="btn btn-secondary" onClick="{{cancel}}">Cancel request</button>
+      </sc-if>
+      <a class="btn btn-primary" href="Home.dc.html">Done</a>
+    </sc-if>
+    <sc-if value="{{notDone}}" hint-placeholder-val="{{ true }}">
+      <button type="button" class="btn btn-primary" onClick="{{next}}">{{nextLabel}}</button>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+var AVAILABLE = 4170.10, PRICE = 2.38, NET_FEE = 0.000012, PLAT_FEE = 0.25;
+var B58 = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/;
+function fmt(v, d) { return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+var LIFE = [
+  { label: 'Submitted', note: 'Request recorded with your 2FA confirmation' },
+  { label: 'Balance reserved', note: 'Amount earmarked so it can’t be spent twice' },
+  { label: 'Compliance review', note: 'Address screening and limit checks' },
+  { label: 'Approved', note: 'Authorised by operations staff' },
+  { label: 'Sent to custody provider', note: 'Signed inside the provider’s security boundary' },
+  { label: 'Validated on ledger', note: 'Transaction hash recorded from a validated ledger' },
+  { label: 'Completed', note: 'Ledger entries finalised and receipt sent' }
+];
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 1, tried: 0, life: 2, cancelled: false, f: { addr: '', tag: '', noTag: false, amount: '', otp: '' } }; }
+  setF(k, v) { var f = Object.assign({}, this.state.f); f[k] = v; this.setState({ f: f }); }
+  renderVals() {
+    var self = this, s = this.state, f = s.f, t = s.tried;
+    var addr = f.addr.trim();
+    var addrOk = B58.test(addr);
+    var tagOk = f.noTag || /^\d{1,10}$/.test(f.tag);
+    var amt = parseFloat(String(f.amount).replace(/,/g, ''));
+    var amtOk = !isNaN(amt) && amt >= 10 && amt <= AVAILABLE;
+    var receive = !isNaN(amt) ? Math.max(0, amt - PLAT_FEE - NET_FEE) : 0;
+    var v = {
+      addrErr: t >= 1 && !addrOk ? (addr ? 'That isn’t a valid XRP Ledger address. Addresses start with “r” and are 25–35 characters.' : 'Enter the address you’re sending to.') : '',
+      tagErr: t >= 1 && !tagOk ? (f.tag ? 'Destination tags are whole numbers up to 10 digits.' : 'Enter a destination tag, or confirm the recipient doesn’t use one.') : '',
+      amtErr: t >= 2 && !amtOk ? (isNaN(amt) ? 'Enter an amount.' : (amt < 10 ? 'The minimum withdrawal is 10 XRP.' : 'That’s more than your available balance.')) : '',
+      otpErr: t >= 4 && !/^\d{6}$/.test(f.otp) ? 'Enter the 6-digit code.' : ''
+    };
+    v.addrCls = v.addrErr ? 'invalid' : ''; v.tagCls = v.tagErr ? 'invalid' : ''; v.amtCls = v.amtErr ? 'invalid' : '';
+    var st = s.step;
+    var titles = { 1: 'Withdraw XRP', 2: 'Amount', 3: 'Review', 4: 'Confirm', 5: 'Withdrawal request' };
+    var lifeIdx = s.life;
+    var life = {
+      label: s.cancelled ? 'Cancelled' : (lifeIdx >= 6 ? 'Completed' : LIFE[lifeIdx].label),
+      tagCls: s.cancelled ? 'off' : 'warn',
+      canCancel: !s.cancelled && lifeIdx <= 2,
+      note: s.cancelled ? 'Request cancelled and your reserved 0 XRP released back to available balance (simulated).' : 'Approval isn’t the same as sent. This shows Completed only after the transaction is validated on the XRP Ledger.',
+      steps: LIFE.map(function (x, i) { return { label: x.label, note: x.note, cls: s.cancelled ? (i < 2 ? 'done' : 'skip') : (i < lifeIdx ? 'done' : (i === lifeIdx ? 'now' : '')) }; })
+    };
+    if (s.cancelled) life.note = 'Request cancelled. The reserved amount went back to your available balance (simulated).';
+    return {
+      themeCls: this.props.dark === false ? '' : 'dark',
+      title: titles[st], s1: st === 1, s2: st === 2, s3: st === 3, s4: st === 4, s5: st === 5,
+      canBack: st > 1 && st < 5, noBack: st === 1 || st === 5, notDone: st < 5, showSteps: st < 5,
+      stepAria: 'Step ' + st + ' of 4',
+      st: { a: 'on', b: st >= 2 ? 'on' : '', c: st >= 3 ? 'on' : '', d: st >= 4 ? 'on' : '' },
+      f: f, v: v,
+      calc: {
+        fiat: amtOk || !isNaN(amt) ? '≈ $' + fmt((isNaN(amt) ? 0 : amt) * PRICE, 2) : '≈ $0.00',
+        amountText: isNaN(amt) ? '—' : fmt(amt, 2) + ' XRP',
+        netFee: '≈ ' + NET_FEE + ' XRP', platFee: fmt(PLAT_FEE, 2) + ' XRP',
+        receive: isNaN(amt) ? '—' : fmt(receive, 6).replace(/0+$/, '').replace(/\.$/, '') + ' XRP',
+        tagText: f.noTag ? 'None' : f.tag, highValue: amtOk && amt > 1000
+      },
+      life: life,
+      nextLabel: st === 3 ? 'Continue to confirm' : (st === 4 ? 'Submit withdrawal request' : 'Continue'),
+      onAddr: function (e) { self.setF('addr', e.target.value); },
+      onTag: function (e) { self.setF('tag', e.target.value.replace(/\D/g, '')); },
+      toggleNoTag: function () { var f2 = Object.assign({}, self.state.f, { noTag: !self.state.f.noTag, tag: '' }); self.setState({ f: f2 }); },
+      paste: function () { self.setF('addr', 'rProtoRecipient4xQb7mKcV9tYwZ2hN'); },
+      onAmt: function (e) { self.setF('amount', e.target.value.replace(/[^0-9.,]/g, '')); },
+      setMax: function () { self.setF('amount', String(AVAILABLE)); },
+      onOtp: function (e) { self.setF('otp', e.target.value.replace(/\D/g, '').slice(0, 6)); },
+      back: function () { self.setState({ step: Math.max(1, st - 1) }); },
+      cancel: function () { self.setState({ cancelled: true }); },
+      next: function () {
+        if (st === 1) { if (addrOk && tagOk) self.setState({ step: 2 }); else self.setState({ tried: Math.max(t, 1) }); return; }
+        if (st === 2) { if (amtOk) self.setState({ step: 3 }); else self.setState({ tried: Math.max(t, 2) }); return; }
+        if (st === 3) { self.setState({ step: 4 }); return; }
+        if (st === 4) { if (/^\d{6}$/.test(f.otp)) self.setState({ step: 5, life: 2, cancelled: false }); else self.setState({ tried: 4 }); }
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

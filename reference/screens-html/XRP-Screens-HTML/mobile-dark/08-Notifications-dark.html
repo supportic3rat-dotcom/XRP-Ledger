@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — Notifications (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.link-btn{border:0;background:none;padding:10px 6px;margin-right:-6px;color:var(--accent-text);font-size:13.5px;font-weight:500;cursor:pointer}
+.link-btn[disabled]{color:var(--text-3);cursor:default}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--sunken)}
+.seg-btn{flex:1;height:36px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer}
+.seg-btn.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--border)}
+.sec{margin:20px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.note{display:flex;align-items:flex-start;gap:12px;padding:14px;border-top:1px solid var(--border);color:var(--text);text-decoration:none}
+.note:first-child{border-top:0}
+.note-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--sunken);color:var(--text-2);flex:none}
+.note-ic.warn{background:var(--warn-soft);color:var(--warn)}
+.note-ic.bad{background:var(--neg-soft);color:var(--neg)}
+.note-ic.ok{background:var(--sunken);color:var(--pos)}
+.unread{width:8px;height:8px;border-radius:50%;background:var(--neg);flex:none;margin-top:6px}
+.empty{padding:40px 16px;text-align:center;color:var(--text-3);font-size:13.5px}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m dark">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="07-Home-dark.html" aria-label="Back to Home"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <h1 style="flex: 1 1 0%; margin: 0px; font-size: 17px; font-weight: 600; text-align: center;">Notifications</h1>
+      <button type="button" class="link-btn">Read all</button>
+    </div>
+
+    <div class="seg" role="group" aria-label="Filter notifications">
+      
+        <button type="button" class="seg-btn on" aria-pressed="true"><span class="sc-interp">All</span></button>
+      
+        <button type="button" class="seg-btn " aria-pressed="false"><span class="sc-interp">Activity</span></button>
+      
+        <button type="button" class="seg-btn " aria-pressed="false"><span class="sc-interp">Security</span></button>
+      
+    </div>
+
+    
+      <div>
+        <div class="sec"><span class="sc-interp">Today</span></div>
+        <div class="card">
+          
+            <a class="note" href="07-Home-dark.html" aria-label="Unread. Deposit detected. 1,250.00 XRP is waiting for ledger validation. It’s not in your balance yet.">
+              <span class="note-ic warn" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M17 7L7 17M15 17H7V9"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 600;"><span class="sc-interp">Deposit detected</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">1,250.00 XRP is waiting for ledger validation. It’s not in your balance yet.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">11:42</span></span>
+              </span>
+              <span class="unread" aria-hidden="true"></span>
+            </a>
+          
+            <a class="note" href="19-Security-dark.html" aria-label="Unread. New sign-in. Chrome on macOS · Lagos. Not you? Revoke the session and change your password.">
+              <span class="note-ic " aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 600;"><span class="sc-interp">New sign-in</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">Chrome on macOS · Lagos. Not you? Revoke the session and change your password.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">09:14</span></span>
+              </span>
+              <span class="unread" aria-hidden="true"></span>
+            </a>
+          
+        </div>
+      </div>
+    
+      <div>
+        <div class="sec"><span class="sc-interp">Earlier</span></div>
+        <div class="card">
+          
+            <a class="note" href="16-LoanManage-dark.html" aria-label="Interest due soon. Your loan LN-PROTO-0007 has $4.93 interest due on Nov 19.">
+              <span class="note-ic " aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 500;"><span class="sc-interp">Interest due soon</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">Your loan LN-PROTO-0007 has $4.93 interest due on Nov 19.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">Oct 18</span></span>
+              </span>
+              
+            </a>
+          
+            <a class="note" href="07-Home-dark.html" aria-label="Exchange request rejected. EX-PROTO-0301 was rejected: payout account not yet verified. No XRP was reserved.">
+              <span class="note-ic bad" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 500;"><span class="sc-interp">Exchange request rejected</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">EX-PROTO-0301 was rejected: payout account not yet verified. No XRP was reserved.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">Oct 9</span></span>
+              </span>
+              
+            </a>
+          
+            <a class="note" href="14-Earn-dark.html" aria-label="Yield reward credited. 1.89 XRP from XRP Flexible is now in your available balance.">
+              <span class="note-ic ok" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 500;"><span class="sc-interp">Yield reward credited</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">1.89 XRP from XRP Flexible is now in your available balance.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">Oct 3</span></span>
+              </span>
+              
+            </a>
+          
+            <a class="note" href="15-Borrow-dark.html" aria-label="Collateral alert settings. We’ll alert you if your loan’s LTV passes 55%, and again at the 65% margin call.">
+              <span class="note-ic warn" aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.8v5M12 16.2h.01"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 500;"><span class="sc-interp">Collateral alert settings</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">We’ll alert you if your loan’s LTV passes 55%, and again at the 65% margin call.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">Sep 19</span></span>
+              </span>
+              
+            </a>
+          
+            <a class="note" href="21-Legal-dark.html" aria-label="Terms updated. Fees and Charges draft v0.2 is available to review.">
+              <span class="note-ic " aria-hidden="true"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7zM14 3.5v4h4"></path></svg></span>
+              <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+                <span style="font-weight: 500;"><span class="sc-interp">Terms updated</span></span>
+                <span style="font-size: 13px; color: var(--text-2); line-height: 1.45;"><span class="sc-interp">Fees and Charges draft v0.2 is available to review.</span></span>
+                <span style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">Sep 2</span></span>
+              </span>
+              
+            </a>
+          
+        </div>
+      </div>
+    
+    
+
+    <p style="margin: 20px 4px 0px; font-size: 12px; line-height: 1.5; color: var(--text-3);">Tap a notification to open the related screen. Notifications never include your full address, balances or codes.</p>
+  </div></div></div>
+</body>
+</html>

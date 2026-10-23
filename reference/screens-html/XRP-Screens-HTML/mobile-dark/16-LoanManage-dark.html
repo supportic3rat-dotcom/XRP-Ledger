@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — LoanManage (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--sunken)}
+.seg-btn{flex:1;height:38px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font-size:13.5px;font-weight:500;cursor:pointer}
+.seg-btn.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--border)}
+.sec{margin:20px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;height:64px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:34px;padding:0 12px;border:1px solid var(--border-strong);border-radius:17px;background:var(--surface);font-size:12.5px;font-weight:500;cursor:pointer}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer;color:var(--text)}
+.opt:first-child{border-top:0}
+.radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border-strong);flex:none}
+.radio.on{border:6px solid var(--accent)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3);flex:none}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--accent);flex:none}
+.tl{list-style:none;margin:0;padding:14px;display:flex;flex-direction:column}
+.tl li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.tl li::before{content:"";position:absolute;left:7px;top:18px;bottom:-2px;width:2px;background:var(--border)}
+.tl li:last-child{padding-bottom:0}.tl li:last-child::before{display:none}
+.tl .dot{position:relative;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none}
+.tl li.done .dot{border-color:var(--accent);background:var(--accent)}
+.tl li.done::before{background:var(--accent)}
+.tl li.now .dot{border-color:var(--dot-warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.badge{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:7px;font-size:12px;font-weight:500;background:var(--warn-soft);color:var(--warn)}
+.badge.ok{background:var(--sunken);color:var(--pos)}
+.footer{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.footer .btn{flex:1}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m dark">
+  <div class="scroll">
+    <div class="topbar">
+      
+      
+        <a class="icon-btn" href="15-Borrow-dark.html" aria-label="Back to Borrow"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      
+      <h1 style="flex: 1 1 0%; margin: 0px; font-size: 17px; font-weight: 600; text-align: center;"><span class="sc-interp">Manage loan</span></h1>
+      <span style="width: 44px;"></span>
+    </div>
+
+    
+      <div class="seg" role="group" aria-label="Action" style="margin-bottom: 16px;">
+        <button type="button" class="seg-btn on" aria-pressed="true">Repay</button>
+        <button type="button" class="seg-btn " aria-pressed="false">Add collateral</button>
+      </div>
+
+      <div class="card">
+        <dl class="kv">
+          <div><dt>Loan</dt><dd class="mono" style="font-size: 12.5px;">LN-PROTO-0007</dd></div>
+          <div><dt>Outstanding</dt><dd>$604.93</dd></div>
+          <div><dt>Collateral</dt><dd>750.00 XRP · $1,785.00</dd></div>
+          <div><dt>Current LTV</dt><dd>33.9%</dd></div>
+        </dl>
+      </div>
+
+      
+      
+        <div class="sec">Amount to repay</div>
+        <div class="input-wrap ">
+          <span style="font-size: 26px; font-weight: 500; color: var(--text-2);">$</span>
+          <input aria-label="Repayment amount in USD" placeholder="0.00" value="" inputmode="decimal">
+        </div>
+        <div class="chips" style="margin-top: 10px;">
+          <button type="button" class="chip">Interest $4.93</button>
+          <button type="button" class="chip">Half $302.47</button>
+          <button type="button" class="chip">Full $604.93</button>
+        </div>
+        
+
+        <div class="sec">Pay with</div>
+        <div class="card" role="radiogroup" aria-label="Payment source">
+          <button type="button" class="opt" role="radio" aria-checked="true">
+            <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 1px;"><span style="font-weight: 500;">Bank transfer</span><span class="help">From [Bank account •••• 0000] · 1–2 business days</span></span>
+            <span class="radio on" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="opt" role="radio" aria-checked="false">
+            <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 1px;"><span style="font-weight: 500;">Sell XRP from available</span><span class="help"><span class="sc-interp">Firm quote shown before you confirm</span></span></span>
+            <span class="radio " aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="card" style="margin-top: 12px;">
+          <dl class="kv">
+            <div><dt>Left to repay after</dt><dd><span class="sc-interp">$604.93</span></dd></div>
+            <div><dt>LTV after</dt><dd><span class="sc-interp">33.9%</span></dd></div>
+          </dl>
+        </div>
+      
+
+      
+      
+    
+
+    
+    
+
+    
+    
+  </div>
+
+  <div class="footer">
+    
+      <button type="button" class="btn btn-primary">Review</button>
+    
+    
+    
+  </div></div></div>
+</body>
+</html>

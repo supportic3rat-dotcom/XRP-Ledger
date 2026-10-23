@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — Exchange (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.leg{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.leg-label{font-size:12.5px;color:var(--text-3)}
+.amt{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:28px;font-weight:500;font-variant-numeric:tabular-nums}
+.asset{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 12px 0 6px;border-radius:20px;background:var(--sunken);font-weight:600;flex:none}
+.asset .g{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--text);color:var(--bg);font-size:13px}
+.err{font-size:12.5px;color:var(--neg)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:500;background:var(--sunken);color:var(--text-2)}
+.badge.ok{background:var(--accent-soft);color:var(--accent-text)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--neg-soft);color:var(--neg)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.tl{list-style:none;margin:0;padding:14px;display:flex;flex-direction:column}
+.tl li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.tl li::before{content:"";position:absolute;left:7px;top:18px;bottom:-2px;width:2px;background:var(--border)}
+.tl li:last-child{padding-bottom:0}.tl li:last-child::before{display:none}
+.tl .dot{position:relative;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none}
+.tl li.done .dot{border-color:var(--accent);background:var(--accent)}
+.tl li.done::before{background:var(--accent)}
+.tl li.now .dot{border-color:var(--dot-warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.footer{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.footer .btn{flex:1}
+.quote{border:1.5px solid var(--accent);border-radius:12px;background:var(--surface);overflow:hidden}
+.timer{height:3px;background:var(--accent);transition:width 1s linear}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m dark">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="07-Home-dark.html" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+      <h1 style="flex: 1 1 0%; margin: 0px; font-size: 17px; font-weight: 600; text-align: center;"><span class="sc-interp">Exchange request</span></h1>
+      <span style="width: 44px;"></span>
+    </div>
+
+    
+    
+      <div class="card">
+        <div class="leg">
+          <label class="leg-label" for="x-amt">You sell</label>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input id="x-amt" class="amt" placeholder="0" value="500" inputmode="decimal">
+            <span class="asset"><span class="g" aria-hidden="true">X</span>XRP</span>
+          </div>
+          <span class="leg-label num">Available 4,170.10 XRP</span>
+        </div>
+        <div style="position: relative; height: 1px; background: var(--border);">
+          <span aria-hidden="true" style="position: absolute; left: 50%; top: -16px; margin-left: -16px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text-2);"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></span>
+        </div>
+        <div class="leg">
+          <span class="leg-label">You receive (estimate)</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="amt num" style="color: var(--text-2);"><span class="sc-interp">1,176.60</span></span>
+            <span class="asset"><span class="g" aria-hidden="true" style="background: var(--accent); color: var(--on-accent);">$</span>USD</span>
+          </div>
+          <span class="leg-label">To [Bank account •••• 0000]</span>
+        </div>
+      </div>
+      
+
+      <div style="display: flex; align-items: center; gap: 8px; margin: 18px 4px 8px;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-2);">Estimate</span>
+        <span class="badge warn">Indicative · not a quote</span>
+      </div>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>Indicative rate</dt><dd>1 XRP ≈ $2.38</dd></div>
+          <div><dt>Spread &amp; service fee (1.00%)</dt><dd><span class="sc-interp">≈ $11.90</span></dd></div>
+          <div><dt>Payout fee</dt><dd>$1.50</dd></div>
+          <div><dt>Estimated receive</dt><dd><span class="sc-interp">≈ $1,176.60</span></dd></div>
+          <div><dt>Processing</dt><dd>Manual · business hours</dd></div>
+        </dl>
+      </div>
+      <div class="banner info" style="margin-top: 12px;">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px;"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>This isn’t an instant swap. Our team reviews the request and sends you a firm quote to accept. Your XRP is reserved only after you accept it.</span>
+      </div>
+    
+
+    
+    
+  </div>
+
+  <div class="footer">
+    
+      <button type="button" class="btn btn-primary">Submit request</button>
+    
+    
+  </div></div></div>
+</body>
+</html>

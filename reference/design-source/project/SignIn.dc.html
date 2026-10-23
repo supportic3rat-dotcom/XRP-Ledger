@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select,.m textarea{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.link{border:0;background:none;padding:8px 4px;margin:-8px -4px;color:var(--accent-text);font-size:13.5px;font-weight:500;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.h1{margin:0 0 6px;font-size:24px;font-weight:600;letter-spacing:-.02em}
+.lead{margin:0 0 22px;font-size:14px;line-height:1.5;color:var(--text-2)}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.err{font-size:12.5px;color:var(--neg);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap input{flex:1;min-width:0;height:50px;border:0;outline:0;background:transparent;font-size:15px}
+.otp{width:100%;height:60px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);text-align:center;font-size:26px;letter-spacing:.4em;outline:0}
+.otp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.otp.invalid{border-color:var(--neg)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.banner.error{background:var(--neg-soft);color:var(--neg)}
+.hero{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;background:var(--accent-soft);color:var(--accent-text);margin-bottom:14px}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <sc-if value="{{atStart}}" hint-placeholder-val="{{ true }}">
+        <a class="icon-btn" href="{{L.welcome}}" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      </sc-if>
+      <sc-if value="{{notStart}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="icon-btn" aria-label="Back" onClick="{{back}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+      </sc-if>
+    </div>
+
+    <!-- Email + password -->
+    <sc-if value="{{v.signin}}" hint-placeholder-val="{{ true }}">
+      <h1 class="h1">Welcome back</h1>
+      <p class="lead">Sign in to your custodial account.</p>
+      <sc-if value="{{badCreds}}" hint-placeholder-val="{{ false }}">
+        <div class="banner error" role="alert" style="margin-bottom: 16px">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+          <span>That email and password don’t match. {{attemptsLeft}} attempts left before a 15-minute lock.</span>
+        </div>
+      </sc-if>
+      <form onSubmit="{{submitSignin}}" noValidate="noValidate" style="display: flex; flex-direction: column; gap: 16px">
+        <div class="field">
+          <label class="label" for="si-email">Email</label>
+          <div class="input-wrap {{e.emailCls}}"><input id="si-email" type="email" inputMode="email" autoComplete="username" placeholder="you@example.com" value="{{f.email}}" onChange="{{onEmail}}"></div>
+          <sc-if value="{{e.email}}" hint-placeholder-val="{{ false }}"><span class="err">{{e.email}}</span></sc-if>
+        </div>
+        <div class="field">
+          <label class="label" for="si-pass">Password</label>
+          <div class="input-wrap {{e.passCls}}">
+            <input id="si-pass" type="{{passType}}" autoComplete="current-password" value="{{f.pass}}" onChange="{{onPass}}">
+            <button type="button" onClick="{{togglePass}}" style="border: 0; background: none; padding: 0 2px; font-size: 13px; font-weight: 500; color: var(--accent-text); cursor: pointer">{{passToggle}}</button>
+          </div>
+          <sc-if value="{{e.pass}}" hint-placeholder-val="{{ false }}"><span class="err">{{e.pass}}</span></sc-if>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: -4px"><button type="button" class="link" onClick="{{goForgot}}">Forgot password?</button></div>
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </form>
+      <p class="help" style="margin: 16px 0 0; text-align: center">Prototype: use any email and a password of 8+ characters. “wrong” as the password shows the error state.</p>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 28px; font-size: 13.5px; color: var(--text-2)">
+        New here? <a href="{{L.create}}" style="color: var(--accent-text); font-weight: 500">Create an account</a>
+      </div>
+    </sc-if>
+
+    <!-- 2FA -->
+    <sc-if value="{{v.twofa}}" hint-placeholder-val="{{ false }}">
+      <span class="hero" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg></span>
+      <h1 class="h1">Two-factor check</h1>
+      <p class="lead">Enter the 6-digit code from your authenticator app for <b>{{maskedEmail}}</b>.</p>
+      <label class="label" for="si-otp" style="display: block; margin-bottom: 6px">Authentication code</label>
+      <input id="si-otp" class="otp mono {{otpCls}}" inputMode="numeric" autoComplete="one-time-code" maxLength="6" placeholder="······" value="{{f.otp}}" onChange="{{onOtp}}">
+      <sc-if value="{{otpErr}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 6px 0 0">{{otpErr}}</p></sc-if>
+      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px">
+        <sc-if value="{{otpOk}}" hint-placeholder-val="{{ false }}">
+          <a class="btn btn-primary" href="{{L.home}}">Verify and continue</a>
+        </sc-if>
+        <sc-if value="{{otpNotOk}}" hint-placeholder-val="{{ true }}">
+          <button type="button" class="btn btn-primary" onClick="{{tryOtp}}">Verify and continue</button>
+        </sc-if>
+        <button type="button" class="btn btn-secondary" onClick="{{useBackup}}">{{backupLabel}}</button>
+      </div>
+      <div class="banner info" style="margin-top: 20px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>New device detected. We’ll email you about this sign-in, and withdrawals from this device are paused for 24 hours.</span>
+      </div>
+    </sc-if>
+
+    <!-- Forgot password -->
+    <sc-if value="{{v.forgot}}" hint-placeholder-val="{{ false }}">
+      <h1 class="h1">Reset your password</h1>
+      <p class="lead">We’ll email a reset link to the address on your account.</p>
+      <div class="field">
+        <label class="label" for="fp-email">Email</label>
+        <div class="input-wrap {{e.emailCls}}"><input id="fp-email" type="email" inputMode="email" autoComplete="username" placeholder="you@example.com" value="{{f.email}}" onChange="{{onEmail}}"></div>
+        <sc-if value="{{e.email}}" hint-placeholder-val="{{ false }}"><span class="err">{{e.email}}</span></sc-if>
+      </div>
+      <button type="button" class="btn btn-primary" onClick="{{sendReset}}" style="margin-top: 18px">Send reset link</button>
+      <div class="banner warn" style="margin-top: 18px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+        <span>For your security, withdrawals are paused for 24 hours after a password reset. Your balances aren’t affected.</span>
+      </div>
+    </sc-if>
+
+    <!-- Reset sent -->
+    <sc-if value="{{v.sent}}" hint-placeholder-val="{{ false }}">
+      <span class="hero" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px"><rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4 7l8 6 8-6"></path></svg></span>
+      <h1 class="h1">Check your email</h1>
+      <p class="lead">If an account exists for <b>{{f.email}}</b>, a reset link is on its way. It expires in 30 minutes.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <button type="button" class="btn btn-primary" onClick="{{backToSignin}}">Back to sign in</button>
+        <button type="button" class="btn btn-secondary" onClick="{{resend}}">{{resendLabel}}</button>
+      </div>
+      <p class="help" style="margin: 20px 4px 0">Can’t get into your email or authenticator? <a href="{{L.support}}" style="color: var(--accent-text)">Contact support</a> to start identity-checked account recovery.</p>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+var VARIANT = 'dark';
+var SUF = VARIANT === 'light' ? 'Light' : '';
+function to(n) { return n + SUF + '.dc.html'; }
+function isDark(p) { if (p === true || p === 'true') return true; if (p === false || p === 'false') return false; return VARIANT === 'dark'; }
+var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: 'signin', tried: false, bad: 0, showPass: false, otpTried: false, backup: false, resent: false, f: { email: '', pass: '', otp: '' } }; }
+  setF(k, v) { var f = Object.assign({}, this.state.f); f[k] = v; this.setState({ f: f }); }
+  renderVals() {
+    var self = this, s = this.state, f = s.f;
+    var emailOk = EMAIL.test(f.email), passOk = f.pass.length >= 8;
+    var e = {
+      email: s.tried && !emailOk ? 'Enter the email you signed up with.' : '',
+      pass: s.tried && s.view === 'signin' && !passOk ? 'Passwords are at least 8 characters.' : ''
+    };
+    e.emailCls = e.email ? 'invalid' : ''; e.passCls = e.pass ? 'invalid' : '';
+    var otpLen = s.backup ? 8 : 6;
+    var otpOk = new RegExp('^\\d{' + otpLen + '}$').test(f.otp);
+    var at = f.email.indexOf('@');
+    return {
+      themeCls: isDark(this.props.dark) ? 'dark' : '',
+      L: { welcome: to('Welcome'), home: to('Home'), create: to('CreateAccount'), support: to('Support') },
+      v: { signin: s.view === 'signin', twofa: s.view === 'twofa', forgot: s.view === 'forgot', sent: s.view === 'sent' },
+      atStart: s.view === 'signin', notStart: s.view !== 'signin',
+      f: f, e: e, badCreds: s.bad > 0 && s.view === 'signin', attemptsLeft: Math.max(0, 5 - s.bad),
+      passType: s.showPass ? 'text' : 'password', passToggle: s.showPass ? 'Hide' : 'Show',
+      maskedEmail: at > 1 ? f.email.charAt(0) + '•••' + f.email.slice(at) : 'your account',
+      otpOk: otpOk, otpNotOk: !otpOk,
+      otpErr: s.otpTried && !otpOk ? 'Enter the ' + otpLen + '-digit ' + (s.backup ? 'backup' : 'authenticator') + ' code.' : '',
+      otpCls: s.otpTried && !otpOk ? 'invalid' : '',
+      backupLabel: s.backup ? 'Use authenticator code instead' : 'Use a backup code',
+      resendLabel: s.resent ? 'Link sent again' : 'Resend link',
+      onEmail: function (ev) { self.setF('email', ev.target.value.trim()); },
+      onPass: function (ev) { self.setF('pass', ev.target.value); },
+      onOtp: function (ev) { self.setF('otp', ev.target.value.replace(/\D/g, '').slice(0, otpLen)); },
+      togglePass: function () { self.setState({ showPass: !self.state.showPass }); },
+      submitSignin: function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        if (!emailOk || !passOk) { self.setState({ tried: true }); return; }
+        if (f.pass === 'wrong') { self.setState({ bad: s.bad + 1, tried: false }); return; }
+        self.setState({ view: 'twofa', tried: false, bad: 0 });
+      },
+      tryOtp: function () { self.setState({ otpTried: true }); },
+      useBackup: function () { var f2 = Object.assign({}, f, { otp: '' }); self.setState({ backup: !s.backup, f: f2, otpTried: false }); },
+      goForgot: function () { self.setState({ view: 'forgot', tried: false }); },
+      sendReset: function () { if (emailOk) self.setState({ view: 'sent', tried: false, resent: false }); else self.setState({ tried: true }); },
+      resend: function () { self.setState({ resent: true }); },
+      backToSignin: function () { self.setState({ view: 'signin' }); },
+      back: function () { self.setState({ view: 'signin', tried: false, otpTried: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

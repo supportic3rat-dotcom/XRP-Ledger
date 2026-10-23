@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — Earn (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 112px}
+.num{font-variant-numeric:tabular-nums}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.sec{display:flex;align-items:center;justify-content:space-between;margin:24px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.kv .sub{display:block;font-size:11.5px;font-weight:400;color:var(--text-3)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:500;background:var(--sunken);color:var(--text-2);white-space:nowrap}
+.badge.ok{background:var(--accent-soft);color:var(--accent-text)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{height:36px;padding:0 12px;border:1px solid var(--border-strong);border-radius:18px;background:var(--surface);font-size:13px;font-weight:500;cursor:pointer}
+.chip.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.input-wrap{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:16px;font-variant-numeric:tabular-nums}
+.label{font-size:13px;font-weight:500}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 8px 26px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--border);z-index:5}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:500;color:var(--text-3);text-decoration:none;border-radius:10px}
+.tab.on{color:var(--accent-text)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:20;max-height:86%;overflow-y:auto;padding:20px 16px 32px;background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -12px 32px -16px rgba(0,0,0,.25)}
+.scrim{position:absolute;inset:0;z-index:15;border:0;padding:0;background:rgba(10,16,14,.4);cursor:default}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--accent);flex:none}
+.toast{position:absolute;left:16px;right:16px;bottom:100px;z-index:30;padding:12px 14px;border-radius:12px;background:var(--text);color:var(--bg);font-size:13px}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m dark">
+  <div class="scroll">
+    <h1 style="margin: 8px 4px 4px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em;">Earn</h1>
+    <p style="margin: 0px 4px 16px; font-size: 13px; color: var(--text-3);">Rates come from the provider and can change. Rewards aren’t guaranteed.</p>
+
+    <section class="card" aria-labelledby="pos-title" style="padding: 16px 0px 6px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 0px 16px 10px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h2 id="pos-title" style="margin: 0px; font-size: 13px; font-weight: 500; color: var(--text-2);">Your position · XRP Flexible</h2>
+          <span class="num" style="font-size: 28px; font-weight: 500; letter-spacing: -0.02em;">1,500.00 XRP</span>
+          <span class="num" style="font-size: 12.5px; color: var(--text-3);">≈ $3,570.00 · since Sep 16</span>
+        </div>
+        <span class="badge ok">Active</span>
+      </div>
+      <dl class="kv">
+        <div><dt>Credited to your balance<span class="sub">Paid out after fee, spendable</span></dt><dd>1.89 XRP</dd></div>
+        <div><dt>Confirmed by provider<span class="sub">Awaiting next payout</span></dt><dd>0.00 XRP</dd></div>
+        <div><dt>Estimated accrued<span class="sub">Our estimate since Oct 3 · not confirmed</span></dt><dd>≈ 1.97 XRP</dd></div>
+        <div><dt>Projected next 30 days<span class="sub">At today’s rate, before fee</span></dt><dd>≈ 3.70 XRP</dd></div>
+      </dl>
+      <div style="padding: 6px 16px 10px;"><button type="button" class="btn btn-secondary" style="width: 100%;">Withdraw from XRP Flexible</button></div>
+    </section>
+
+    <div class="sec"><span>Products</span><span style="font-weight: 500; color: var(--text-3);">XRP only</span></div>
+    <section class="card" aria-labelledby="prod1">
+      <div style="padding: 14px 16px 6px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <h3 id="prod1" style="margin: 0px; font-size: 15px; font-weight: 600;">XRP Flexible</h3>
+          <span style="font-size: 12.5px; color: var(--text-3);">Provided by [Yield provider]</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+          <span class="num" style="font-size: 20px; font-weight: 600; color: var(--accent-text);">3.00%</span>
+          <span style="font-size: 11.5px; color: var(--text-3);">APR · variable · sample</span>
+        </div>
+      </div>
+      <dl class="kv">
+        <div><dt>Minimum</dt><dd>50 XRP</dd></div>
+        <div><dt>Lock-up</dt><dd>None</dd></div>
+        <div><dt>Withdrawal</dt><dd>1–2 business days</dd></div>
+        <div><dt>Platform fee</dt><dd>10% of rewards</dd></div>
+        <div><dt>Eligibility</dt><dd>Verified · agreement signed</dd></div>
+        <div><dt>Rate last updated</dt><dd>Oct 19, 09:00 WAT</dd></div>
+      </dl>
+      <div style="display: flex; gap: 10px; padding: 8px 16px 16px;">
+        <button type="button" class="btn btn-secondary" style="flex: 1 1 0%;">Risks</button>
+        <button type="button" class="btn btn-primary" style="flex: 1.4 1 0%;">Allocate XRP</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="prod2" style="margin-top: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <h3 id="prod2" style="margin: 0px; font-size: 15px; font-weight: 600; color: var(--text-2);">XRP 90-day fixed</h3>
+        <span style="font-size: 12.5px; color: var(--text-3);">Rate not published until the product is approved</span>
+      </div>
+      <span class="badge">Not available</span>
+    </section>
+
+    <div class="sec"><span>Estimate rewards</span></div>
+    <section class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label class="label" for="calc-amt">Amount</label>
+        <div class="input-wrap"><input id="calc-amt" value="1000" inputmode="decimal"><span style="font-weight: 500; color: var(--text-2);">XRP</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="label" id="calc-dur">Duration</span>
+        <div class="chips" role="group" aria-labelledby="calc-dur">
+          
+            <button type="button" class="chip " aria-pressed="false"><span class="sc-interp">10 days</span></button>
+          
+            <button type="button" class="chip " aria-pressed="false"><span class="sc-interp">30 days</span></button>
+          
+            <button type="button" class="chip on" aria-pressed="true"><span class="sc-interp">90 days</span></button>
+          
+            <button type="button" class="chip " aria-pressed="false"><span class="sc-interp">180 days</span></button>
+          
+            <button type="button" class="chip " aria-pressed="false"><span class="sc-interp">1 year</span></button>
+          
+            <button type="button" class="chip " aria-pressed="false"><span class="sc-interp">Custom</span></button>
+          
+        </div>
+        
+      </div>
+      <dl class="kv" style="padding: 0px;">
+        <div><dt>Estimated gross rewards</dt><dd><span class="sc-interp">≈ 7.3973 XRP</span></dd></div>
+        <div><dt>Platform fee (10%)</dt><dd><span class="sc-interp">≈ 0.7397 XRP</span></dd></div>
+        <div><dt style="color: var(--text); font-weight: 600;">Estimated net rewards</dt><dd style="font-size: 15px;"><span class="sc-interp">≈ 6.6575 XRP</span></dd></div>
+      </dl>
+      <p style="margin: 0px; font-size: 12px; line-height: 1.5; color: var(--text-3);">Simple interest: amount × 3.00% × <span class="sc-interp">90</span> days ÷ 365. An estimate at today’s sample rate, not a promise of returns.</p>
+    </section>
+  </div>
+
+  
+
+  
+
+  
+
+  
+
+  <nav class="tabbar" aria-label="Primary">
+    <a class="tab" href="07-Home-dark.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V20h-5.5v-6h-5v6H4z"></path></svg>Home</a>
+    <a class="tab" href="10-Markets-dark.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20h17"></path><path d="M5 15.5l4-4.5 3.5 2.5L19 6"></path></svg>Markets</a>
+    <a class="tab on" href="14-Earn-dark.html" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.5" rx="7" ry="2.5"></ellipse><path d="M5 6.5v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6.5"></path><path d="M5 12v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V12"></path></svg>Earn</a>
+    <a class="tab" href="15-Borrow-dark.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5h16M6 13.5h12M8 9.5h8M10 5.5h4"></path></svg>Borrow</a>
+    <a class="tab" href="18-Profile-dark.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20c1.2-3.4 3.9-5 7-5s5.8 1.6 7 5"></path></svg>Profile</a>
+  </nav></div></div>
+</body>
+</html>

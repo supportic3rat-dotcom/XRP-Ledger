@@ -1,0 +1,9 @@
+# Deposit shows the shared address, the customer's destination tag and the tag warning.
+# Not yet run on a simulator; see docs/testing.md.
+appId: com.example.xrpledger
+---
+- runFlow: sign-in.yaml
+- tapOn: "Deposit"
+- assertVisible: "Destination tag"
+- tapOn: "Copy address"
+- assertVisible: "Copied"

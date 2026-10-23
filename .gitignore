@@ -1,0 +1,24 @@
+node_modules
+.DS_Store
+.expo
+.next
+dist
+*.log
+.env
+.env.local
+.turbo
+coverage
+apps/mobile/ios
+apps/mobile/android
+supabase/.temp
+supabase/.branches
+
+# Next.js / Playwright
+.next/
+.next-build/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/
+apps/admin/AGENTS.md
+apps/web/AGENTS.md

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Exchange request</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.leg{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.leg-label{font-size:12.5px;color:var(--text-3)}
+.amt{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:28px;font-weight:500;font-variant-numeric:tabular-nums}
+.asset{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 12px 0 6px;border-radius:20px;background:var(--sunken);font-weight:600;flex:none}
+.asset .g{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--text);color:var(--bg);font-size:13px}
+.err{font-size:12.5px;color:var(--neg)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:500;background:var(--sunken);color:var(--text-2)}
+.badge.ok{background:var(--accent-soft);color:var(--accent-text)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--neg-soft);color:var(--neg)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.tl{list-style:none;margin:0;padding:14px;display:flex;flex-direction:column}
+.tl li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.tl li::before{content:"";position:absolute;left:7px;top:18px;bottom:-2px;width:2px;background:var(--border)}
+.tl li:last-child{padding-bottom:0}.tl li:last-child::before{display:none}
+.tl .dot{position:relative;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none}
+.tl li.done .dot{border-color:var(--accent);background:var(--accent)}
+.tl li.done::before{background:var(--accent)}
+.tl li.now .dot{border-color:var(--dot-warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.footer{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.footer .btn{flex:1}
+.quote{border:1.5px solid var(--accent);border-radius:12px;background:var(--surface);overflow:hidden}
+.timer{height:3px;background:var(--accent);transition:width 1s linear}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="Home.dc.html" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">{{title}}</h1>
+      <span style="width: 44px"></span>
+    </div>
+
+    <!-- Request form -->
+    <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+      <div class="card">
+        <div class="leg">
+          <label class="leg-label" for="x-amt">You sell</label>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <input id="x-amt" class="amt" inputMode="decimal" placeholder="0" value="{{amount}}" onChange="{{onAmt}}">
+            <span class="asset"><span class="g" aria-hidden="true">X</span>XRP</span>
+          </div>
+          <span class="leg-label num">Available 4,170.10 XRP</span>
+        </div>
+        <div style="position: relative; height: 1px; background: var(--border)">
+          <span aria-hidden="true" style="position: absolute; left: 50%; top: -16px; margin-left: -16px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text-2)"><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></span>
+        </div>
+        <div class="leg">
+          <span class="leg-label">You receive (estimate)</span>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="amt num" style="color: var(--text-2)">{{est.receive}}</span>
+            <span class="asset"><span class="g" aria-hidden="true" style="background: var(--accent); color: var(--on-accent)">$</span>USD</span>
+          </div>
+          <span class="leg-label">To [Bank account •••• 0000]</span>
+        </div>
+      </div>
+      <sc-if value="{{err}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 8px 4px 0">{{err}}</p></sc-if>
+
+      <div style="display: flex; align-items: center; gap: 8px; margin: 18px 4px 8px">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-2)">Estimate</span>
+        <span class="badge warn">Indicative · not a quote</span>
+      </div>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>Indicative rate</dt><dd>1 XRP ≈ $2.38</dd></div>
+          <div><dt>Spread &amp; service fee (1.00%)</dt><dd>{{est.fee}}</dd></div>
+          <div><dt>Payout fee</dt><dd>$1.50</dd></div>
+          <div><dt>Estimated receive</dt><dd>{{est.receiveFull}}</dd></div>
+          <div><dt>Processing</dt><dd>Manual · business hours</dd></div>
+        </dl>
+      </div>
+      <div class="banner info" style="margin-top: 12px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        <span>This isn’t an instant swap. Our team reviews the request and sends you a firm quote to accept. Your XRP is reserved only after you accept it.</span>
+      </div>
+    </sc-if>
+
+    <!-- Status -->
+    <sc-if value="{{isStatus}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 16px; text-align: center">
+        <span class="num" style="font-size: 26px; font-weight: 500">{{amountText}} → USD</span>
+        <span class="badge {{status.cls}}">{{status.label}}</span>
+        <span class="mono" style="font-size: 12px; color: var(--text-3)">EX-PROTO-0318</span>
+      </div>
+
+      <sc-if value="{{quote.show}}" hint-placeholder-val="{{ false }}">
+        <div class="quote" style="margin-bottom: 14px">
+          <div class="timer" style="width: {{quote.pct}}%"></div>
+          <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <span style="font-weight: 600">Firm quote ready</span>
+              <span class="num" style="font-size: 13px; color: var(--text-3)" aria-live="polite">Expires in {{quote.secs}}s</span>
+            </div>
+            <dl class="kv" style="padding: 0">
+              <div><dt>Rate</dt><dd>1 XRP = $2.3742</dd></div>
+              <div><dt>Fees</dt><dd>{{quote.fees}}</dd></div>
+              <div><dt>You receive</dt><dd style="font-size: 15px">{{quote.receive}}</dd></div>
+            </dl>
+            <button type="button" class="btn btn-primary" onClick="{{accept}}">Accept quote</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{quote.expired}}" hint-placeholder-val="{{ false }}">
+        <div class="banner warn" style="margin-bottom: 14px">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>
+          <span style="flex: 1">The quote expired. Nothing was reserved.</span>
+          <button type="button" onClick="{{requote}}" style="border: 0; background: none; padding: 0; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer">New quote</button>
+        </div>
+      </sc-if>
+
+      <div class="card">
+        <ol class="tl">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="6">
+            <li class="{{s.cls}}">
+              <span class="dot" aria-hidden="true"></span>
+              <span style="display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">{{s.label}}</span><span style="font-size: 12px; color: var(--text-3)">{{s.note}}</span></span>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+
+      <div style="margin: 18px 4px 8px; font-size: 13px; font-weight: 600; color: var(--text-2)">Settlement legs</div>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>1 · Debit XRP</dt><dd><span class="badge {{legs.aCls}}">{{legs.a}}</span></dd></div>
+          <div><dt>2 · USD payout</dt><dd><span class="badge {{legs.bCls}}">{{legs.b}}</span></dd></div>
+        </dl>
+      </div>
+      <p style="margin: 12px 4px 0; font-size: 12px; line-height: 1.5; color: var(--text-3)">Each leg is recorded separately. USD isn’t marked received until the payout provider confirms settlement.</p>
+    </sc-if>
+  </div>
+
+  <div class="footer">
+    <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+      <button type="button" class="btn btn-primary" onClick="{{submit}}">Submit request</button>
+    </sc-if>
+    <sc-if value="{{isStatus}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{canCancel}}" hint-placeholder-val="{{ true }}">
+        <button type="button" class="btn btn-secondary" onClick="{{cancel}}">Cancel</button>
+      </sc-if>
+      <sc-if value="{{canAdvance}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="btn btn-secondary" onClick="{{advance}}">Simulate next</button>
+      </sc-if>
+      <a class="btn btn-primary" href="Home.dc.html">Done</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+var PRICE = 2.38, FIRM = 2.3742, FEE_PCT = 0.01, PAYOUT = 1.5, QUOTE_SECS = 60;
+var STEPS = [
+  { key: 'submitted', label: 'Submitted', note: 'Request recorded' },
+  { key: 'review', label: 'Under review', note: 'Eligibility and limit checks' },
+  { key: 'quote', label: 'Awaiting your acceptance', note: 'Firm quote, valid 60 seconds' },
+  { key: 'approved', label: 'Approved', note: 'XRP reserved at the accepted rate' },
+  { key: 'processing', label: 'Processing', note: 'Liquidity provider and payout in progress' },
+  { key: 'completed', label: 'Completed', note: 'Both legs settled, receipt issued' }
+];
+var LABELS = { submitted: ['Submitted', 'warn'], review: ['Under review', 'warn'], quote: ['Awaiting user action', 'warn'], approved: ['Approved', 'ok'], processing: ['Processing', 'warn'], completed: ['Completed', 'ok'], cancelled: ['Cancelled', ''] };
+function money(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: 'form', amount: '500', tried: false, stage: 1, secs: QUOTE_SECS, expired: false, cancelled: false }; }
+  componentWillUnmount() { clearInterval(this.iv); }
+  startTimer() {
+    var self = this; clearInterval(this.iv);
+    this.setState({ secs: QUOTE_SECS, expired: false });
+    this.iv = setInterval(function () {
+      var n = self.state.secs - 1;
+      if (n <= 0) { clearInterval(self.iv); self.setState({ secs: 0, expired: true }); } else self.setState({ secs: n });
+    }, 1000);
+  }
+  renderVals() {
+    var self = this, s = this.state;
+    var amt = parseFloat(String(s.amount).replace(/,/g, ''));
+    var ok = !isNaN(amt) && amt >= 50 && amt <= 4170.10;
+    var gross = isNaN(amt) ? 0 : amt * PRICE, fee = gross * FEE_PCT, recv = Math.max(0, gross - fee - PAYOUT);
+    var fGross = isNaN(amt) ? 0 : amt * FIRM, fFee = fGross * FEE_PCT, fRecv = Math.max(0, fGross - fFee - PAYOUT);
+    var stage = s.stage, key = s.cancelled ? 'cancelled' : STEPS[stage].key;
+    var showQuote = !s.cancelled && key === 'quote' && !s.expired;
+    return {
+      themeCls: this.props.dark === false ? '' : 'dark',
+      title: s.view === 'form' ? 'Exchange request' : 'Request status',
+      isForm: s.view === 'form', isStatus: s.view === 'status',
+      amount: s.amount, amountText: isNaN(amt) ? '' : amt.toLocaleString('en-US') + ' XRP',
+      err: s.tried && !ok ? (isNaN(amt) ? 'Enter an amount to sell.' : (amt < 50 ? 'The minimum request is 50 XRP.' : 'That’s more than your available balance.')) : '',
+      est: { receive: isNaN(amt) ? '0.00' : recv.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), receiveFull: '≈ ' + money(recv), fee: '≈ ' + money(fee) },
+      status: { label: LABELS[key][0], cls: LABELS[key][1] },
+      quote: { show: showQuote, expired: !s.cancelled && key === 'quote' && s.expired, secs: s.secs, pct: (s.secs / QUOTE_SECS * 100).toFixed(1), fees: money(fFee + PAYOUT), receive: money(fRecv) },
+      steps: STEPS.map(function (x, i) { return { label: x.label, note: x.note, cls: s.cancelled ? (i === 0 ? 'done' : '') : (i < stage || (i === stage && key === 'completed') ? 'done' : (i === stage ? 'now' : '')) }; }),
+      legs: {
+        a: s.cancelled ? 'Not started' : (stage >= 5 ? 'Settled' : (stage >= 3 ? 'Reserved' : 'Not started')), aCls: stage >= 5 && !s.cancelled ? 'ok' : (stage >= 3 && !s.cancelled ? 'warn' : ''),
+        b: s.cancelled ? 'Not started' : (stage >= 5 ? 'Settled' : (stage === 4 ? 'Pending provider' : 'Not started')), bCls: stage >= 5 && !s.cancelled ? 'ok' : (stage === 4 && !s.cancelled ? 'warn' : '')
+      },
+      canCancel: !s.cancelled && stage <= 2,
+      canAdvance: !s.cancelled && stage !== 2 && stage < 5,
+      onAmt: function (e) { self.setState({ amount: e.target.value.replace(/[^0-9.,]/g, '') }); },
+      submit: function () { if (ok) self.setState({ view: 'status', stage: 1, cancelled: false }); else self.setState({ tried: true }); },
+      advance: function () { var n = self.state.stage + 1; self.setState({ stage: n }); if (STEPS[n].key === 'quote') self.startTimer(); },
+      accept: function () { clearInterval(self.iv); self.setState({ stage: 3 }); },
+      requote: function () { self.startTimer(); },
+      cancel: function () { clearInterval(self.iv); self.setState({ cancelled: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Custody account (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.sec{margin:24px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3)}.kv dd{margin:0;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}.status.bad{color:var(--neg)}.status.off{color:var(--text-3)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.banner.error{background:var(--neg-soft);color:var(--neg)}
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(2,minmax(0,1fr));gap:8px;align-items:center;padding:11px 14px;border-top:1px solid var(--border);font-size:13px}
+.grid.head{border-top:0;padding-bottom:4px;font-size:11.5px;font-weight:500;color:var(--text-3)}
+.doc{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-top:1px solid var(--border);color:var(--text);text-decoration:none}
+.doc:first-child{border-top:0}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="HomeLight.dc.html" aria-label="Back to Home"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">Custody account</h1>
+      <span style="width: 44px"></span>
+    </div>
+
+    <section class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-text)"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg></span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-weight: 600">Held with [Custody provider]</span>
+          <span class="mono" style="font-size: 12px; color: var(--text-3)">Sub-account CUST-PROTO-0042</span>
+        </span>
+      </div>
+      <dl class="kv" style="padding: 0">
+        <div><dt>Account</dt><dd><span class="status ok">Provisioned</span></dd></div>
+        <div><dt>Provider status</dt><dd><span class="status {{prov.cls}}">{{prov.label}}</span></dd></div>
+        <div><dt>Restrictions</dt><dd>None</dd></div>
+      </dl>
+    </section>
+
+    <sc-if value="{{prov.banner}}" hint-placeholder-val="{{ false }}">
+      <div class="banner {{prov.bannerCls}}" role="alert" style="margin-top: 10px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+        <span>{{prov.banner}}</span>
+      </div>
+    </sc-if>
+
+    <div class="sec">Holdings in custody</div>
+    <div class="card">
+      <dl class="kv">
+        <div><dt style="color: var(--text); font-weight: 600">Total</dt><dd style="font-size: 15px">6,420.10 XRP</dd></div>
+        <div><dt>Available</dt><dd>4,170.10 XRP</dd></div>
+        <div><dt>Restricted · yield allocation</dt><dd>1,500.00 XRP</dd></div>
+        <div><dt>Restricted · loan collateral</dt><dd>750.00 XRP</dd></div>
+        <div><dt>Reserved · pending withdrawals</dt><dd>0.00 XRP</dd></div>
+      </dl>
+    </div>
+    <p style="margin: 8px 4px 0; font-size: 12px; color: var(--text-3)">Reconciled with the provider’s records at 12:00 WAT. Pending deposits aren’t included until credited.</p>
+
+    <div class="sec">Supported assets</div>
+    <div class="card">
+      <div class="grid head" aria-hidden="true"><span>Asset · network</span><span>Deposits</span><span>Withdrawals</span></div>
+      <div class="grid"><span style="font-weight: 500">XRP · XRP Ledger</span><span class="status {{prov.depCls}}">{{prov.dep}}</span><span class="status {{prov.wdCls}}">{{prov.wd}}</span></div>
+      <div class="grid"><span style="color: var(--text-2)">BTC · Bitcoin</span><span class="status off">Planned</span><span class="status off">Planned</span></div>
+      <div class="grid"><span style="color: var(--text-2)">ETH · Ethereum</span><span class="status off">Planned</span><span class="status off">Planned</span></div>
+    </div>
+
+    <div class="sec">Controls</div>
+    <div class="card">
+      <dl class="kv">
+        <div><dt>Transaction signing</dt><dd>Inside provider (MPC)</dd></div>
+        <div><dt>Withdrawal approval</dt><dd>2 reviewers over 1,000 XRP</dd></div>
+        <div><dt>Address allowlist</dt><dd><a href="SecurityLight.dc.html" style="color: var(--accent-text)">Manage</a></dd></div>
+        <div><dt>Daily withdrawal limit</dt><dd>25,000 XRP</dd></div>
+      </dl>
+    </div>
+
+    <div class="sec">Fees</div>
+    <div class="card">
+      <dl class="kv">
+        <div><dt>Custody fee</dt><dd>None</dd></div>
+        <div><dt>Withdrawal fee</dt><dd>0.25 XRP</dd></div>
+        <div><dt>Deposit fee</dt><dd>None</dd></div>
+      </dl>
+    </div>
+
+    <div class="sec">Documents</div>
+    <div class="card">
+      <a class="doc" href="LegalLight.dc.html"><span style="flex: 1; font-weight: 500">Custody Agreement</span><span style="font-size: 12.5px; color: var(--text-3)">Draft v0.1</span></a>
+      <a class="doc" href="LegalLight.dc.html"><span style="flex: 1; font-weight: 500">Deposit and Withdrawal Policy</span><span style="font-size: 12.5px; color: var(--text-3)">Draft v0.1</span></a>
+      <a class="doc" href="LegalLight.dc.html"><span style="flex: 1; font-weight: 500">Digital Asset Risk Disclosure</span><span style="font-size: 12.5px; color: var(--text-3)">Draft v0.1</span></a>
+    </div>
+
+    <div class="banner info" style="margin-top: 16px">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+      <span>No insurance, asset segregation or regulatory approval is claimed. Those details will appear here only once they’re documented.</span>
+    </div>
+    <p style="margin: 16px 0 0; font-size: 11.5px; color: var(--text-3); text-align: center">Sample data · fees and limits are placeholders</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"provider":{"editor":"enum","options":["operational","degraded","outage"],"default":"operational"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var P = {
+  operational: { label: 'Operational', cls: 'ok', banner: '', dep: 'Open', depCls: 'ok', wd: 'Open', wdCls: 'ok' },
+  degraded: { label: 'Degraded', cls: 'wait', banner: 'The custody provider is running slowly. Withdrawals may take longer than usual; deposits are unaffected.', bannerCls: 'warn', dep: 'Open', depCls: 'ok', wd: 'Delayed', wdCls: 'wait' },
+  outage: { label: 'Outage', cls: 'bad', banner: 'The custody provider is unavailable. Withdrawals are paused and deposits will be credited once it recovers. Your balances are unchanged.', bannerCls: 'error', dep: 'Delayed', depCls: 'wait', wd: 'Paused', wdCls: 'bad' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    var p = P[this.props.provider] || P.operational;
+    return { themeCls: this.props.dark === true ? 'dark' : '', prov: Object.assign({ bannerCls: 'info' }, p) };
+  }
+}
+</script>
+</body>
+</html>

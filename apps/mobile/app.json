@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "XRP Ledger",
+    "slug": "xrp-ledger-wallet",
+    "scheme": "xrpledger",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#000000",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.example.xrpledger",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Unlock the app and confirm withdrawals with Face ID.",
+        "NSCameraUsageDescription": "Photograph your ID and take a selfie for identity verification. Photos go straight to the verification provider."
+      }
+    },
+    "android": {
+      "package": "com.example.xrpledger",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Unlock the app and confirm withdrawals with Face ID."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Photograph your ID and take a selfie for identity verification."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "icon": "./assets/icon.png"
+  }
+}

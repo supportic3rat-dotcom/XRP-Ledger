@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Profile (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 112px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn-sm{height:36px;padding:0 12px;font-size:13px;border-radius:10px}
+.sec{margin:24px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;text-decoration:none;color:var(--text);cursor:pointer}
+.row:first-child{border-top:0}
+.row .val{font-size:13px;color:var(--text-3)}
+.row .chev{color:var(--text-3)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;background:var(--accent-soft);color:var(--accent-text);font-size:12px;font-weight:500;white-space:nowrap}
+.toggle{position:relative;width:44px;height:26px;flex:none;border:0;border-radius:13px;background:var(--border-strong);cursor:pointer}
+.toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.toggle.on{background:var(--accent)}
+.toggle.on .knob{transform:translateX(18px);background:var(--on-accent)}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--sunken)}
+.seg-btn{flex:1;height:36px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer}
+.seg-btn.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--border)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 8px 26px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--border);z-index:5}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:500;color:var(--text-3);text-decoration:none;border-radius:10px}
+.tab.on{color:var(--accent-text)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:20;padding:20px 20px 32px;background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -12px 32px -16px rgba(0,0,0,.25)}
+.scrim{position:absolute;inset:0;z-index:15;border:0;padding:0;background:rgba(10,16,14,.4);cursor:default}
+.toast{position:absolute;left:16px;right:16px;bottom:100px;z-index:30;padding:12px 14px;border-radius:12px;background:var(--text);color:var(--bg);font-size:13px}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <h1 style="margin: 8px 4px 16px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Profile</h1>
+
+    <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px">
+      <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text); font-size: 17px; font-weight: 600">BM</span>
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+        <span style="font-size: 16px; font-weight: 600">Brendan M.</span>
+        <span style="font-size: 12.5px; color: var(--text-3)">Custodial account · <span class="mono">ACC-PROTO-0042</span></span>
+      </span>
+      <span class="pill">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        Verified
+      </span>
+    </div>
+
+    <div class="sec">Security</div>
+    <div class="card">
+      <div class="row" style="cursor: default">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span id="p-2fa" style="font-weight: 500">Two-factor authentication</span><span class="val">Authenticator app</span></span>
+        <button type="button" role="switch" class="toggle {{tw.cls}}" aria-checked="{{tw.on}}" aria-labelledby="p-2fa" onClick="{{toggle2fa}}"><span class="knob"></span></button>
+      </div>
+      <div class="row" style="cursor: default">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span id="p-allow" style="font-weight: 500">Withdrawal allowlist</span><span class="val">{{al.hint}}</span></span>
+        <button type="button" role="switch" class="toggle {{al.cls}}" aria-checked="{{al.on}}" aria-labelledby="p-allow" onClick="{{toggleAllow}}"><span class="knob"></span></button>
+      </div>
+      <sc-if value="{{tw.warn}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 0 14px 12px">
+          <div class="banner warn">Turning off two-factor takes effect after a 24-hour security hold. Withdrawals pause during that time.</div>
+        </div>
+      </sc-if>
+      <a class="row" href="SecurityLight.dc.html">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Security settings</span><span class="val">Password, backup codes, devices, allowlist</span></span>
+        <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </a>
+    </div>
+
+    <div class="sec">External wallets</div>
+    <div class="card">
+      <sc-if value="{{wallet}}" hint-placeholder-val="{{ true }}">
+        <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px dashed var(--border-strong); color: var(--text-2)">
+              <svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>
+            </span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0">
+              <span style="font-weight: 500">Watch-only wallet</span>
+              <span class="mono" style="font-size: 12px; color: var(--text-3)">rExt…proto9</span>
+            </span>
+            <span class="num" style="font-weight: 500">312.40 XRP</span>
+          </div>
+          <div class="banner info" style="padding: 10px 12px; font-size: 12.5px">Not held in custody. Read from the public ledger and never counted in your custodial balance.</div>
+          <button type="button" class="btn btn-secondary btn-sm" onClick="{{disconnect}}" style="align-self: flex-start">Disconnect</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{noWallet}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="row" onClick="{{openConnect}}">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 500">Connect a wallet you own</span><span class="val">View its balance alongside your account</span></span>
+          <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      </sc-if>
+    </div>
+
+    <div class="sec">Preferences</div>
+    <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px">
+      <span id="p-theme" style="font-weight: 500">Appearance</span>
+      <div class="seg" role="group" aria-labelledby="p-theme">
+        <button type="button" class="seg-btn {{th.light}}" aria-pressed="{{th.isLight}}" onClick="{{setLight}}">Light</button>
+        <button type="button" class="seg-btn {{th.dark}}" aria-pressed="{{th.isDark}}" onClick="{{setDark}}">Dark</button>
+      </div>
+    </div>
+
+    <div class="sec">Legal &amp; disclosures</div>
+    <div class="card">
+      <sc-for list="{{docs}}" as="d" hint-placeholder-count="5">
+        <a class="row" href="LegalLight.dc.html">
+          <span style="flex: 1; font-weight: 500">{{d.name}}</span><span class="val">{{d.ver}}</span>
+          <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </a>
+      </sc-for>
+    </div>
+
+    <div class="sec">Support</div>
+    <div class="card">
+      <a class="row" href="CustodyLight.dc.html"><span style="flex: 1; font-weight: 500">Custody account</span><svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+      <a class="row" href="SupportLight.dc.html"><span style="flex: 1; font-weight: 500">Help &amp; support</span><svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+      <a class="row" href="NotificationsLight.dc.html"><span style="flex: 1; font-weight: 500">Notifications</span><svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+    </div>
+
+    <a class="btn btn-secondary" href="WelcomeLight.dc.html" style="width: 100%; margin-top: 24px; color: var(--neg)">Sign out</a>
+    <p style="margin: 16px 0 0; font-size: 11.5px; color: var(--text-3); text-align: center">Sample data · App v0.1 prototype · Not affiliated with Ripple or the XRP Ledger Foundation</p>
+  </div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim" aria-label="Close" tabIndex="-1" onClick="{{closeSheet}}"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="conn-title">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: -8px auto 16px"></div>
+      <h2 id="conn-title" style="margin: 0 0 10px; font-size: 18px; font-weight: 600">Connect an external wallet</h2>
+      <p style="margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--text-2)">You’ll approve the connection in your wallet app. We only receive your public address, so we can show its balance — we can’t move funds from it.</p>
+      <div class="banner warn" style="margin-bottom: 16px">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+        <span>We will never ask for your recovery phrase or private key. Anyone who does is trying to steal your funds.</span>
+      </div>
+      <button type="button" class="btn btn-primary" onClick="{{connect}}" style="width: 100%">Open wallet app</button>
+      <button type="button" class="btn btn-secondary" onClick="{{closeSheet}}" style="width: 100%; margin-top: 10px">Cancel</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" role="status">{{toast}}</div>
+  </sc-if>
+
+  <nav class="tabbar" aria-label="Primary">
+    <a class="tab" href="HomeLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V20h-5.5v-6h-5v6H4z"></path></svg>Home</a>
+    <a class="tab" href="MarketsLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20h17"></path><path d="M5 15.5l4-4.5 3.5 2.5L19 6"></path></svg>Markets</a>
+    <a class="tab" href="EarnLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.5" rx="7" ry="2.5"></ellipse><path d="M5 6.5v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6.5"></path><path d="M5 12v5.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V12"></path></svg>Earn</a>
+    <a class="tab" href="BorrowLight.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5h16M6 13.5h12M8 9.5h8M10 5.5h4"></path></svg>Borrow</a>
+    <a class="tab on" href="ProfileLight.dc.html" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20c1.2-3.4 3.9-5 7-5s5.8 1.6 7 5"></path></svg>Profile</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { theme: null, twofa: true, allow: false, wallet: true, sheet: false, toast: null }; }
+  componentWillUnmount() { clearTimeout(this.t); }
+  toast(msg) { var self = this; clearTimeout(this.t); this.setState({ toast: msg }); this.t = setTimeout(function () { self.setState({ toast: null }); }, 2600); }
+  renderVals() {
+    var self = this, s = this.state;
+    var dark = s.theme ? s.theme === 'dark' : this.props.dark === true;
+    return {
+      themeCls: dark ? 'dark' : '',
+      th: { light: dark ? '' : 'on', dark: dark ? 'on' : '', isLight: !dark, isDark: dark },
+      tw: { on: s.twofa, cls: s.twofa ? 'on' : '', warn: !s.twofa },
+      al: { on: s.allow, cls: s.allow ? 'on' : '', hint: s.allow ? 'On · 2 saved addresses' : 'Off · any valid address' },
+      wallet: s.wallet, noWallet: !s.wallet, sheet: s.sheet, toast: s.toast,
+      docs: [
+        { name: 'Terms of Service', ver: 'Draft v0.1' }, { name: 'Privacy Policy', ver: 'Draft v0.1' },
+        { name: 'Custody Agreement', ver: 'Draft v0.1' }, { name: 'Fees and Charges', ver: 'Draft v0.1' },
+        { name: 'Digital Asset Risk Disclosure', ver: 'Draft v0.1' }
+      ],
+      setLight: function () { self.setState({ theme: 'light' }); },
+      setDark: function () { self.setState({ theme: 'dark' }); },
+      toggle2fa: function () { self.setState({ twofa: !self.state.twofa }); },
+      toggleAllow: function () { self.setState({ allow: !self.state.allow }); },
+      showDevices: function () { self.toast('iPhone 15 · this device, and Chrome on macOS · Lagos'); },
+      notAvail: function () { self.toast('Not available in this prototype.'); },
+      disconnect: function () { self.setState({ wallet: false }); self.toast('Wallet disconnected. Nothing in custody was affected.'); },
+      openConnect: function () { self.setState({ sheet: true }); },
+      closeSheet: function () { self.setState({ sheet: false }); },
+      connect: function () { self.setState({ sheet: false, wallet: true }); self.toast('Connected (simulated). Only the public address was shared.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

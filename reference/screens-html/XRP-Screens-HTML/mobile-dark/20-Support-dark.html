@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XRP Ledger — Support (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+x-dc{display:none!important}
+
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select,.m textarea{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:22px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.acc{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;font-weight:500;cursor:pointer}
+.card > div:first-child > .acc,.card > div:first-child > .req{border-top:0}
+.acc .chev{color:var(--text-3);transition:transform .15s}
+.acc[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.body{padding:0 14px 14px;font-size:13.5px;line-height:1.55;color:var(--text-2)}
+.req{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}
+.msg{padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.5;max-width:88%}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent)}
+.msg.them{align-self:flex-start;background:var(--sunken);color:var(--text)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.search{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:15px}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.err{font-size:12.5px;color:var(--neg)}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap select{flex:1;height:48px;border:0;outline:0;background:transparent;font-size:15px;appearance:none}
+.input-wrap textarea{flex:1;height:110px;padding:12px 0;border:0;outline:0;background:transparent;font-size:14px;line-height:1.45;resize:none}
+.footer{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:20;max-height:90%;overflow-y:auto;padding:20px 16px 32px;background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -12px 32px -16px rgba(0,0,0,.4)}
+.scrim{position:absolute;inset:0;z-index:15;border:0;padding:0;background:rgba(0,0,0,.55);cursor:default}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--border-strong);margin:-8px auto 14px}
+
+</style>
+</head>
+<body>
+<div class="sc-host"><div class="m dark">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="18-Profile-dark.html" aria-label="Back to Profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <h1 style="flex: 1 1 0%; margin: 0px; font-size: 17px; font-weight: 600; text-align: center;">Help &amp; support</h1>
+      <span style="width: 44px;"></span>
+    </div>
+
+    <div class="banner warn" role="note">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px;"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+      <span>Support only talks to you inside this app. We’ll never ask for your password, 2FA codes or recovery phrase, or ask you to send funds.</span>
+    </div>
+
+    <div class="sec"><span>Your requests</span></div>
+    <div class="card">
+      
+        <div>
+          <button type="button" class="req" aria-expanded="true">
+            <span style="flex: 1 1 0%; display: flex; flex-direction: column; gap: 2px; min-width: 0px;">
+              <span style="font-weight: 500;"><span class="sc-interp">Deposit sent without destination tag</span></span>
+              <span class="mono" style="font-size: 12px; color: var(--text-3);"><span class="sc-interp">SUP-0921</span> · <span class="sc-interp">Oct 19</span></span>
+            </span>
+            <span class="status wait"><span class="sc-interp">Waiting on us</span></span>
+          </button>
+          
+            <div style="display: flex; flex-direction: column; gap: 8px; padding: 0px 14px 14px;">
+              
+                <div class="msg me"><span><span class="sc-interp">I sent 500 XRP from my exchange and forgot the tag. Transaction attached.</span></span><div style="font-size: 11px; opacity: 0.7; margin-top: 4px;"><span class="sc-interp">You · 12:05</span></div></div>
+              
+                <div class="msg them"><span><span class="sc-interp">Thanks — we’ve found the deposit and it’s held safely. Our operations team is confirming it’s yours; we’ll update you here.</span></span><div style="font-size: 11px; opacity: 0.7; margin-top: 4px;"><span class="sc-interp">Support · 12:10</span></div></div>
+              
+            </div>
+          
+        </div>
+      
+    </div>
+
+    <div class="sec"><span>Help topics</span></div>
+    <label class="search">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3);"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      <input aria-label="Search help topics" placeholder="Search help" value="">
+    </label>
+    <div class="card" style="margin-top: 10px;">
+      
+        <div>
+          <button type="button" class="acc" aria-expanded="false">
+            <span style="flex: 1 1 0%;"><span class="sc-interp">Why do XRP deposits need a destination tag?</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          
+        </div>
+      
+        <div>
+          <button type="button" class="acc" aria-expanded="false">
+            <span style="flex: 1 1 0%;"><span class="sc-interp">My deposit is still pending</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          
+        </div>
+      
+        <div>
+          <button type="button" class="acc" aria-expanded="false">
+            <span style="flex: 1 1 0%;"><span class="sc-interp">How long do withdrawals take?</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          
+        </div>
+      
+        <div>
+          <button type="button" class="acc" aria-expanded="false">
+            <span style="flex: 1 1 0%;"><span class="sc-interp">Which networks are supported?</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          
+        </div>
+      
+        <div>
+          <button type="button" class="acc" aria-expanded="false">
+            <span style="flex: 1 1 0%;"><span class="sc-interp">I lost access to my email or authenticator</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          
+        </div>
+      
+        <div>
+          <button type="button" class="acc" aria-expanded="false">
+            <span style="flex: 1 1 0%;"><span class="sc-interp">What fees do I pay?</span></span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          
+        </div>
+      
+      
+    </div>
+  </div>
+
+  <div class="footer"><button type="button" class="btn btn-primary">New request</button></div>
+
+  </div></div>
+</body>
+</html>

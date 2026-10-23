@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Help &amp; support (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input,.m select,.m textarea{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 108px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:22px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.acc{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;font-weight:500;cursor:pointer}
+.card > div:first-child > .acc,.card > div:first-child > .req{border-top:0}
+.acc .chev{color:var(--text-3);transition:transform .15s}
+.acc[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.body{padding:0 14px 14px;font-size:13.5px;line-height:1.55;color:var(--text-2)}
+.req{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;cursor:pointer}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}
+.msg{padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.5;max-width:88%}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent)}
+.msg.them{align-self:flex-start;background:var(--sunken);color:var(--text)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.search{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:15px}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:500}
+.err{font-size:12.5px;color:var(--neg)}
+.help{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.input-wrap{display:flex;align-items:center;gap:8px;padding:0 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface)}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input-wrap.invalid{border-color:var(--neg)}
+.input-wrap select{flex:1;height:48px;border:0;outline:0;background:transparent;font-size:15px;appearance:none}
+.input-wrap textarea{flex:1;height:110px;padding:12px 0;border:0;outline:0;background:transparent;font-size:14px;line-height:1.45;resize:none}
+.footer{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:20;max-height:90%;overflow-y:auto;padding:20px 16px 32px;background:var(--surface);border-top:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -12px 32px -16px rgba(0,0,0,.4)}
+.scrim{position:absolute;inset:0;z-index:15;border:0;padding:0;background:rgba(0,0,0,.55);cursor:default}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--border-strong);margin:-8px auto 14px}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll">
+    <div class="topbar">
+      <a class="icon-btn" href="{{L.profile}}" aria-label="Back to Profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">Help &amp; support</h1>
+      <span style="width: 44px"></span>
+    </div>
+
+    <div class="banner warn" role="note">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"></path></svg>
+      <span>Support only talks to you inside this app. We’ll never ask for your password, 2FA codes or recovery phrase, or ask you to send funds.</span>
+    </div>
+
+    <div class="sec"><span>Your requests</span></div>
+    <div class="card">
+      <sc-for list="{{tickets}}" as="t" hint-placeholder-count="1">
+        <div>
+          <button type="button" class="req" aria-expanded="{{t.open}}" onClick="{{t.toggle}}">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+              <span style="font-weight: 500">{{t.subject}}</span>
+              <span class="mono" style="font-size: 12px; color: var(--text-3)">{{t.ref}} · {{t.when}}</span>
+            </span>
+            <span class="status {{t.tone}}">{{t.status}}</span>
+          </button>
+          <sc-if value="{{t.open}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 8px; padding: 0 14px 14px">
+              <sc-for list="{{t.msgs}}" as="m" hint-placeholder-count="2">
+                <div class="msg {{m.cls}}"><span>{{m.text}}</span><div style="font-size: 11px; opacity: .7; margin-top: 4px">{{m.meta}}</div></div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div class="sec"><span>Help topics</span></div>
+    <label class="search">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      <input aria-label="Search help topics" placeholder="Search help" value="{{q}}" onChange="{{onQ}}">
+    </label>
+    <div class="card" style="margin-top: 10px">
+      <sc-for list="{{topics}}" as="t" hint-placeholder-count="6">
+        <div>
+          <button type="button" class="acc" aria-expanded="{{t.open}}" onClick="{{t.toggle}}">
+            <span style="flex: 1">{{t.title}}</span>
+            <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <sc-if value="{{t.open}}" hint-placeholder-val="{{ false }}"><div class="body">{{t.body}}</div></sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{noTopics}}" hint-placeholder-val="{{ false }}"><div class="body" style="padding-top: 14px">No topics match. Send us a request instead.</div></sc-if>
+    </div>
+  </div>
+
+  <div class="footer"><button type="button" class="btn btn-primary" onClick="{{openNew}}">New request</button></div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="scrim" aria-label="Close" tabIndex="-1" onClick="{{closeNew}}"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="new-title">
+      <div class="grab"></div>
+      <h2 id="new-title" style="margin: 0 0 14px; font-size: 18px; font-weight: 600">New support request</h2>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div class="field">
+          <label class="label" for="nr-topic">Topic</label>
+          <div class="input-wrap {{f.topicCls}}"><select id="nr-topic" value="{{f.topic}}" onChange="{{onTopic}}"><option value="">Choose a topic</option><option>Deposit</option><option>Withdrawal</option><option>Exchange</option><option>Earn</option><option>Borrow</option><option>Account &amp; security</option><option>Other</option></select><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><path d="M6 9l6 6 6-6"></path></svg></div>
+          <sc-if value="{{f.topicErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{f.topicErr}}</span></sc-if>
+        </div>
+        <div class="field">
+          <label class="label" for="nr-tx">Related transaction <span style="font-weight: 400; color: var(--text-3)">· optional</span></label>
+          <div class="input-wrap"><select id="nr-tx" value="{{f.tx}}" onChange="{{onTx}}"><option value="">None</option><option value="DEP-PROTO-2041">Deposit · 1,250.00 XRP · Today</option><option value="WD-PROTO-1988">Withdrawal · 300.00 XRP · Oct 12</option><option value="EX-PROTO-0301">Exchange · 500.00 XRP · Oct 9</option></select><svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--text-3)"><path d="M6 9l6 6 6-6"></path></svg></div>
+        </div>
+        <div class="field">
+          <label class="label" for="nr-msg">What happened?</label>
+          <div class="input-wrap {{f.msgCls}}"><textarea id="nr-msg" placeholder="Describe the issue. Don’t include passwords or codes." value="{{f.msg}}" onChange="{{onMsg}}"></textarea></div>
+          <span class="help">{{f.count}}</span>
+          <sc-if value="{{f.msgErr}}" hint-placeholder-val="{{ false }}"><span class="err">{{f.msgErr}}</span></sc-if>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary" onClick="{{submit}}" style="margin-top: 16px">Send request</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var VARIANT = 'light';
+var SUF = VARIANT === 'light' ? 'Light' : '';
+function to(n) { return n + SUF + '.dc.html'; }
+function isDark(p) { if (p === true || p === 'true') return true; if (p === false || p === 'false') return false; return VARIANT === 'dark'; }
+var TOPICS = [
+  { id: 'tag', title: 'Why do XRP deposits need a destination tag?', body: 'Your deposit address is shared, so the tag tells us which account the XRP belongs to. Without it, the deposit is held aside until we can match it, which needs proof from you and can take a few business days.' },
+  { id: 'pending', title: 'My deposit is still pending', body: 'Deposits are credited after the XRP Ledger validates the transaction and our screening checks pass. XRP usually validates within seconds; screening can add a short delay. You’ll get a notification when it’s credited.' },
+  { id: 'wd', title: 'How long do withdrawals take?', body: 'Every withdrawal is reviewed before it’s sent. Most are approved within an hour during business hours; withdrawals over 1,000 XRP need a second reviewer. Once sent, they’re final after ledger validation.' },
+  { id: 'net', title: 'Which networks are supported?', body: 'Only the XRP Ledger, for native XRP. Other networks will appear in Markets once custody, monitoring and testing are complete. Sending a different asset or network to your address may be unrecoverable.' },
+  { id: 'recover', title: 'I lost access to my email or authenticator', body: 'Contact us from this screen if you’re still signed in, or from the sign-in screen if not. We’ll verify your identity again before restoring access, and withdrawals pause for a short period afterwards.' },
+  { id: 'fees', title: 'What fees do I pay?', body: 'Deposits are free. Withdrawals cost 0.25 XRP plus the network fee. Exchange requests show their spread and payout fee before you accept a quote. See Legal › Fees and Charges for the full list.' }
+];
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      q: '', openTopic: null, openTicket: 'SUP-0921', sheet: false, f: { topic: '', tx: '', msg: '', tried: false },
+      tickets: [{ ref: 'SUP-0921', subject: 'Deposit sent without destination tag', when: 'Oct 19', status: 'Waiting on us', tone: 'wait', msgs: [
+        { cls: 'me', text: 'I sent 500 XRP from my exchange and forgot the tag. Transaction attached.', meta: 'You · 12:05' },
+        { cls: 'them', text: 'Thanks — we’ve found the deposit and it’s held safely. Our operations team is confirming it’s yours; we’ll update you here.', meta: 'Support · 12:10' }
+      ] }]
+    };
+  }
+  renderVals() {
+    var self = this, s = this.state, f = s.f;
+    var q = s.q.trim().toLowerCase();
+    var topics = TOPICS.filter(function (t) { return !q || (t.title + ' ' + t.body).toLowerCase().indexOf(q) >= 0; });
+    var msgOk = f.msg.trim().length >= 20;
+    function setF(k) { return function (e) { var n = Object.assign({}, self.state.f); n[k] = e.target.value; self.setState({ f: n }); }; }
+    return {
+      themeCls: isDark(this.props.dark) ? 'dark' : '',
+      L: { profile: to('Profile') },
+      q: s.q, noTopics: topics.length === 0,
+      topics: topics.map(function (t) { var open = s.openTopic === t.id; return { title: t.title, body: t.body, open: open, toggle: function () { self.setState({ openTopic: open ? null : t.id }); } }; }),
+      tickets: s.tickets.map(function (t) { var open = s.openTicket === t.ref; return { ref: t.ref, subject: t.subject, when: t.when, status: t.status, tone: t.tone, msgs: t.msgs, open: open, toggle: function () { self.setState({ openTicket: open ? null : t.ref }); } }; }),
+      sheet: s.sheet,
+      f: {
+        topic: f.topic, tx: f.tx, msg: f.msg, count: f.msg.trim().length + ' characters · at least 20',
+        topicErr: f.tried && !f.topic ? 'Choose a topic.' : '', msgErr: f.tried && !msgOk ? 'Tell us a little more so we can help.' : '',
+        topicCls: f.tried && !f.topic ? 'invalid' : '', msgCls: f.tried && !msgOk ? 'invalid' : ''
+      },
+      onQ: function (e) { self.setState({ q: e.target.value }); },
+      onTopic: setF('topic'), onTx: setF('tx'), onMsg: setF('msg'),
+      openNew: function () { self.setState({ sheet: true, f: { topic: '', tx: '', msg: '', tried: false } }); },
+      closeNew: function () { self.setState({ sheet: false }); },
+      submit: function () {
+        if (!f.topic || !msgOk) { self.setState({ f: Object.assign({}, f, { tried: true }) }); return; }
+        var t = { ref: 'SUP-0934', subject: f.topic + (f.tx ? ' · ' + f.tx : ''), when: 'Just now', status: 'Open', tone: 'wait', msgs: [{ cls: 'me', text: f.msg.trim(), meta: 'You · now' }, { cls: 'them', text: 'Thanks — we’ve received your request. Typical first reply: within 4 business hours.', meta: 'Automatic reply' }] };
+        self.setState({ sheet: false, tickets: [t].concat(self.state.tickets), openTicket: 'SUP-0934' });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "@xrp/supabase",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/pglite/run.mjs && deno test --config functions/deno.json --allow-env functions/_tests/",
+    "test:db": "supabase test db",
+    "typecheck": "deno check --config functions/deno.json functions/*/index.ts functions/_tests/*.ts",
+    "lint": "deno lint --config functions/deno.json functions"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "deno",
+      "version": "latest",
+      "onFail": "download"
+    }
+  }
+}

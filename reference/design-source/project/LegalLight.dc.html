@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRP Ledger — Legal &amp; disclosures (light)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.m{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--border:#E6E6E6;--border-strong:#D4D4D4;--text:#0A0A0A;--text-2:#474747;--text-3:#6B6B6B;--accent:#0A0A0A;--accent-soft:#F0F0F0;--accent-text:#0A0A0A;--on-accent:#FFFFFF;--pos:#15803D;--neg:#C81E1E;--warn:#A16207;--warn-soft:#FEF6E0;--neg-soft:#FDECEC;--dot-warn:#EAB308;position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.m.dark{--bg:#000000;--surface:#0D0D0D;--sunken:#1A1A1A;--border:#242424;--border-strong:#383838;--text:#FFFFFF;--text-2:#BDBDBD;--text-3:#8F8F8F;--accent:#FFFFFF;--accent-soft:#1F1F1F;--accent-text:#FFFFFF;--on-accent:#000000;--pos:#4ADE80;--neg:#EF4444;--warn:#FACC15;--warn-soft:#262006;--neg-soft:#2A0D0D;--dot-warn:#FACC15}
+.m button,.m input{font:inherit;color:inherit}
+.m :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 32px}
+.scroll.pad{padding-bottom:108px}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;padding:0 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent;white-space:nowrap}
+.m .btn-primary{background:var(--accent);color:var(--on-accent)}
+.topbar{display:flex;align-items:center;gap:8px;min-height:48px;margin:0 -4px 8px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;text-decoration:none;flex:none}
+.sec{margin:20px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;color:var(--text);cursor:pointer}
+.row:first-child{border-top:0}
+.chev{color:var(--text-3)}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--pos)}.status.wait{color:var(--warn)}.status.wait::before{background:var(--dot-warn)}.status.off{color:var(--text-3)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.banner.info{background:var(--sunken);color:var(--text-2)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.kv{margin:0;display:flex;flex-direction:column;padding:2px 14px}
+.kv>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px}
+.kv>div:first-child{border-top:0}
+.kv dt{color:var(--text-3);flex:none}.kv dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+.doc h3{margin:18px 0 6px;font-size:15px;font-weight:600}
+.doc p{margin:0;font-size:13.5px;line-height:1.6;color:var(--text-2)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--accent);flex:none}
+.footer{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 28px;background:var(--bg);border-top:1px solid var(--border)}
+.err{font-size:12.5px;color:var(--neg)}
+</style>
+</helmet>
+<div class="m {{themeCls}}">
+  <div class="scroll {{padCls}}">
+    <div class="topbar">
+      <sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+        <a class="icon-btn" href="{{L.profile}}" aria-label="Back to Profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+      </sc-if>
+      <sc-if value="{{isDoc}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="icon-btn" aria-label="Back to documents" onClick="{{closeDoc}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+      </sc-if>
+      <h1 style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; text-align: center">{{title}}</h1>
+      <span style="width: 44px"></span>
+    </div>
+
+    <sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{pending}}" hint-placeholder-val="{{ true }}">
+        <div class="banner warn" role="status">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v5M12 16.2h.01"></path></svg>
+          <span>One document has changed and needs your review.</span>
+        </div>
+      </sc-if>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <div>
+          <div class="sec">{{g.label}}</div>
+          <div class="card">
+            <sc-for list="{{g.docs}}" as="d" hint-placeholder-count="3">
+              <button type="button" class="row" onClick="{{d.open}}">
+                <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{d.name}}</span><span style="font-size: 12px; color: var(--text-3)">{{d.version}}</span></span>
+                <span class="status {{d.tone}}">{{d.status}}</span>
+                <svg class="ic ic-sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <p style="margin: 16px 4px 0; font-size: 12px; line-height: 1.5; color: var(--text-3)">All documents are drafts. Final wording depends on the operating company, jurisdictions and providers, and needs legal review before launch. No licences or approvals are claimed.</p>
+    </sc-if>
+
+    <sc-if value="{{isDoc}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px">
+        <span style="font-size: 13px; color: var(--text-3)">{{doc.version}} · effective [Effective date]</span>
+        <span class="status {{doc.tone}}">{{doc.status}}</span>
+      </div>
+      <div class="banner info">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" aria-hidden="true" style="margin-top: 1px"><path d="M7 3.5h7l4 4V20.5H7zM14 3.5v4h4"></path></svg>
+        <span>Draft outline. Each section lists what the final text will cover.</span>
+      </div>
+      <sc-if value="{{doc.changes}}" hint-placeholder-val="{{ false }}">
+        <div class="banner warn" style="margin-top: 10px"><span><b>What changed in v0.2:</b> {{doc.changes}}</span></div>
+      </sc-if>
+      <div class="doc">
+        <sc-for list="{{doc.sections}}" as="x" hint-placeholder-count="4">
+          <div><h3>{{x.h}}</h3><p>{{x.p}}</p></div>
+        </sc-for>
+      </div>
+      <div style="margin: 22px 4px 8px; font-size: 13px; font-weight: 600; color: var(--text-2)">Your acceptance record</div>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>Version</dt><dd>{{doc.accVersion}}</dd></div>
+          <div><dt>Accepted</dt><dd>{{doc.accWhen}}</dd></div>
+          <div><dt>Where</dt><dd>{{doc.accWhere}}</dd></div>
+          <div><dt>Consent ID</dt><dd class="mono" style="font-size: 12px">{{doc.consentId}}</dd></div>
+        </dl>
+      </div>
+      <sc-if value="{{doc.needsAccept}}" hint-placeholder-val="{{ false }}">
+        <label class="check" style="margin-top: 16px">
+          <input type="checkbox" checked="{{agree}}" onChange="{{toggleAgree}}">
+          <span>I’ve read the updated {{doc.name}} (v0.2).</span>
+        </label>
+        <sc-if value="{{agreeErr}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert" style="margin: 6px 0 0 30px">{{agreeErr}}</p></sc-if>
+      </sc-if>
+    </sc-if>
+  </div>
+  <sc-if value="{{doc.needsAccept}}" hint-placeholder-val="{{ false }}">
+    <div class="footer"><button type="button" class="btn btn-primary" onClick="{{accept}}">Accept v0.2</button></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+var VARIANT = 'light';
+var SUF = VARIANT === 'light' ? 'Light' : '';
+function to(n) { return n + SUF + '.dc.html'; }
+function isDark(p) { if (p === true || p === 'true') return true; if (p === false || p === 'false') return false; return VARIANT === 'dark'; }
+var DOCS = [
+  { id: 'tos', group: 'Account', name: 'Terms of Service', ver: 'v0.1 draft', acc: 'Sep 2, 2026 · 10:14 WAT', where: 'Sign-up', cid: 'CNS-PROTO-0001', secs: [['Who we are', '[Company name], its registered address and the services it provides.'], ['Your account', 'Eligibility, one account per person, keeping your sign-in details safe.'], ['Ending the service', 'How you or we can close an account and how remaining assets are returned.']] },
+  { id: 'privacy', group: 'Account', name: 'Privacy Policy', ver: 'v0.1 draft', acc: 'Sep 2, 2026 · 10:14 WAT', where: 'Sign-up', cid: 'CNS-PROTO-0002', secs: [['What we collect', 'Identity, contact, device and transaction data — and why each is needed.'], ['Who we share it with', '[KYC provider], [Custody provider] and others, listed by purpose.'], ['Your rights', 'Access, correction and deletion, subject to record-keeping law.']] },
+  { id: 'risk', group: 'Account', name: 'Digital Asset Risk Disclosure', ver: 'v0.1 draft', acc: 'Sep 2, 2026 · 10:14 WAT', where: 'Sign-up', cid: 'CNS-PROTO-0003', secs: [['Price risk', 'XRP can lose value quickly, including all of it.'], ['Custodial risk', 'You rely on the platform and its providers remaining solvent and available.'], ['No guarantees', 'No deposit insurance or guaranteed returns unless stated in a specific product.']] },
+  { id: 'custody', group: 'Custody & payments', name: 'Custody Agreement', ver: 'v0.1 draft', acc: 'Sep 2, 2026 · 10:20 WAT', where: 'Account setup', cid: 'CNS-PROTO-0004', secs: [['How assets are held', 'Through [Custody provider]; keys stay in the provider’s security boundary.'], ['Records and reconciliation', 'Our internal ledger, how it’s reconciled with the provider, and your statements.'], ['If something goes wrong', 'Outages, insolvency and how claims are handled.']] },
+  { id: 'deposits', group: 'Custody & payments', name: 'Deposit and Withdrawal Policy', ver: 'v0.1 draft', acc: 'Sep 2, 2026 · 10:20 WAT', where: 'Account setup', cid: 'CNS-PROTO-0005', secs: [['Supported networks', 'Which assets and networks are accepted, and destination tag rules.'], ['Review and limits', 'Why withdrawals are reviewed, approval thresholds and daily limits.'], ['Mistakes', 'What happens with wrong networks, missing tags or unsupported tokens.']] },
+  { id: 'fees', group: 'Custody & payments', name: 'Fees and Charges', ver: 'v0.2 draft', acc: 'v0.1 on Sep 2, 2026', where: 'Account setup', cid: 'CNS-PROTO-0006', update: 'The exchange spread is now shown as a single percentage, and the bank payout fee is listed separately.', secs: [['Deposits and withdrawals', 'Deposits are free; withdrawals cost 0.25 XRP plus the network fee.'], ['Exchange', 'Spread and payout fee, shown before you accept a quote.'], ['Products', 'Yield platform fee and loan interest and origination fees.']] },
+  { id: 'yield', group: 'Products', name: 'Yield Product Terms', ver: 'v0.1 draft', acc: 'Sep 16, 2026 · 08:02 WAT', where: 'Earn · XRP Flexible', cid: 'CNS-PROTO-0007', secs: [['How rewards work', 'Rate source, accrual, confirmation and when rewards are credited.'], ['Withdrawing', 'Notice periods and provider-dependent delays.'], ['Risks', 'Provider failure and variable rates.']] },
+  { id: 'lending', group: 'Products', name: 'Lending and Collateral Agreement', ver: 'v0.1 draft', acc: 'Sep 18, 2026 · 17:40 WAT', where: 'Borrow · LN-PROTO-0007', cid: 'CNS-PROTO-0008', secs: [['Collateral', 'Loan-to-value, margin calls and liquidation at 80%.'], ['Interest and repayment', 'Rate type, schedule and early repayment.'], ['Liquidation', 'How collateral is sold and any shortfall is handled.']] },
+  { id: 'complaints', group: 'Products', name: 'Complaints and Disputes', ver: 'v0.1 draft', acc: '', where: '', cid: '', secs: [['How to complain', 'Through Help & support, with a reference number.'], ['Response times', 'When we acknowledge and resolve complaints.'], ['Escalation', 'External bodies you can contact, depending on jurisdiction.']] }
+];
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: null, acceptedFees: false, agree: false, tried: false }; }
+  renderVals() {
+    var self = this, s = this.state;
+    function statusOf(d) {
+      if (d.id === 'fees' && !s.acceptedFees) return ['Review update', 'wait'];
+      if (!d.acc) return ['For reference', 'off'];
+      return ['Accepted', 'ok'];
+    }
+    var groups = ['Account', 'Custody & payments', 'Products'].map(function (g) {
+      return { label: g, docs: DOCS.filter(function (d) { return d.group === g; }).map(function (d) { var st = statusOf(d); return { name: d.name, version: d.id === 'fees' && s.acceptedFees ? 'v0.2 draft' : d.ver, status: st[0], tone: st[1], open: function () { self.setState({ open: d.id, agree: false, tried: false }); } }; }) };
+    });
+    var d = DOCS.filter(function (x) { return x.id === s.open; })[0];
+    var doc = { needsAccept: false };
+    if (d) {
+      var st = statusOf(d), feesPending = d.id === 'fees' && !s.acceptedFees;
+      doc = {
+        name: d.name, version: d.ver, status: st[0], tone: st[1],
+        sections: d.secs.map(function (x) { return { h: x[0], p: x[1] }; }),
+        changes: feesPending ? d.update : '',
+        accVersion: d.acc ? (d.id === 'fees' ? (s.acceptedFees ? 'v0.2' : 'v0.1') : 'v0.1') : 'Not required',
+        accWhen: d.id === 'fees' && s.acceptedFees ? 'Just now' : (d.acc || '—'),
+        accWhere: d.id === 'fees' && s.acceptedFees ? 'Legal & disclosures' : (d.where || '—'),
+        consentId: d.cid ? (d.id === 'fees' && s.acceptedFees ? 'CNS-PROTO-0009' : d.cid) : '—',
+        needsAccept: feesPending
+      };
+    }
+    return {
+      themeCls: isDark(this.props.dark) ? 'dark' : '',
+      L: { profile: to('Profile') },
+      isList: !d, isDoc: !!d, title: d ? d.name : 'Legal & disclosures', padCls: doc.needsAccept ? 'pad' : '',
+      pending: !s.acceptedFees, groups: groups, doc: doc,
+      agree: s.agree, agreeErr: s.tried && !s.agree ? 'Tick the box to confirm you’ve read it.' : '',
+      toggleAgree: function () { self.setState({ agree: !s.agree }); },
+      closeDoc: function () { self.setState({ open: null }); },
+      accept: function () { if (!s.agree) { self.setState({ tried: true }); return; } self.setState({ acceptedFees: true, tried: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
