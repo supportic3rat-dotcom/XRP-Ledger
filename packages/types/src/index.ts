@@ -175,9 +175,7 @@ export type CustomerProfile = {
   country: string;
   currency: DisplayCurrency;
   kycStatus: KycStatus;
-  twoFactorEnabled: boolean;
   allowlistEnabled: boolean;
-  backupCodesUnused: number;
   passwordChangedAt: IsoDateTime;
   frozen: boolean;
 };

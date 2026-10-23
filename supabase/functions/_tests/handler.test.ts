@@ -6,7 +6,7 @@ import { CUSTOMER, fakeDeps, post, token } from './fakes.ts';
 
 const customer = (aal: 'aal1' | 'aal2' = 'aal2') => `Bearer ${token({ sub: CUSTOMER, aal, session_id: '11111111-1111-4111-8111-111111111111' })}`;
 const staff = (role: string, aal: 'aal1' | 'aal2' = 'aal2') => `Bearer ${token({ sub: '00000000-0000-4000-9000-00000000a001', app_role: role, aal })}`;
-const withdrawal = { amountDrops: '300000000', destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', destinationTag: '10293847', totpCode: '123456' };
+const withdrawal = { amountDrops: '300000000', destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', destinationTag: '10293847' };
 const txRow = { id: 'tx-1', ref: 'WD-002101', status: 'in_review', customer_id: CUSTOMER, kind: 'withdrawal', amount_drops: 300000000, amount_cents: null, meta: {} };
 const rpcs = {
   touch_device: () => ({ data: { withdrawals_paused_until: null }, error: null }),
@@ -19,11 +19,10 @@ Deno.test('refuses unauthenticated calls', async () => {
   assertEquals(res.status, 401);
 });
 
-Deno.test('money actions need an aal2 session', async () => {
-  const { deps } = fakeDeps();
+Deno.test('a password-only (aal1) session can make money requests', async () => {
+  const { deps } = fakeDeps({ rpcs });
   const res = await withdraw(post(withdrawal, { Authorization: customer('aal1'), 'Idempotency-Key': 'key-00000001' }), deps);
-  assertEquals(res.status, 403);
-  assertEquals((await res.json()).code, 'mfa_required');
+  assertEquals(res.status, 200);
 });
 
 Deno.test('rejects amounts that are not integer drops (no floats)', async () => {
@@ -60,13 +59,6 @@ Deno.test('the same key with a different body is refused', async () => {
   assertEquals(res.status, 422);
 });
 
-Deno.test('a wrong authenticator code never reaches the database', async () => {
-  const { deps, calls } = fakeDeps({ rpcs, totpOk: false });
-  const res = await withdraw(post(withdrawal, { Authorization: customer(), 'Idempotency-Key': 'key-00000005' }), deps);
-  assertEquals(res.status, 400);
-  assertEquals(calls.length, 0);
-});
-
 Deno.test('SQL rule violations come back as customer-facing 4xx errors', async () => {
   const { deps } = fakeDeps({
     rpcs: { ...rpcs, request_withdrawal: () => ({ data: null, error: { code: '22023', message: 'The minimum withdrawal is 10 XRP.' } }) },
@@ -90,11 +82,10 @@ Deno.test('staff decisions run as the staff member, not the service role', async
   assertEquals(calls[0], { fn: 'approval_decide', args: { p_approval: '30000000-0000-4000-8000-000000000001', p_decision: 'approve', p_reason: null, p_note: null }, as: 'user' });
 });
 
-Deno.test('auditors and aal1 staff sessions cannot decide', async () => {
+Deno.test('auditors and customers cannot decide', async () => {
   const { deps } = fakeDeps();
   const body = { approvalId: '30000000-0000-4000-8000-000000000001', decision: 'approve' };
   assertEquals((await approve(post(body, { Authorization: staff('auditor') }), deps)).status, 403);
-  assertEquals((await approve(post(body, { Authorization: staff('operations', 'aal1') }), deps)).status, 403);
   assertEquals((await approve(post(body, { Authorization: `Bearer ${token({ sub: '00000000-0000-4000-8000-000000000042', aal: 'aal2' })}` }), deps)).status, 403);
 });
 

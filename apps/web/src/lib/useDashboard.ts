@@ -16,7 +16,6 @@ type SendState = {
   amount: string;
   address: string;
   tag: string;
-  code: string;
   confirm: boolean;
   tried1: boolean;
   tried2: boolean;
@@ -54,7 +53,7 @@ const GUIDES = [
   {
     id: 'secure',
     title: 'Keeping your account secure',
-    body: 'Keep two-factor authentication on and consider turning on the withdrawal allowlist. We will never ask for your password, two-factor codes or a recovery phrase, by email, chat or phone.',
+    body: 'Consider turning on the withdrawal allowlist. We will never ask for your passwords or a recovery phrase, by email, chat or phone.',
   },
 ];
 const STATUS: Record<Tx['status'], { label: string; note: string; noteCls: string }> = {
@@ -77,7 +76,6 @@ const freshSend = (asset: string): SendState => ({
   amount: '',
   address: '',
   tag: '',
-  code: '',
   confirm: false,
   tried1: false,
   tried2: false,
@@ -303,16 +301,9 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
     };
   });
 
-  const sec = snap?.security ?? { twofa: false, allowlist: false, allowlistCount: 0, lastSignIn: '', passwordChanged: '' };
+  const sec = snap?.security ?? { allowlist: false, allowlistCount: 0, lastSignIn: '', passwordChanged: '' };
   const notif = snap?.notifications ?? { receipts: false, alerts: false };
   const security = [
-    {
-      label: 'Two-factor authentication',
-      value: sec.twofa ? 'On · authenticator app' : 'Off — turn on to protect withdrawals',
-      ok: sec.twofa,
-      warn: !sec.twofa,
-      neutral: false,
-    },
     {
       label: 'Withdrawal allowlist',
       value: sec.allowlist ? `On · ${sec.allowlistCount} saved address${sec.allowlistCount === 1 ? '' : 'es'}` : 'Off · any address allowed',
@@ -324,7 +315,7 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
     { label: 'Last sign-in', value: sec.lastSignIn, ok: false, warn: false, neutral: true },
   ];
   const patchSnap = (fn: (s: Snapshot) => Snapshot) => setSnap((s) => (s ? fn(s) : s));
-  const toggleSecurity = (key: 'twofa' | 'allowlist') => async () => {
+  const toggleSecurity = (key: 'allowlist') => async () => {
     const next = !sec[key];
     const r = await source.setSecurity(key, next);
     if (!r.ok) return showToast(r.error);
@@ -389,7 +380,6 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
   const receives = units === null ? 0n : source.feesDeducted ? units - fee : units;
   const fiat = (u: bigint) => (sa ? usdOf(u, sa.scale, sa.priceMicro) : '$0.00');
   const stepLabels = ['Amount', 'Destination', 'Review'];
-  const codeErr = send.tried3 && source.needsTotp && !/^\d{6}$/.test(send.code) ? 'Enter the 6-digit code from your authenticator app.' : '';
   const sendVals = {
     title: send.step === 4 ? 'Withdrawal requested' : `Send ${sa?.name ?? ''}`,
     subtitle: send.step === 4 ? 'Your request is in the review queue' : `Step ${send.step} of 3 · ${stepLabels[send.step - 1]}`,
@@ -410,18 +400,14 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
     amount: send.amount,
     address: send.address,
     tag: send.tag,
-    code: send.code,
     confirm: send.confirm,
-    needsTotp: source.needsTotp,
     busy: send.busy,
     amountCls: amountErr ? 'invalid' : '',
     addrCls: addrErr ? 'invalid' : '',
     tagCls: tagErr ? 'invalid' : '',
-    codeCls: codeErr ? 'invalid' : '',
     amountErr,
     addrErr,
     tagErr,
-    codeErr,
     confirmErr: send.error || (send.tried3 && !send.confirm ? 'Confirm you’ve checked the details to continue.' : ''),
     addrPlaceholder: `${sa?.placeholder ?? ''} ${sa?.network ?? ''} address`,
     fiatText: step1Ok && units !== null ? `≈ ${fiat(units)}` : '≈ $0.00',
@@ -440,14 +426,13 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
 
   const submitSend = async () => {
     if (!sa || units === null) return;
-    if (!send.confirm || (source.needsTotp && !/^\d{6}$/.test(send.code))) return patchSend({ tried3: true });
+    if (!send.confirm) return patchSend({ tried3: true });
     patchSend({ busy: true, error: '' });
     const r = await source.withdraw({
       assetId: sa.id,
       units,
       destination: addr,
       tag: send.tag || null,
-      totpCode: source.needsTotp ? send.code : null,
       idempotencyKey: send.key,
     });
     if (!r.ok) return patchSend({ busy: false, error: r.error });
@@ -545,11 +530,9 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
     markets,
     security,
     st: {
-      twofa: sec.twofa,
       allowlist: sec.allowlist,
       receipts: notif.receipts,
       alerts: notif.alerts,
-      twofaCls: sec.twofa ? 'is-on' : '',
       allowCls: sec.allowlist ? 'is-on' : '',
       receiptsCls: notif.receipts ? 'is-on' : '',
       alertsCls: notif.alerts ? 'is-on' : '',
@@ -614,7 +597,6 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
       const r = await source.contactSupport();
       showToast(r.ok ? (r.message ?? 'Message sent.') : r.error);
     },
-    toggleTwofa: toggleSecurity('twofa'),
     toggleAllow: toggleSecurity('allowlist'),
     toggleReceipts: toggleNotification('receipts'),
     toggleAlerts: toggleNotification('alerts'),
@@ -634,7 +616,6 @@ export const useDashboard = (source: DashboardSource, accent = '#0A0A0A') => {
     setMax: () => patchSend({ amount: formatUnits(maxUnits - (maxUnits % 10n ** BigInt(Math.max(0, scale - dec))), scale, dec).replace(/,/g, '') }),
     onAddress: (e: ChangeEvent<HTMLInputElement>) => patchSend({ address: e.target.value, error: '' }),
     onTag: (e: ChangeEvent<HTMLInputElement>) => patchSend({ tag: e.target.value.replace(/\s/g, ''), error: '' }),
-    onCode: (e: ChangeEvent<HTMLInputElement>) => patchSend({ code: e.target.value.replace(/\D/g, '').slice(0, 6), error: '' }),
     toggleConfirm: () => patchSend({ confirm: !send.confirm, error: '' }),
     sendBack: () => patchSend({ step: Math.max(1, send.step - 1) as SendState['step'], error: '' }),
     sendNext: () => {

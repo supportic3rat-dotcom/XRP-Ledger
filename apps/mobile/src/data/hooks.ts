@@ -35,7 +35,6 @@ export const useYield = (asset = 'XRP') =>
 export const useAllowlist = () => useQuery({ queryKey: qk.allowlist, queryFn: api.allowlist });
 export const useDevices = () => useQuery({ queryKey: qk.devices, queryFn: api.devices });
 export const useSecurityEvents = () => useQuery({ queryKey: qk.securityEvents, queryFn: api.securityEvents });
-export const useBackupCodes = () => useQuery({ queryKey: qk.backupCodes, queryFn: api.backupCodes });
 export const useTickets = (enabled = true) => useQuery({ queryKey: qk.tickets, queryFn: api.tickets, enabled });
 export const useLegalDocuments = () => useQuery({ queryKey: qk.legal, queryFn: api.legalDocuments, staleTime: Infinity });
 export const useConsents = (enabled = true) => useQuery({ queryKey: qk.consents, queryFn: api.consents, enabled });

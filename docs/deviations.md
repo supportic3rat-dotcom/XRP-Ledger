@@ -101,3 +101,17 @@ Everything here differs from the design files or the brief on purpose, or still 
 - Fixed: `estimate_yield_accrual` overflowed (`10000 * 365 * 86400` is computed as int), so the hourly estimate
   never ran. Found by the new PGlite test that runs every job.
 - The `app.functions_url` / `app.cron_secret` database settings are no longer needed.
+
+## 2026-10-23 · Sign-in is email and password only (owner's decision)
+
+- Removed every 6-digit code step: the sign-up email code (mobile), the authenticator step at sign-in (mobile,
+  web, admin), the authenticator code on withdrawals (mobile, web, `withdraw-request`), and the two-factor switch,
+  authenticator setup and backup codes (mobile Profile/Security, web Settings).
+- Server: `aal2` is no longer required for customer money actions or staff actions (`_shared/handler.ts`,
+  `security-update`), and `app_role()` grants the staff role on any session
+  (`20261023000200_password_only_sign_in.sql`). Mobile withdrawals still ask for Face ID / fingerprint / passcode.
+- Supabase Auth must have "Confirm email" off (`enable_confirmations = false` locally); otherwise sign-up returns no
+  session and the app shows an error.
+- Left in place but unused: the backup-code tables and `mfa-backup-verify`, the `mfa-*` / `backup-codes*` actions
+  in `security-update`, the access-token hook's backup-code upgrade, and the `mfa-disable` job.
+- Risk accepted by the owner: a leaked password now gives full access to a customer's funds or a staff account.

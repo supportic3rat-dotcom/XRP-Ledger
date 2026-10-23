@@ -60,7 +60,6 @@ export const ProfileScreen = () => {
   const theme = usePreferences((s) => s.theme);
   const setTheme = usePreferences((s) => s.setTheme);
   const setSignedIn = useSession((s) => s.setSignedIn);
-  const twofa = useApiMutation(api.setTwoFactor);
   const allow = useApiMutation(api.setAllowlist);
   const currency = useApiMutation(api.setDisplayCurrency);
   const remove = useApiMutation(api.removeExternalWallet);
@@ -124,29 +123,15 @@ export const ProfileScreen = () => {
         <Card>
           <Row first minHeight={52}>
             <View style={{ flex: 1, gap: 1 }}>
-              <T weight={500} nativeID="p-2fa">
-                Two-factor authentication
-              </T>
-              <Val>Authenticator app</Val>
-            </View>
-            <Toggle label="Two-factor authentication" on={!!p?.twoFactorEnabled} onChange={(v) => twofa.mutate(v)} />
-          </Row>
-          <Row minHeight={52}>
-            <View style={{ flex: 1, gap: 1 }}>
               <T weight={500}>Withdrawal allowlist</T>
               <Val>{p?.allowlistEnabled ? `On · ${saved} saved address${saved === 1 ? '' : 'es'}` : 'Off · any valid address'}</Val>
             </View>
             <Toggle label="Withdrawal allowlist" on={!!p?.allowlistEnabled} onChange={(v) => allow.mutate(v)} />
           </Row>
-          {p && !p.twoFactorEnabled ? (
-            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-              <Banner tone="warn">Turning off two-factor takes effect after a 24-hour security hold. Withdrawals pause during that time.</Banner>
-            </View>
-          ) : null}
           <Row minHeight={52} accessibilityRole="link" onPress={() => router.push('/security')} chevron>
             <View style={{ flex: 1, gap: 1 }}>
               <T weight={500}>Security settings</T>
-              <Val>Password, backup codes, devices, allowlist</Val>
+              <Val>Password, devices, allowlist</Val>
             </View>
           </Row>
         </Card>
@@ -273,7 +258,7 @@ export const ProfileScreen = () => {
           Sign out of this device?
         </T>
         <T size={13.5} lh={1.5} color="text2" style={{ marginBottom: 16 }}>
-          Your balances and requests aren’t affected. You’ll need your password and authenticator to sign in again.
+          Your balances and requests aren’t affected. You’ll need your email and password to sign in again.
         </T>
         <Button label="Sign out" textColor="neg" variant="secondary" onPress={signOut} />
         <Button label="Cancel" variant="secondary" onPress={() => setSignOutSheet(false)} style={{ marginTop: 10 }} />

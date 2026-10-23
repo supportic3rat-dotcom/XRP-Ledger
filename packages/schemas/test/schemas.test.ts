@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fnSchemas, otpSchema, withdrawDestinationSchema } from '../src/index.ts';
 
 describe('Edge Function request schemas', () => {
-  const wd = { amountDrops: '300000000', destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', destinationTag: '10293847', totpCode: '123456' };
+  const wd = { amountDrops: '300000000', destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', destinationTag: '10293847' };
   it('accept integer drops and refuse decimals, negatives and floats', () => {
     expect(fnSchemas['withdraw-request'].safeParse(wd).success).toBe(true);
     for (const amountDrops of ['300.5', '-1', '1e8', '']) expect(fnSchemas['withdraw-request'].safeParse({ ...wd, amountDrops }).success).toBe(false);

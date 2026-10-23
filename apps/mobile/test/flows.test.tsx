@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { SignInScreen } from '@/features/onboarding/SignInScreen';
 import { renderScreen, routerCalls } from './render';
 
@@ -10,11 +10,14 @@ const signIn = async (password: string) => {
 };
 
 describe('Sign in', () => {
-  it('asks for the second factor and rejects a malformed code', async () => {
+  beforeEach(() => {
+    routerCalls().length = 0;
+  });
+
+  it('signs straight in with the right email and password (no code step)', async () => {
     await signIn('Prototype-Pass-2026');
-    expect(await screen.findByText('Two-factor check')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Verify and continue' }));
-    expect(await screen.findByText('Enter the 6-digit authenticator code.')).toBeTruthy();
+    await waitFor(() => expect(routerCalls().some((c) => c.method === 'replace' && c.to === '/')).toBe(true));
+    expect(screen.queryByText('Two-factor check')).toBeNull();
   });
 
   it('validates the password length before calling the API', async () => {

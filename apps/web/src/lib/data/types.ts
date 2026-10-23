@@ -65,7 +65,7 @@ export type Snapshot = {
   allTimeSuffix: string;
   txs: Tx[];
   notices: Notice[];
-  security: { twofa: boolean; allowlist: boolean; allowlistCount: number; lastSignIn: string; passwordChanged: string };
+  security: { allowlist: boolean; allowlistCount: number; lastSignIn: string; passwordChanged: string };
   notifications: { receipts: boolean; alerts: boolean };
 };
 
@@ -74,7 +74,7 @@ export type DepositInfo = { address: string; tag: string | null; network: string
 
 export type SeriesPoint = { v: number; axis: string; tip: string };
 
-export type WithdrawInput = { assetId: string; units: bigint; destination: string; tag: string | null; totpCode: string | null; idempotencyKey: string };
+export type WithdrawInput = { assetId: string; units: bigint; destination: string; tag: string | null; idempotencyKey: string };
 
 export type Result<T = undefined> = { ok: true; value: T; message?: string } | { ok: false; error: string };
 
@@ -85,10 +85,8 @@ export type DashboardSource = {
   deposit(assetId: string): Promise<DepositInfo>;
   /** Live: fees come out of the amount (300 → 299.749988 received). Demo: added on top, as in the design. */
   feesDeducted: boolean;
-  /** Live mode needs the authenticator code (aal2); the demo accepts any request. */
-  needsTotp: boolean;
   withdraw(input: WithdrawInput): Promise<Result<{ ref: string; tx: Tx }>>;
-  setSecurity(key: 'twofa' | 'allowlist', on: boolean): Promise<Result>;
+  setSecurity(key: 'allowlist', on: boolean): Promise<Result>;
   setNotification(key: 'receipts' | 'alerts', on: boolean): Promise<Result>;
   markRead(): Promise<void>;
   /** Purchases need a payment provider; none is contracted, so live mode hides Buy. */

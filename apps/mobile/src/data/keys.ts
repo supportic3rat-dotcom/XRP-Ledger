@@ -10,7 +10,6 @@ export const qk = {
   allowlist: ['allowlist'] as const,
   devices: ['devices'] as const,
   securityEvents: ['securityEvents'] as const,
-  backupCodes: ['backupCodes'] as const,
   tickets: ['tickets'] as const,
   legal: ['legal'] as const,
   consents: ['consents'] as const,

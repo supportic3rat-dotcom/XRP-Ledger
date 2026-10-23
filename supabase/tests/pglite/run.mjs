@@ -345,9 +345,16 @@ await test('KYC decision updates the customer and notifies them', async () => {
 
 
 console.log('\nSessions and reconciliation');
-await test('staff roles do not apply without a TOTP-verified (aal2) session', async () => {
+await test('staff roles apply on a password-only (aal1) session', async () => {
   await db.exec('begin');
   await db.exec(`select set_config('request.jwt.claims', '${JSON.stringify({ sub: OPS, app_role: 'operations', aal: 'aal1' })}', true)`);
+  const r = await one(`select public.app_role() r, public.is_staff() s`);
+  await db.exec('rollback');
+  assert(r.r === 'operations' && r.s === true, JSON.stringify(r));
+});
+await test('a customer session is never staff', async () => {
+  await db.exec('begin');
+  await db.exec(`select set_config('request.jwt.claims', '${JSON.stringify({ sub: BRENDAN, aal: 'aal1' })}', true)`);
   const r = await one(`select public.app_role() r, public.is_staff() s`);
   await db.exec('rollback');
   assert(r.r === null && r.s === false, JSON.stringify(r));

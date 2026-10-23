@@ -83,21 +83,7 @@ export const createSupabaseApi = (): Api => ({
       const locked = error.status === 429;
       return { status: 'error', attemptsLeft: locked ? 0 : 4, locked };
     }
-    const { data: level } = await supabase().auth.mfa.getAuthenticatorAssuranceLevel();
-    return level?.nextLevel === 'aal2' && level.currentLevel !== 'aal2' ? { status: 'mfa_required' } : { status: 'ok' };
-  },
-  verifyMfa: async (code, backup) => {
-    if (backup) {
-      const r = await call<{ ok: boolean }>('mfa-backup-verify', { code: code.toUpperCase() });
-      // The access-token hook upgrades this session to aal2 on refresh.
-      if (r.ok) await supabase().auth.refreshSession();
-      return { ok: r.ok };
-    }
-    const { data: factors } = await supabase().auth.mfa.listFactors();
-    const totp = factors?.totp[0];
-    if (!totp) return { ok: false };
-    const { error } = await supabase().auth.mfa.challengeAndVerify({ factorId: totp.id, code });
-    return { ok: !error };
+    return { status: 'ok' };
   },
   requestPasswordReset: async (email) => {
     // Always resolves, so the UI never reveals whether the email exists.
@@ -106,19 +92,14 @@ export const createSupabaseApi = (): Api => ({
       .catch(() => undefined);
   },
   signUp: async (input) => {
-    const { error } = await supabase().auth.signUp({
+    const { data, error } = await supabase().auth.signUp({
       email: input.email,
       password: input.password,
       options: { data: { full_name: input.name, country: input.country, display_currency: input.currency, marketing_opt_in: input.updates } },
     });
     if (error) throw new Error(error.message);
-  },
-  verifyEmailCode: async (email, code) => {
-    const { error } = await supabase().auth.verifyOtp({ email, token: code, type: 'signup' });
-    return { ok: !error };
-  },
-  resendEmailCode: async (email) => {
-    await supabase().auth.resend({ type: 'signup', email });
+    // No session means "Confirm email" is still on in Supabase Auth; sign-up has no code step to finish it.
+    if (!data.session) throw new Error('Your account was created but can’t be opened yet. Please contact support.');
   },
   signOut: async () => {
     await supabase().auth.signOut();
@@ -126,11 +107,7 @@ export const createSupabaseApi = (): Api => ({
 
   profile: async () => {
     const id = await uid();
-    const [{ data: c }, { data: codes }, { data: factors }] = await Promise.all([
-      supabase().from('customers').select('*').eq('id', id).single(),
-      supabase().from('auth_backup_codes_status').select('unused').maybeSingle(),
-      supabase().auth.mfa.listFactors(),
-    ]);
+    const { data: c } = await supabase().from('customers').select('*').eq('id', id).single();
     const row = (c ?? {}) as Row;
     const name = str(row.full_name);
     return {
@@ -148,9 +125,7 @@ export const createSupabaseApi = (): Api => ({
       country: str(row.country),
       currency: (row.display_currency as never) ?? 'USD',
       kycStatus: row.kyc_status as KycStatus,
-      twoFactorEnabled: (factors?.totp.length ?? 0) > 0 && row.mfa_disable_at === null,
       allowlistEnabled: Boolean(row.allowlist_enabled),
-      backupCodesUnused: Number((codes as Row | null)?.unused ?? 0),
       passwordChangedAt: str(row.password_changed_at),
       frozen: row.frozen_at !== null,
     };
@@ -285,7 +260,6 @@ export const createSupabaseApi = (): Api => ({
     const { data } = await supabase().from('security_events').select('*').order('created_at', { ascending: false }).limit(10);
     return (data ?? []).map((r: Row) => ({ id: str(r.id), title: str(r.title), meta: str(r.meta), at: str(r.created_at) }));
   },
-  backupCodes: () => call('security-update', { action: 'backup-codes' }),
   tickets: async () => {
     const { data: tickets } = await supabase().from('support_tickets').select('*').order('created_at', { ascending: false });
     const refs = (tickets ?? []).map((t: Row) => t.ref);
@@ -356,7 +330,6 @@ export const createSupabaseApi = (): Api => ({
         destination: input.destination,
         destinationTag: input.destinationTag,
         memo: input.memo,
-        totpCode: input.totpCode,
       },
       input.idempotencyKey,
     ),
@@ -399,26 +372,9 @@ export const createSupabaseApi = (): Api => ({
   repayLoan: async (input) => callTx('loan-repay', { loanId: input.loanId, amountCents: input.amountCents.toString(), via: input.via }, input.idempotencyKey),
   addCollateral: async (input) =>
     callTx('loan-add-collateral', { loanId: input.loanId, amountDrops: input.amountDrops.toString(), acknowledged: true }, input.idempotencyKey),
-  setTwoFactor: async (enabled) => {
-    await call('security-update', { action: enabled ? 'mfa-enable' : 'mfa-disable' });
-  },
-  startTotpEnrollment: async () => {
-    const { data: factors } = await supabase().auth.mfa.listFactors();
-    if ((factors?.totp ?? []).some((f) => f.status === 'verified')) return null;
-    // Drop abandoned setups so the new QR code is the only pending one.
-    for (const f of factors?.all ?? []) if (f.status === 'unverified') await supabase().auth.mfa.unenroll({ factorId: f.id });
-    const { data, error } = await supabase().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator app' });
-    if (error) throw new Error(error.message);
-    return { factorId: data.id, uri: data.totp.uri, secret: data.totp.secret };
-  },
-  confirmTotpEnrollment: async (factorId, code) => {
-    const { error } = await supabase().auth.mfa.challengeAndVerify({ factorId, code });
-    return { ok: !error };
-  },
   setAllowlist: async (enabled) => {
     await call('security-update', { action: 'allowlist-toggle', enabled });
   },
-  regenerateBackupCodes: async () => (await call<{ codes: string[] }>('security-update', { action: 'backup-codes-regenerate' })).codes,
   changePassword: async (current, next) => {
     await call('security-update', { action: 'password-change', current, next });
   },

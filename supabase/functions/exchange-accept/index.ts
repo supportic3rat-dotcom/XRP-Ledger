@@ -9,7 +9,7 @@ import { defineFunction, serve } from '../_shared/handler.ts';
 export const handler = defineFunction({
   name: 'exchange-accept',
   schema: fnSchemas['exchange-accept'],
-  access: { kind: 'customer', aal2: true },
+  access: { kind: 'customer' },
   run: async (ctx) => {
     const tx = await ctx.rpc<TxRow>('accept_quote', { p_customer: customerId(ctx), p_tx: ctx.input.transactionId, p_quote: ctx.input.quoteId });
     const execution = await ctx.providers.liquidity.executeQuote(ctx.input.quoteId);

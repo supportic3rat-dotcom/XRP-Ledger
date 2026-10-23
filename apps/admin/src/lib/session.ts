@@ -12,8 +12,8 @@ export const DEMO_ROLE_COOKIE = 'xrp_demo_role';
 const ROLES: Role[] = ['operations', 'compliance', 'auditor'];
 
 /**
- * The signed-in staff member and their data source, once per request. Supabase mode requires a TOTP-verified
- * (aal2) session with a staff role; anything else goes to sign-in.
+ * The signed-in staff member and their data source, once per request. Supabase mode requires a session with a
+ * staff role; anything else goes to sign-in.
  */
 export const session = cache(async (): Promise<{ me: Staff; data: AdminData }> => {
   if (!hasBackend()) {
@@ -29,7 +29,7 @@ export const session = cache(async (): Promise<{ me: Staff; data: AdminData }> =
   const { data: s } = await db.auth.getSession();
   if (!user.user || !s.session) redirect('/sign-in');
   const claims = claimsOf(s.session.access_token);
-  if (claims.aal !== 'aal2' || !ROLES.includes(claims.app_role as Role)) redirect('/sign-in?reason=mfa');
+  if (!ROLES.includes(claims.app_role as Role)) redirect('/sign-in?reason=staff');
   const { data: staff } = await db.from('staff_roles').select('display_name').eq('staff_id', user.user.id).single();
   const me: Staff = { id: user.user.id, name: (staff as { display_name: string } | null)?.display_name ?? 'Staff', role: claims.app_role as Role };
   return { me, data: createSupabaseData(db, me, s.session.access_token) };

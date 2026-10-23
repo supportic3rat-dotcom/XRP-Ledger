@@ -16,7 +16,6 @@ import type { Holding, LegalDoc } from '../api';
 
 /** The design's clock: Monday, Oct 19 2026, 12:50 WAT. The demo clock runs forward from here. */
 export const DEMO_EPOCH = Date.parse('2026-10-19T11:50:00Z');
-export const BACKUP_CODES_A = ['4K7Q-9MXD', 'T2PZ-H8WN', 'R6CV-3JLB', 'Y9EF-5QAS', 'M3GH-7UTK', 'B8ND-2XWR', 'P5ZL-6CYJ', 'W4QS-1HVE'];
 export const DEPOSIT_ADDRESS = 'rP9prototype0not0a0real0address';
 export const EXTERNAL_WALLET = 'rExtXk3PaKcV9tYwZ2hNbQb7mproto9';
 
@@ -32,9 +31,7 @@ export const seedProfile: CustomerProfile = {
   country: 'NG',
   currency: 'USD',
   kycStatus: 'verified',
-  twoFactorEnabled: true,
   allowlistEnabled: false,
-  backupCodesUnused: 6,
   passwordChangedAt: w('2026-07-20T08:00:00Z'),
   frozen: false,
 };

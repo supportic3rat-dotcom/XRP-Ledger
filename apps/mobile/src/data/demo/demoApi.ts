@@ -46,8 +46,6 @@ export const createDemoApi = (): Api => {
     tickets: seed.seedTickets.map((t) => ({ ...t, messages: [...t.messages] })),
     consents: seed.seedConsents.map((c) => ({ ...c })),
     externalWallets: seed.seedExternalWallets.map((x) => ({ ...x })),
-    backupCodes: [...seed.BACKUP_CODES_A],
-    usedBackupCodes: new Set(['Y9EF-5QAS', 'B8ND-2XWR']),
     quotes: new Map<string, FirmQuote>(),
     counters: { WD: 2042, EX: 318, YLD: 112, LN: 9, R: 1, C: 1, SUP: 934, CNS: 9, DEP: 2060 },
   };
@@ -159,41 +157,24 @@ export const createDemoApi = (): Api => {
         return { status: 'error', attemptsLeft: Math.max(0, 5 - db.badAttempts), locked: db.badAttempts >= 5 };
       }
       db.badAttempts = 0;
-      return { status: 'mfa_required' };
-    },
-    verifyMfa: async (code, backup) => {
-      await wait();
-      if (backup) {
-        const normalized = code.toUpperCase();
-        if (!db.backupCodes.includes(normalized) || db.usedBackupCodes.has(normalized)) return { ok: false };
-        db.usedBackupCodes.add(normalized);
-      } else if (!/^\d{6}$/.test(code)) return { ok: false };
       db.signedIn = true;
       emit();
-      return { ok: true };
+      return { status: 'ok' };
     },
     requestPasswordReset: async () => wait(),
     signUp: async (input) => {
       await wait();
       db.profile = { ...db.profile, fullName: input.name, email: input.email, country: input.country, currency: input.currency as never };
       db.kyc = 'not_started';
+      db.signedIn = true;
+      emit();
     },
-    verifyEmailCode: async (_email, code) => {
-      await wait();
-      const ok = /^\d{6}$/.test(code);
-      if (ok) {
-        db.signedIn = true;
-        emit();
-      }
-      return { ok };
-    },
-    resendEmailCode: async () => wait(),
     signOut: async () => {
       db.signedIn = false;
       emit();
     },
 
-    profile: async () => ({ ...db.profile, kycStatus: db.kyc, backupCodesUnused: db.backupCodes.length - db.usedBackupCodes.size }),
+    profile: async () => ({ ...db.profile, kycStatus: db.kyc }),
     assets: async () =>
       ASSETS.map(
         (a): AssetInfo => ({
@@ -233,7 +214,6 @@ export const createDemoApi = (): Api => {
     allowlist: async () => db.allowlist.map((a) => ({ ...a })),
     devices: async () => db.devices.map((d) => ({ ...d })),
     securityEvents: async () => db.securityEvents.map((e) => ({ ...e })),
-    backupCodes: async () => ({ codes: [...db.backupCodes], unused: db.backupCodes.length - db.usedBackupCodes.size }),
     tickets: async () => db.tickets.map((t) => ({ ...t, messages: [...t.messages] })),
     legalDocuments: async () => seed.legalDocs,
     consents: async () => db.consents.map((c) => ({ ...c })),
@@ -509,18 +489,6 @@ export const createDemoApi = (): Api => {
         return tx;
       }),
 
-    setTwoFactor: async (enabled) => {
-      db.profile.twoFactorEnabled = enabled;
-      db.securityEvents.unshift({
-        id: `s${Date.now()}`,
-        title: enabled ? 'Two-factor turned on' : 'Two-factor turn-off requested · 24-hour hold',
-        meta: 'Just now · iPhone 15',
-        at: iso(),
-      });
-      emit();
-    },
-    startTotpEnrollment: async () => null,
-    confirmTotpEnrollment: async () => ({ ok: true }),
     setAllowlist: async (enabled) => {
       db.profile.allowlistEnabled = enabled;
       db.securityEvents.unshift({
@@ -530,15 +498,6 @@ export const createDemoApi = (): Api => {
         at: iso(),
       });
       emit();
-    },
-    regenerateBackupCodes: async () => {
-      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      const pick = () => Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
-      db.backupCodes = Array.from({ length: 8 }, () => `${pick()}-${pick()}`);
-      db.usedBackupCodes = new Set();
-      db.securityEvents.unshift({ id: `s${Date.now()}`, title: 'Backup codes regenerated', meta: 'Just now · iPhone 15', at: iso() });
-      emit();
-      return [...db.backupCodes];
     },
     changePassword: async () => {
       await wait();

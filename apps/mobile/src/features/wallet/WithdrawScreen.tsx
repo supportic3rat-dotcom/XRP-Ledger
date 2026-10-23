@@ -22,7 +22,7 @@ import { Badge } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { CheckRow, ErrorText, Field, Help, Label, OtpInput, Radio, TextField } from '@/components/Form';
+import { CheckRow, ErrorText, Field, Help, Label, Radio, TextField } from '@/components/Form';
 import { Footer } from '@/components/Footer';
 import { HeroIcon } from '@/components/Glyph';
 import { KV } from '@/components/KV';
@@ -112,7 +112,6 @@ export const WithdrawScreen = () => {
   const [noTag, setNoTag] = useState(false);
   const [memo, setMemo] = useState('');
   const [amount, setAmount] = useState('');
-  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [txId, setTxId] = useState<string | null>(null);
   const idem = useRef(newIdempotencyKey());
@@ -166,7 +165,6 @@ export const WithdrawScreen = () => {
             ? `The minimum withdrawal is ${formatAmount(lim.minWithdrawal, assetId, { minDecimals: 0, maxDecimals: 8 })}.`
             : 'That’s more than your available balance.'
         : '',
-    otp: tried >= 4 && !/^\d{6}$/.test(otp) ? 'Enter the 6-digit code.' : '',
   };
 
   const tx = useMemo<Transaction | undefined>(() => activity.raw.find((t) => t.id === txId), [activity.raw, txId]);
@@ -229,10 +227,6 @@ export const WithdrawScreen = () => {
       return;
     }
     if (step === 4) {
-      if (!/^\d{6}$/.test(otp)) {
-        setTried(4);
-        return;
-      }
       const ok = await confirmWithDevice('Confirm this withdrawal');
       if (!ok) {
         setError('Device confirmation was cancelled.');
@@ -246,7 +240,6 @@ export const WithdrawScreen = () => {
           amountDrops: amt ?? 0n,
           destination: a,
           destinationTag: spec.memo !== 'tag' || noTag ? null : tag,
-          totpCode: otp,
         });
         setTxId(created.id);
         setStep(5);
@@ -360,32 +353,32 @@ export const WithdrawScreen = () => {
               <ErrorText>{errs.addr}</ErrorText>
             </Field>
             {spec.memo === 'tag' ? (
-            <Field>
-              <Label nativeID="w-tag">Destination tag</Label>
-              <TextField
-                accessibilityLabelledBy="w-tag"
-                value={tag}
-                onChangeText={(v) => setTag(v.replace(/\D/g, ''))}
-                invalid={!!errs.tag}
-                editable={!noTag}
-                keyboardType="number-pad"
-                placeholder="Required by most exchanges"
-              />
-              <ErrorText>{errs.tag}</ErrorText>
-              <CheckRow
-                checked={noTag}
-                size={18}
-                onChange={(v) => {
-                  setNoTag(v);
-                  setTag('');
-                }}
-                style={{ alignItems: 'center', marginTop: 2 }}
-              >
-                <T size={13} color="text2">
-                  The recipient doesn’t use a destination tag
-                </T>
-              </CheckRow>
-            </Field>
+              <Field>
+                <Label nativeID="w-tag">Destination tag</Label>
+                <TextField
+                  accessibilityLabelledBy="w-tag"
+                  value={tag}
+                  onChangeText={(v) => setTag(v.replace(/\D/g, ''))}
+                  invalid={!!errs.tag}
+                  editable={!noTag}
+                  keyboardType="number-pad"
+                  placeholder="Required by most exchanges"
+                />
+                <ErrorText>{errs.tag}</ErrorText>
+                <CheckRow
+                  checked={noTag}
+                  size={18}
+                  onChange={(v) => {
+                    setNoTag(v);
+                    setTag('');
+                  }}
+                  style={{ alignItems: 'center', marginTop: 2 }}
+                >
+                  <T size={13} color="text2">
+                    The recipient doesn’t use a destination tag
+                  </T>
+                </CheckRow>
+              </Field>
             ) : null}
             {spec.memo === 'memo' ? (
               <Field>
@@ -435,7 +428,11 @@ export const WithdrawScreen = () => {
                     <T weight={500} color="text2">
                       {assetId}
                     </T>
-                    <Mini label="Max" accessibilityLabel="Use maximum available" onPress={() => setAmount(formatUnitsPrecise(available, assetId).replace(/,/g, ''))} />
+                    <Mini
+                      label="Max"
+                      accessibilityLabel="Use maximum available"
+                      onPress={() => setAmount(formatUnitsPrecise(available, assetId).replace(/,/g, ''))}
+                    />
                   </>
                 }
               />
@@ -492,14 +489,9 @@ export const WithdrawScreen = () => {
           <View style={{ gap: 12, paddingTop: 12 }}>
             <HeroIcon icon="lock" tone="ok" size={52} />
             <T size={22} weight={600} ls={-0.02} accessibilityRole="header">
-              Confirm with your authenticator
+              Confirm it’s you
             </T>
-            <T color="text2">Enter the 6-digit code from your authenticator app to submit this withdrawal request.</T>
-            <View style={{ marginTop: 8 }}>
-              <Label>Authentication code</Label>
-            </View>
-            <OtpInput label="Authentication code" value={otp} onChange={setOtp} invalid={!!errs.otp} />
-            <ErrorText>{errs.otp}</ErrorText>
+            <T color="text2">Submit this withdrawal request with Face ID, your fingerprint or your phone’s passcode.</T>
           </View>
         ) : null}
 

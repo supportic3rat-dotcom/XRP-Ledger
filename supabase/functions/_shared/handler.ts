@@ -6,14 +6,14 @@ import { canonical, safeEqual, sha256 } from './crypto.ts';
 import { env } from './env.ts';
 import { corsHeaders, fromPg, HttpError, json, toJson } from './http.ts';
 import { type IdempotencyStore, KEY_PATTERN, pgIdempotencyStore } from './idempotency.ts';
-import { type AuthUser, checkPassword, fetchUser, verifyTotp } from './auth.ts';
+import { type AuthUser, checkPassword, fetchUser } from './auth.ts';
 import { type Claims, readClaims } from './jwt.ts';
 import { providers as defaultProviders } from './providers.ts';
 
 export type Access =
-  /** A signed-in customer. `aal2` additionally requires a session that passed TOTP. */
-  | { kind: 'customer'; aal2?: boolean }
-  /** Operations, Compliance or Auditor, always with TOTP (aal2). */
+  /** A signed-in customer. Email and password are the whole sign-in: there is no second step. */
+  | { kind: 'customer' }
+  /** Operations, Compliance or Auditor. */
   | { kind: 'staff'; roles?: readonly StaffRole[] }
   /** Staff, or the scheduler presenting CRON_SECRET. */
   | { kind: 'staff_or_cron'; roles?: readonly StaffRole[] }
@@ -46,7 +46,6 @@ export type Ctx<I> = {
 
 export type AuthApi = {
   getUser: (authorization: string) => Promise<AuthUser | null>;
-  verifyTotp: (authorization: string, factorId: string, code: string) => Promise<boolean>;
   checkPassword: (email: string, password: string) => Promise<boolean>;
 };
 
@@ -78,7 +77,7 @@ export const defaultDeps = (): Deps => {
     idempotency: pgIdempotencyStore(db),
     providers: defaultProviders(),
     now: () => new Date(),
-    auth: { getUser: fetchUser, verifyTotp, checkPassword },
+    auth: { getUser: fetchUser, checkPassword },
     cronSecret: env.cronSecret,
     allowedOrigins: env.allowedOrigins,
   };
@@ -111,10 +110,8 @@ const authenticate = async (req: Request, access: Access, deps: Deps): Promise<C
   const role = claims.app_role ?? 'customer';
   if (access.kind === 'customer') {
     if (STAFF.includes(role)) throw new HttpError(403, 'Staff accounts cannot use customer actions.', 'forbidden');
-    if (access.aal2 && claims.aal !== 'aal2') throw new HttpError(403, 'Confirm with your authenticator code to continue.', 'mfa_required');
   } else {
     if (!STAFF.includes(role)) throw new HttpError(403, 'Not authorised.', 'forbidden');
-    if (claims.aal !== 'aal2') throw new HttpError(403, 'Staff actions need an authenticator-verified session.', 'mfa_required');
     if (access.roles && !access.roles.includes(role as StaffRole)) throw new HttpError(403, 'Your role cannot do this.', 'forbidden');
   }
   return { claims, user, authorization };

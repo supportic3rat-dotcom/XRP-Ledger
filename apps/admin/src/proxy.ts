@@ -6,7 +6,7 @@ const LAST_SEEN = 'xrp_last_seen';
 
 /**
  * Refreshes the staff session on every request, ends it after 15 idle minutes, and sends anyone without a
- * session to sign-in. Pages check aal2 and the staff role again on the server.
+ * session to sign-in. Pages check the staff role again on the server.
  */
 export const proxy = async (req: NextRequest) => {
   if (!hasBackend()) return NextResponse.next();

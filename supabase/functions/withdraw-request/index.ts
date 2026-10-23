@@ -1,7 +1,6 @@
 import { fnSchemas } from '@xrp/schemas';
 import { customerId, touchDevice, type TxRow } from '../_shared/customer.ts';
 import { defineFunction, serve } from '../_shared/handler.ts';
-import { HttpError } from '../_shared/http.ts';
 
 /**
  * Withdraw: 2FA code → screening → one SQL transaction that checks limits and the allowlist, reserves
@@ -10,15 +9,10 @@ import { HttpError } from '../_shared/http.ts';
 export const handler = defineFunction({
   name: 'withdraw-request',
   schema: fnSchemas['withdraw-request'],
-  access: { kind: 'customer', aal2: true },
+  access: { kind: 'customer' },
   idempotent: true,
   run: async (ctx) => {
-    const { asset, amountDrops, destination, destinationTag, memo, totpCode } = ctx.input;
-    const factor = ctx.user?.totpFactorIds[0];
-    if (!factor) throw new HttpError(403, 'Turn on two-factor authentication to withdraw.', 'mfa_required');
-    if (!ctx.authorization || !(await ctx.auth.verifyTotp(ctx.authorization, factor, totpCode))) {
-      throw new HttpError(400, 'That code didn’t work. Check your authenticator and try again.', 'bad_code');
-    }
+    const { asset, amountDrops, destination, destinationTag, memo } = ctx.input;
     const { paused } = await touchDevice(ctx);
     const screening = await ctx.providers.screening.screenAddress(destination);
     const tx = await ctx.rpc<TxRow>('request_withdrawal', {

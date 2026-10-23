@@ -59,8 +59,8 @@ export type LegalDoc = {
 };
 /** For a swap, `receiveUnits` is the amount of the bought asset (after the spread). */
 export type FirmQuote = { quoteId: string; priceMicro: MicroUsd; feeCents: bigint; receiveCents: bigint; receiveUnits?: bigint; expiresAt: string };
-/** `ok`: signed in without a second step (no authenticator set up yet). */
-export type SignInResult = { status: 'ok' } | { status: 'mfa_required' } | { status: 'error'; attemptsLeft: number; locked: boolean };
+/** Email and password are the whole sign-in: there is no second step. */
+export type SignInResult = { status: 'ok' } | { status: 'error'; attemptsLeft: number; locked: boolean };
 export type ProviderStatus = 'operational' | 'degraded' | 'outage';
 
 /** Everything the app reads or writes. Money writes go through Edge Functions in the Supabase implementation. */
@@ -69,11 +69,8 @@ export type Api = {
   now: () => Date;
   // Auth
   signIn: (email: string, password: string) => Promise<SignInResult>;
-  verifyMfa: (code: string, backup: boolean) => Promise<{ ok: boolean }>;
   requestPasswordReset: (email: string) => Promise<void>;
   signUp: (input: { name: string; email: string; password: string; country: string; currency: string; updates: boolean }) => Promise<void>;
-  verifyEmailCode: (email: string, code: string) => Promise<{ ok: boolean }>;
-  resendEmailCode: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   // Reads
   profile: () => Promise<CustomerProfile>;
@@ -88,7 +85,6 @@ export type Api = {
   allowlist: () => Promise<AllowlistAddress[]>;
   devices: () => Promise<Device[]>;
   securityEvents: () => Promise<SecurityEvent[]>;
-  backupCodes: () => Promise<{ codes: string[]; unused: number }>;
   tickets: () => Promise<SupportTicket[]>;
   legalDocuments: () => Promise<LegalDoc[]>;
   consents: () => Promise<Consent[]>;
@@ -104,7 +100,6 @@ export type Api = {
     amountDrops: bigint;
     destination: string;
     destinationTag: string | null;
-    totpCode: string;
   }) => Promise<Transaction>;
   cancelWithdrawal: (id: string) => Promise<void>;
   /** Sell for USD (`toAsset` null) or swap into another asset. */
@@ -118,12 +113,7 @@ export type Api = {
   applyLoan: (input: { idempotencyKey: string; asset: string; collateralDrops: bigint; principalCents: bigint }) => Promise<Transaction>;
   repayLoan: (input: { idempotencyKey: string; loanId: string; amountCents: bigint; via: 'bank' | 'sell' }) => Promise<Transaction>;
   addCollateral: (input: { idempotencyKey: string; loanId: string; amountDrops: bigint }) => Promise<Transaction>;
-  setTwoFactor: (enabled: boolean) => Promise<void>;
-  /** Starts authenticator setup. Null when no setup is needed (demo mode, or a factor already exists). */
-  startTotpEnrollment: () => Promise<{ factorId: string; uri: string; secret: string } | null>;
-  confirmTotpEnrollment: (factorId: string, code: string) => Promise<{ ok: boolean }>;
   setAllowlist: (enabled: boolean) => Promise<void>;
-  regenerateBackupCodes: () => Promise<string[]>;
   changePassword: (current: string, next: string) => Promise<void>;
   addAllowlistAddress: (input: { asset: string; label: string; address: string; tag: string | null; memo?: string | null }) => Promise<void>;
   removeAllowlistAddress: (id: string) => Promise<void>;

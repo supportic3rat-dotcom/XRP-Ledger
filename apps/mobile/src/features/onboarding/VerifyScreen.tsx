@@ -143,8 +143,8 @@ export const VerifyScreen = () => {
   return (
     <Screen>
       <ScrollBody>
-        <TopBar leading="back" label="Step 3 of 3 · Identity" />
-        <StepBar total={3} current={3} allOn style={{ marginBottom: 28 }} />
+        <TopBar leading="back" label="Step 2 of 2 · Identity" />
+        <StepBar total={2} current={2} allOn style={{ marginBottom: 28 }} />
         <View style={{ gap: 12 }}>
           <HeroIcon d={st.icon} tone={st.tone === 'off' ? 'off' : st.tone} size={56} iconSize={26} />
           <Status tone={st.tone} label={st.label} />

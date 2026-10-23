@@ -3,11 +3,11 @@ import { customerId } from '../_shared/customer.ts';
 import { defineFunction, serve } from '../_shared/handler.ts';
 import { HttpError } from '../_shared/http.ts';
 
-/** Saves a withdrawal address. It activates after 24 hours (account-takeover control, needs aal2). */
+/** Saves a withdrawal address. It activates after 24 hours. */
 export const handler = defineFunction({
   name: 'allowlist-add',
   schema: fnSchemas['allowlist-add'],
-  access: { kind: 'customer', aal2: true },
+  access: { kind: 'customer' },
   run: async (ctx) => {
     const screening = await ctx.providers.screening.screenAddress(ctx.input.address);
     if (screening.hold) throw new HttpError(400, 'We can’t save this address. Contact support if you think this is wrong.', 'screening');

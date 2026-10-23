@@ -6,7 +6,7 @@ import { defineFunction, serve } from '../_shared/handler.ts';
 export const handler = defineFunction({
   name: 'yield-redeem',
   schema: fnSchemas['yield-redeem'],
-  access: { kind: 'customer', aal2: true },
+  access: { kind: 'customer' },
   idempotent: true,
   run: async (ctx) => ({
     transaction: await ctx.rpc<TxRow>('yield_redeem', {

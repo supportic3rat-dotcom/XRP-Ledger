@@ -30,7 +30,6 @@ export const fnSchemas = {
       destination: anyAddress,
       destinationTag: tag.nullable(),
       memo: z.string().trim().max(64).nullable().optional(),
-      totpCode: z.string().regex(/^\d{6}$/),
     })
     .superRefine(addressFor),
   'withdraw-cancel': z.object({ transactionId: z.string().uuid() }),

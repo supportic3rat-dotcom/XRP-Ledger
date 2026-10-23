@@ -117,8 +117,8 @@ export const Modals = ({ v }: { v: Vals }) => (
                       <path d="M12 7.8v5M12 16.2h.01"></path>
                     </svg>
                     <span>
-                      Include {v.recv.tagLabel.toLowerCase()} <b className="mono">{v.recv.tag}</b> with every {v.recv.ticker} deposit, or it can’t be matched
-                      to your account.
+                      Include {v.recv.tagLabel.toLowerCase()} <b className="mono">{v.recv.tag}</b> with every {v.recv.ticker} deposit, or it can’t be matched to
+                      your account.
                     </span>
                   </div>
                 </>
@@ -352,31 +352,6 @@ export const Modals = ({ v }: { v: Vals }) => (
                     </svg>
                     <span>Withdrawals are reviewed before they’re broadcast. Once broadcast, they can’t be reversed.</span>
                   </div>
-                  {v.send.needsTotp ? (
-                    <div className="field">
-                      <label className="label" htmlFor="send-code">
-                        Authentication code
-                      </label>
-                      <div className={`input-wrap ${v.send.codeCls}`}>
-                        <input
-                          id="send-code"
-                          className="code-input"
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          maxLength={6}
-                          placeholder="000000"
-                          value={v.send.code}
-                          onChange={v.onCode}
-                        />
-                      </div>
-                      <span className="help">From your authenticator app. Required for every withdrawal.</span>
-                      {v.send.codeErr ? (
-                        <span className="err" role="alert">
-                          {v.send.codeErr}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', lineHeight: '1.45', cursor: 'pointer' }}>
                     <input
                       type="checkbox"

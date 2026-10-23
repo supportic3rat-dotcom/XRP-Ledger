@@ -35,17 +35,6 @@ export const SettingsView = ({ v }: { v: Vals }) => (
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 0', borderTop: '1px solid #EEF1ED' }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span id="lbl-2fa" style={{ fontWeight: '500' }}>
-              Two-factor authentication
-            </span>
-            <span className="help">Required to sign in and to approve withdrawals.</span>
-          </span>
-          <button type="button" role="switch" className={`toggle ${v.st.twofaCls}`} aria-checked={v.st.twofa} aria-labelledby="lbl-2fa" onClick={v.toggleTwofa}>
-            <span className="knob"></span>
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 0', borderTop: '1px solid #EEF1ED' }}>
-          <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span id="lbl-allow" style={{ fontWeight: '500' }}>
               Withdrawal address allowlist
             </span>

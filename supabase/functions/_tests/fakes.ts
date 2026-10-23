@@ -37,7 +37,7 @@ export const token = (claims: Record<string, unknown>): string => {
 export const CUSTOMER = '00000000-0000-4000-8000-000000000042';
 
 export const fakeDeps = (
-  opts: { rpcs?: Record<string, (args: Record<string, unknown>) => Result>; tables?: Record<string, unknown[]>; totpOk?: boolean; factors?: string[] } = {},
+  opts: { rpcs?: Record<string, (args: Record<string, unknown>) => Result>; tables?: Record<string, unknown[]>; factors?: string[] } = {},
 ) => {
   const calls: RpcCall[] = [];
   const deps: Deps = {
@@ -51,7 +51,6 @@ export const fakeDeps = (
         const sub = JSON.parse(atob(authorization.split('.')[1]!.replace(/-/g, '+').replace(/_/g, '/'))).sub as string;
         return Promise.resolve({ id: sub, email: 'brendan@example.com', totpFactorIds: opts.factors ?? ['factor-1'] });
       },
-      verifyTotp: () => Promise.resolve(opts.totpOk ?? true),
       checkPassword: () => Promise.resolve(true),
     },
     cronSecret: () => 'cron-secret-for-tests',

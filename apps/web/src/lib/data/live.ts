@@ -137,19 +137,17 @@ export const createLiveSource = (url: string, anonKey: string): DashboardSource 
 
   return {
     mode: 'live',
-    needsTotp: true,
     feesDeducted: true,
     canBuy: false,
 
     load: async (): Promise<Snapshot> => {
       const { data: auth } = await db.auth.getUser();
       if (!auth.user) throw new Error('unauthenticated');
-      const [customer, balances, txs, notices, factors, allowlist, devices] = await Promise.all([
+      const [customer, balances, txs, notices, allowlist, devices] = await Promise.all([
         db.from('customers').select('*').eq('id', auth.user.id).single(),
         db.from('balances').select('kind, asset, balance_drops'),
         db.from('transactions').select('*').order('created_at', { ascending: false }).limit(100),
         db.from('notifications').select('*').is('read_at', null).order('created_at', { ascending: false }).limit(10),
-        db.auth.mfa.listFactors(),
         db.from('allowlist_addresses').select('id').is('removed_at', null),
         db.from('devices').select('name, location, last_active_at').is('revoked_at', null).order('last_active_at', { ascending: false }).limit(2),
       ]);
@@ -189,7 +187,6 @@ export const createLiveSource = (url: string, anonKey: string): DashboardSource 
           tone: n.tone === 'warn' || n.tone === 'bad' ? 'warn' : 'accent',
         })),
         security: {
-          twofa: (factors.data?.totp.length ?? 0) > 0 && c.mfa_disable_at === null,
           allowlist: Boolean(c.allowlist_enabled),
           allowlistCount: (allowlist.data ?? []).length,
           lastSignIn: last ? `${listDate(new Date(str(last.last_active_at)), now())} · ${str(last.name)}` : '—',
@@ -221,7 +218,6 @@ export const createLiveSource = (url: string, anonKey: string): DashboardSource 
             destination: input.destination,
             destinationTag: assetSpec(input.assetId).memo === 'tag' ? input.tag : null,
             memo: assetSpec(input.assetId).memo === 'memo' ? input.tag : null,
-            totpCode: input.totpCode ?? '',
           },
           input.idempotencyKey,
         );
@@ -231,13 +227,8 @@ export const createLiveSource = (url: string, anonKey: string): DashboardSource 
       }
     },
 
-    setSecurity: async (key, on) => {
+    setSecurity: async (_key, on) => {
       try {
-        if (key === 'twofa') {
-          if (on) return fail('Set up your authenticator in the mobile app: Profile → Security.');
-          await call('security-update', { action: 'mfa-disable' });
-          return ok(undefined, 'Two-factor turns off after a 24-hour hold. Withdrawals pause until then.');
-        }
         await call('security-update', { action: 'allowlist-toggle', enabled: on });
         return ok(undefined);
       } catch (e) {

@@ -10,7 +10,6 @@ describe('demo API money rules', () => {
       amountDrops,
       destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd',
       destinationTag: '10293847',
-      totpCode: '123456',
     });
   const balances = async (api: ReturnType<typeof createDemoApi>, asset = 'XRP') => {
     const h = (await api.holdings()).find((x) => x.asset === asset);
@@ -52,7 +51,14 @@ describe('demo API money rules', () => {
     const xrpBefore = await balances(api);
     const btcBefore = await balances(api, 'BTC');
     await expect(
-      api.requestWithdrawal({ idempotencyKey: 'b-0', asset: 'BTC', memo: null, amountDrops: 100_000n, destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', destinationTag: null, totpCode: '123456' }),
+      api.requestWithdrawal({
+        idempotencyKey: 'b-0',
+        asset: 'BTC',
+        memo: null,
+        amountDrops: 100_000n,
+        destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd',
+        destinationTag: null,
+      }),
     ).rejects.toThrow(/valid Bitcoin address/);
     await api.requestWithdrawal({
       idempotencyKey: 'b-1',
@@ -61,7 +67,6 @@ describe('demo API money rules', () => {
       amountDrops: 100_000n,
       destination: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
       destinationTag: null,
-      totpCode: '123456',
     });
     const btcAfter = await balances(api, 'BTC');
     expect(btcBefore.available - btcAfter.available).toBe(100_000n);
@@ -86,13 +91,5 @@ describe('demo API money rules', () => {
     const usdt = await api.depositInfo('USDT');
     expect(usdt.mode).toBe('reported');
     expect((await api.depositInfo('XRP')).tag).toBe('48201937');
-  });
-
-  it('a backup code works once', async () => {
-    const api = createDemoApi();
-    const { codes } = await api.backupCodes();
-    const code = codes[0]!;
-    expect((await api.verifyMfa(code, true)).ok).toBe(true);
-    expect((await api.verifyMfa(code, true)).ok).toBe(false);
   });
 });

@@ -17,11 +17,7 @@ export const generateBackupCodes = (): string[] =>
 
 type Input = FnInput<'security-update'>;
 
-const requireAal2 = (ctx: Ctx<Input>) => {
-  if (ctx.claims?.aal !== 'aal2') throw new HttpError(403, 'Confirm with your authenticator code to continue.', 'mfa_required');
-};
-
-/** Security screen actions. Weakening changes need aal2 and start a 24-hour hold. */
+/** Security screen actions. Turning off the allowlist starts a 24-hour hold. */
 export const handler = defineFunction({
   name: 'security-update',
   schema: fnSchemas['security-update'],
@@ -36,7 +32,6 @@ export const handler = defineFunction({
         return { codes: [], unused: count ?? 0 };
       }
       case 'backup-codes-regenerate': {
-        requireAal2(ctx);
         const codes = generateBackupCodes();
         await ctx.rpc('set_backup_codes', { p_user: me, p_codes: codes });
         return { codes };
@@ -61,17 +56,14 @@ export const handler = defineFunction({
         return { ok: true };
       }
       case 'mfa-disable': {
-        requireAal2(ctx);
         const at = await ctx.rpc<string>('request_mfa_disable', { p_customer: me });
         return { ok: true, effectiveAt: at };
       }
       case 'allowlist-toggle': {
-        if (!input.enabled) requireAal2(ctx);
         await ctx.rpc('set_allowlist', { p_customer: me, p_enabled: input.enabled });
         return { ok: true };
       }
       case 'password-change': {
-        requireAal2(ctx);
         const email = ctx.user?.email;
         if (!email || !(await ctx.auth.checkPassword(email, input.current))) {
           throw new HttpError(400, 'Your current password isn’t right.', 'bad_password');

@@ -9,7 +9,7 @@ import { defineFunction, serve } from '../_shared/handler.ts';
 export const handler = defineFunction({
   name: 'loan-apply',
   schema: fnSchemas['loan-apply'],
-  access: { kind: 'customer', aal2: true },
+  access: { kind: 'customer' },
   idempotent: true,
   run: async (ctx) => ({
     transaction: await ctx.rpc<TxRow>('loan_apply', {

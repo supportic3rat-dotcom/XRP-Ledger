@@ -128,7 +128,7 @@ const SNAPSHOT: Omit<Snapshot, 'assets' | 'portfolioCents' | 'portfolioChangeCen
     { id: 'n1', text: 'Deposit of 1,250.00 XRP is waiting for network confirmation.', time: 'Today, 11:42', tone: 'warn' },
     { id: 'n2', text: 'New sign-in from Chrome on macOS.', time: 'Today, 09:14', tone: 'accent' },
   ],
-  security: { twofa: true, allowlist: false, allowlistCount: 2, lastSignIn: 'Today, 09:14 · Chrome on macOS', passwordChanged: 'Last changed 3 months ago' },
+  security: { allowlist: false, allowlistCount: 2, lastSignIn: 'Today, 09:14 · Chrome on macOS', passwordChanged: 'Last changed 3 months ago' },
   notifications: { receipts: true, alerts: false },
 };
 
@@ -143,7 +143,6 @@ export const createDemoSource = (): DashboardSource => {
   const find = (id: string) => assets.find((x) => x.id === id) ?? assets[0]!;
   return {
     mode: 'demo',
-    needsTotp: false,
     feesDeducted: false,
     canBuy: true,
     load: async () => {

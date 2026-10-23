@@ -22,15 +22,6 @@ export const fetchUser = async (authorization: string): Promise<AuthUser | null>
   };
 };
 
-/** Checks a 6-digit authenticator code for the caller with a fresh challenge. */
-export const verifyTotp = async (authorization: string, factorId: string, code: string): Promise<boolean> => {
-  const challenge = await authFetch(`/factors/${factorId}/challenge`, authorization, { method: 'POST', body: '{}' });
-  if (!challenge.ok) return false;
-  const { id } = (await challenge.json()) as { id: string };
-  const verify = await authFetch(`/factors/${factorId}/verify`, authorization, { method: 'POST', body: JSON.stringify({ challenge_id: id, code }) });
-  return verify.ok;
-};
-
 /** Confirms the current password without creating a lasting session. */
 export const checkPassword = async (email: string, password: string): Promise<boolean> => {
   const res = await fetch(`${env.supabaseUrl()}/auth/v1/token?grant_type=password`, {

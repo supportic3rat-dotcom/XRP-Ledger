@@ -6,7 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
-import { ErrorText, Field, Help, Label, OtpInput, TextField } from '@/components/Form';
+import { ErrorText, Field, Help, Label, TextField } from '@/components/Form';
 import { HeroIcon } from '@/components/Glyph';
 import { Screen, ScrollBody } from '@/components/Screen';
 import { T } from '@/components/T';
@@ -14,7 +14,7 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useSession } from '@/state/session';
 
-type View_ = 'signin' | 'twofa' | 'forgot' | 'sent';
+type View_ = 'signin' | 'forgot' | 'sent';
 
 /** `.h1` 24/600 −0.02em and `.lead` 14/1.5 text-2. */
 const H1 = ({ children }: { children: string }) => (
@@ -43,9 +43,6 @@ export const SignInScreen = () => {
   const [view, setView] = useState<View_>('signin');
   const [showPass, setShowPass] = useState(false);
   const [bad, setBad] = useState<{ attemptsLeft: number; locked: boolean } | null>(null);
-  const [backup, setBackup] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [otpError, setOtpError] = useState('');
   const [busy, setBusy] = useState(false);
   const [resent, setResent] = useState(false);
 
@@ -56,8 +53,6 @@ export const SignInScreen = () => {
     reValidateMode: 'onChange',
   });
   const email = form.watch('email');
-  const at = email.indexOf('@');
-  const masked = at > 1 ? `${email.charAt(0)}•••${email.slice(at)}` : 'your account';
 
   const submit = form.handleSubmit(async ({ email: e, password }) => {
     setBusy(true);
@@ -65,28 +60,8 @@ export const SignInScreen = () => {
     if (r.status === 'ok') {
       setSignedIn(true);
       router.replace('/');
-    } else if (r.status === 'mfa_required') {
-      setBad(null);
-      setView('twofa');
     } else setBad({ attemptsLeft: r.attemptsLeft, locked: r.locked });
   });
-
-  const verify = async () => {
-    const valid = backup ? /^[A-Z0-9]{4}-?[A-Z0-9]{4}$/.test(otp) : /^\d{6}$/.test(otp);
-    if (!valid) {
-      setOtpError(backup ? 'Enter the 8-character backup code.' : 'Enter the 6-digit authenticator code.');
-      return;
-    }
-    setBusy(true);
-    const code = backup && !otp.includes('-') ? `${otp.slice(0, 4)}-${otp.slice(4)}` : otp;
-    const r = await api.verifyMfa(code, backup).finally(() => setBusy(false));
-    if (!r.ok) {
-      setOtpError(backup ? 'That backup code isn’t valid or was already used.' : 'That code didn’t match. Check your authenticator app and try again.');
-      return;
-    }
-    setSignedIn(true);
-    router.replace('/');
-  };
 
   const sendReset = async () => {
     const ok = resetSchema.safeParse({ email }).success;
@@ -102,7 +77,6 @@ export const SignInScreen = () => {
 
   const back = () => {
     form.clearErrors();
-    setOtpError('');
     setView('signin');
   };
 
@@ -216,58 +190,6 @@ export const SignInScreen = () => {
                 Create an account
               </T>
             </View>
-          </>
-        ) : null}
-
-        {view === 'twofa' ? (
-          <>
-            <View style={{ marginBottom: 14 }}>
-              <HeroIcon icon="lock" tone="ok" size={52} />
-            </View>
-            <H1>Two-factor check</H1>
-            <Lead>
-              Enter the {backup ? '8-character backup code' : '6-digit code from your authenticator app'} for{' '}
-              <T weight={600} color="text2">
-                {masked}
-              </T>
-              .
-            </Lead>
-            <View style={{ marginBottom: 6 }}>
-              <Label>{backup ? 'Backup code' : 'Authentication code'}</Label>
-            </View>
-            <OtpInput
-              label={backup ? 'Backup code' : 'Authentication code'}
-              value={otp}
-              alphanumeric={backup}
-              length={backup ? 8 : 6}
-              invalid={!!otpError}
-              onChange={(v) => {
-                setOtp(v);
-                if (otpError) setOtpError('');
-              }}
-            />
-            <ErrorText style={{ marginTop: 6 }}>{otpError}</ErrorText>
-            <View style={{ marginTop: 20, gap: 10 }}>
-              <Button label="Verify and continue" onPress={verify} loading={busy} />
-              <Button
-                label={backup ? 'Use authenticator code instead' : 'Use a backup code'}
-                variant="secondary"
-                onPress={() => {
-                  setBackup((b) => !b);
-                  setOtp('');
-                  setOtpError('');
-                }}
-              />
-            </View>
-            <Banner tone="info" icon="info" style={{ marginTop: 20 }}>
-              New device detected. We’ll email you about this sign-in, and withdrawals from this device are paused for 24 hours.
-            </Banner>
-            <Help align="center" style={{ marginTop: 16 }}>
-              Lost access to your authenticator?{' '}
-              <T size={12.5} color="accentText" onPress={() => router.push('/support')} accessibilityRole="link">
-                Contact support
-              </T>
-            </Help>
           </>
         ) : null}
 
