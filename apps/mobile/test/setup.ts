@@ -44,3 +44,8 @@ jest.mock('expo-router', () => {
     Redirect: () => null,
   };
 });
+// Gesture Handler 3 binds to the worklet UI runtime on a microtask; there is no UI runtime under Jest.
+const mockGhRoot = require('path').dirname(require.resolve('react-native-gesture-handler/package.json')) as string;
+for (const file of ['src/handlers/gestures/installUIRuntimeBindings.ts', 'lib/module/handlers/gestures/installUIRuntimeBindings.js']) {
+  jest.doMock(`${mockGhRoot}/${file}`, () => ({ installUIRuntimeBindings: () => undefined }));
+}

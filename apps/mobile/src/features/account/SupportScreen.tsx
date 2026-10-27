@@ -41,13 +41,18 @@ const TOPICS = [
   },
   {
     id: 'net',
-    title: 'Which networks are supported?',
-    body: 'Only the XRP Ledger, for native XRP. Other networks will appear in Markets once custody, monitoring and testing are complete. Sending a different asset or network to your address may be unrecoverable.',
+    title: 'Choosing the right network',
+    body: 'Each asset here can only be sent and received on its own network. Sending an asset on a network the recipient doesn’t support can make the funds unrecoverable, so confirm the network with the recipient before you withdraw.',
   },
   {
     id: 'recover',
-    title: 'I lost access to my email or authenticator',
+    title: 'I can’t sign in to my account',
     body: 'Contact us from this screen if you’re still signed in, or from the sign-in screen if not. We’ll verify your identity again before restoring access, and withdrawals pause for a short period afterwards.',
+  },
+  {
+    id: 'secure',
+    title: 'Keeping your account secure',
+    body: 'Use a long password you don’t use anywhere else, and consider turning on the withdrawal allowlist. We will never ask for your password or a recovery phrase, by email, chat or phone.',
   },
   {
     id: 'fees',

@@ -31,6 +31,10 @@ const main = async () => {
   const own = new Set(wallets.map((w) => w.address));
   log('worker started', { network: cfg.network, omnibus: [...omnibus], signer: cfg.testnetHotSeed ? 'testnet' : 'custody provider' });
 
+  // Staff-confirmed XRP: crediting deposits or sending withdrawals here would double up on what staff do by hand.
+  const automatic = (await store.xrpMode()) === 'automatic';
+  if (!automatic) log('XRP is staff-confirmed: not scanning deposits or sending withdrawals (prices, balances and jobs only)');
+
   // One tick at a time; ledgers that close meanwhile are covered by the next tick's range.
   let latest = await chain.validatedLedger();
   let running = false;
@@ -41,9 +45,11 @@ const main = async () => {
     try {
       while (true) {
         const upTo = latest;
-        await scanTo({ chain, store, screening: providers.screening, omnibus, own, log }, upTo);
-        await submitApproved({ chain, store, custody, log });
-        await confirmSubmitted({ chain, store, custody, log });
+        if (automatic) {
+          await scanTo({ chain, store, screening: providers.screening, omnibus, own, log }, upTo);
+          await submitApproved({ chain, store, custody, log });
+          await confirmSubmitted({ chain, store, custody, log });
+        }
         if (ticks++ % BALANCE_EVERY_LEDGERS === 0) await refreshBalances({ chain, store }, wallets, upTo);
         if (latest === upTo) break;
       }

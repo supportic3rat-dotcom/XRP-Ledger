@@ -83,6 +83,7 @@ export const fakeStore = (opts: { cursor?: number | null; withdrawals?: Withdraw
     runJob: async (job) => {
       rec.events.push(`job:${job}`);
     },
+    xrpMode: async () => 'automatic',
   };
 };
 

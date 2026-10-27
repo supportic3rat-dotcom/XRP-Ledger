@@ -26,6 +26,19 @@ export const fakeClient = (as: 'service' | 'user', calls: RpcCall[], rpcs: Recor
       return Promise.resolve(handler ? handler(args) : { data: null, error: null });
     },
     from: query,
+    // Auth admin calls (password changes, signing out other sessions) are recorded as `auth.admin.<name>`.
+    auth: {
+      admin: {
+        updateUserById: (id: string, attrs: Record<string, unknown>) => {
+          calls.push({ fn: 'auth.admin.updateUserById', args: { id, ...attrs }, as });
+          return Promise.resolve({ data: {}, error: null });
+        },
+        signOut: (jwt: string, scope: string) => {
+          calls.push({ fn: 'auth.admin.signOut', args: { scope }, as });
+          return Promise.resolve({ data: null, error: null });
+        },
+      },
+    },
   } as unknown as SupabaseClient;
 };
 
@@ -37,7 +50,7 @@ export const token = (claims: Record<string, unknown>): string => {
 export const CUSTOMER = '00000000-0000-4000-8000-000000000042';
 
 export const fakeDeps = (
-  opts: { rpcs?: Record<string, (args: Record<string, unknown>) => Result>; tables?: Record<string, unknown[]>; factors?: string[] } = {},
+  opts: { rpcs?: Record<string, (args: Record<string, unknown>) => Result>; tables?: Record<string, unknown[]>; factors?: string[]; password?: string } = {},
 ) => {
   const calls: RpcCall[] = [];
   const deps: Deps = {
@@ -51,7 +64,7 @@ export const fakeDeps = (
         const sub = JSON.parse(atob(authorization.split('.')[1]!.replace(/-/g, '+').replace(/_/g, '/'))).sub as string;
         return Promise.resolve({ id: sub, email: 'brendan@example.com', totpFactorIds: opts.factors ?? ['factor-1'] });
       },
-      checkPassword: () => Promise.resolve(true),
+      checkPassword: (_email, password) => Promise.resolve(opts.password === undefined || password === opts.password),
     },
     cronSecret: () => 'cron-secret-for-tests',
     allowedOrigins: () => [],

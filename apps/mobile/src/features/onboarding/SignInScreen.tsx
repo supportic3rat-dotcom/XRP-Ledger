@@ -3,7 +3,7 @@ import { resetSchema, signInSchema, type SignInInput } from '@xrp/schemas';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { ErrorText, Field, Help, Label, TextField } from '@/components/Form';
@@ -12,6 +12,8 @@ import { Screen, ScrollBody } from '@/components/Screen';
 import { T } from '@/components/T';
 import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
+import { passwordResetEmail, SUPPORT_EMAIL } from '@/lib/support';
+import { resolveStaff, useStaff } from '@/features/admin/session';
 import { useSession } from '@/state/session';
 
 type View_ = 'signin' | 'forgot' | 'sent';
@@ -40,11 +42,11 @@ const InlineLink = ({ label, onPress }: { label: string; onPress: () => void }) 
 export const SignInScreen = () => {
   const router = useRouter();
   const setSignedIn = useSession((s) => s.setSignedIn);
+  const setStaffSession = useStaff((s) => s.setSession);
   const [view, setView] = useState<View_>('signin');
   const [showPass, setShowPass] = useState(false);
   const [bad, setBad] = useState<{ attemptsLeft: number; locked: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [resent, setResent] = useState(false);
 
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -56,13 +58,25 @@ export const SignInScreen = () => {
 
   const submit = form.handleSubmit(async ({ email: e, password }) => {
     setBusy(true);
-    const r = await api.signIn(e.trim(), password).finally(() => setBusy(false));
-    if (r.status === 'ok') {
-      setSignedIn(true);
-      router.replace('/');
-    } else setBad({ attemptsLeft: r.attemptsLeft, locked: r.locked });
+    const r = await api.signIn(e.trim(), password);
+    if (r.status !== 'ok') {
+      setBusy(false);
+      setBad({ attemptsLeft: r.attemptsLeft, locked: r.locked });
+      return;
+    }
+    // Staff accounts open the operations console; everyone else opens their wallet.
+    const staff = await resolveStaff(e).catch(() => null);
+    setBusy(false);
+    if (staff) {
+      setStaffSession(staff);
+      router.replace('/ops');
+      return;
+    }
+    setSignedIn(true);
+    router.replace('/');
   });
 
+  /** No email service: the request goes to support from the customer's own mail app, which proves they own the address. */
   const sendReset = async () => {
     const ok = resetSchema.safeParse({ email }).success;
     if (!ok) {
@@ -70,8 +84,9 @@ export const SignInScreen = () => {
       return;
     }
     setBusy(true);
-    await api.requestPasswordReset(email.trim()).finally(() => setBusy(false));
-    setResent(false);
+    await Linking.openURL(passwordResetEmail(email.trim()))
+      .catch(() => undefined)
+      .finally(() => setBusy(false));
     setView('sent');
   };
 
@@ -196,9 +211,12 @@ export const SignInScreen = () => {
         {view === 'forgot' ? (
           <>
             <H1>Reset your password</H1>
-            <Lead>We’ll email a reset link to the address on your account.</Lead>
+            <Lead>{`Email our support team from the address on your account. We’ll check it’s you and email you a new password.`}</Lead>
             {emailField('fp-email')}
-            <Button label="Send reset link" onPress={sendReset} loading={busy} style={{ marginTop: 18 }} />
+            <Button label="Email support" onPress={sendReset} loading={busy} style={{ marginTop: 18 }} />
+            <Help style={{ marginTop: 12, marginHorizontal: 4 }}>
+              {`This opens your email app with a message to ${SUPPORT_EMAIL}. Send it from the email you signed up with.`}
+            </Help>
             <Banner tone="warn" icon="shield" style={{ marginTop: 18 }}>
               For your security, withdrawals are paused for 24 hours after a password reset. Your balances aren’t affected.
             </Banner>
@@ -210,31 +228,24 @@ export const SignInScreen = () => {
             <View style={{ marginBottom: 14 }}>
               <HeroIcon icon="mail" tone="ok" size={52} />
             </View>
-            <H1>Check your email</H1>
+            <H1>Send the email to support</H1>
             <Lead>
-              If an account exists for{' '}
+              Once your email reaches{' '}
+              <T weight={600} color="text2">
+                {SUPPORT_EMAIL}
+              </T>
+              , we’ll reply to{' '}
               <T weight={600} color="text2">
                 {email}
-              </T>
-              , a reset link is on its way. It expires in 30 minutes.
+              </T>{' '}
+              with a new password, usually within one business day. Sign in with it, then choose your own in Security.
             </Lead>
             <View style={{ gap: 10 }}>
               <Button label="Back to sign in" onPress={back} />
-              <Button
-                label={resent ? 'Link sent again' : 'Resend link'}
-                variant="secondary"
-                onPress={async () => {
-                  await api.requestPasswordReset(email.trim());
-                  setResent(true);
-                }}
-              />
+              <Button label="Open the email again" variant="secondary" onPress={() => void Linking.openURL(passwordResetEmail(email.trim())).catch(() => undefined)} />
             </View>
             <Help style={{ marginTop: 20, marginHorizontal: 4 }}>
-              Can’t get into your email or authenticator?{' '}
-              <T size={12.5} color="accentText" onPress={() => router.push('/support')} accessibilityRole="link">
-                Contact support
-              </T>{' '}
-              to start identity-checked account recovery.
+              {`Email app not opening? Write to ${SUPPORT_EMAIL} from the email on your account, with the subject “Password reset request”. We’ll never ask for your old password.`}
             </Help>
           </>
         ) : null}

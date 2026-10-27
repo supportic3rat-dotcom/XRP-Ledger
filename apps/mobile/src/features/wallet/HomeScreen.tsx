@@ -12,6 +12,7 @@ import { PeriodChips } from '@/components/Chips';
 import { CoinLogo } from '@/components/CoinLogo';
 import { BrandMark, Icon } from '@/components/Icon';
 import { Row } from '@/components/Row';
+import { Segmented } from '@/components/Segmented';
 import { IconButton } from '@/components/IconButton';
 import { Screen, ScrollBody } from '@/components/Screen';
 import { Sec } from '@/components/Sec';
@@ -28,6 +29,20 @@ import { useTheme } from '@/theme';
 import type { ChartPeriod } from '@xrp/providers';
 
 type Action = { key: string; label: string; icon: IconName; href?: Href; needsVerified: boolean; element: 'a' | 'button' };
+type HistoryFilter = 'all' | 'receive' | 'send' | 'exchange';
+const HISTORY_FILTERS: { value: HistoryFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'receive', label: 'Received' },
+  { value: 'send', label: 'Sent' },
+  { value: 'exchange', label: 'Exchanges' },
+];
+/** Which transaction kinds each history filter shows (as on the web dashboard). */
+const HISTORY_KINDS: Record<Exclude<HistoryFilter, 'all'>, string[]> = {
+  receive: ['deposit', 'yield_reward'],
+  send: ['withdrawal'],
+  exchange: ['exchange'],
+};
+
 const ACTIONS: Action[] = [
   { key: 'deposit', label: 'Deposit', icon: 'deposit', href: '/deposit', needsVerified: true, element: 'a' },
   { key: 'withdraw', label: 'Withdraw', icon: 'withdraw', href: '/withdraw', needsVerified: true, element: 'a' },
@@ -151,6 +166,7 @@ export const HomeScreen = () => {
   const [period, setPeriod] = useState<ChartPeriod>('1M');
   const [reason, setReason] = useState<string | null>(null);
   const [history, setHistory] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const [selected, setSelected] = useState<TxView | null>(null);
 
   const cents = (units: bigint, a: string) => unitsToCents(units, prices[a] ?? 0n, a);
@@ -190,6 +206,8 @@ export const HomeScreen = () => {
   const money = (c: bigint) => (hidden ? MASK : formatUsd(c));
   const change24 = (a: string) => markets.data?.find((m) => m.asset === a)?.changeBps ?? 0;
   const recent = activity.views.slice(0, 3);
+  const kindOf = new Map(activity.raw.map((t) => [t.id, t.kind]));
+  const historyRows = activity.views.filter((t) => historyFilter === 'all' || HISTORY_KINDS[historyFilter].includes(kindOf.get(t.id) ?? ''));
   const empty = activity.views.length === 0 && totalCents === 0n && !activity.isLoading;
   const priceAt = at ? hm(at) : '';
 
@@ -274,7 +292,7 @@ export const HomeScreen = () => {
           <PeriodChips label="Chart period" options={PERIOD_IDS} value={period} onChange={setPeriod} />
           <T size={11.5} color="text3" style={{ marginTop: 10 }}>
             {live
-              ? `Live prices · updated ${priceAt} WAT · CoinGecko. Change reflects price only, not deposits or withdrawals.`
+              ? `Live prices · updated ${priceAt} WAT. Change reflects price only, not deposits or withdrawals.`
               : 'Sample prices: live market data is unavailable. Your balances are unaffected.'}
           </T>
         </Card>
@@ -406,10 +424,22 @@ export const HomeScreen = () => {
           </T>
           <IconButton icon="close" label="Close" onPress={() => setHistory(false)} style={{ marginRight: -10 }} />
         </View>
+        <Segmented
+          label="Filter transactions"
+          value={historyFilter}
+          onChange={setHistoryFilter}
+          options={HISTORY_FILTERS}
+          style={{ marginBottom: 12 }}
+        />
         <Card>
-          {activity.views.map((t, i) => (
+          {historyRows.map((t, i) => (
             <TxRow key={t.id} tx={t} first={i === 0} onPress={() => setSelected(t)} />
           ))}
+          {historyRows.length === 0 ? (
+            <T size={13} color="text3" align="center" style={{ paddingVertical: 28, paddingHorizontal: 16 }}>
+              No transactions match this filter.
+            </T>
+          ) : null}
         </Card>
       </Sheet>
       <TxDetailSheet tx={selected} onClose={() => setSelected(null)} stacked={history} closeLabel={history ? 'Back to history' : 'Close'} />

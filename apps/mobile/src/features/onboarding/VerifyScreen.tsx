@@ -127,7 +127,7 @@ const CHECK_ROWS: [string, string][] = [
 ];
 const UNLOCKS = ['Deposits', 'Withdrawals', 'Exchange requests', 'Yield products', 'Borrowing'];
 
-/** Verification status (six states). The status comes from the KYC provider; this screen only displays it. */
+/** Verification status (six states). Our Compliance team decides it in the console; this screen only displays it. */
 export const VerifyScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ status?: KycStatus }>();
@@ -194,7 +194,7 @@ export const VerifyScreen = () => {
           <Button as="a" label={st.secondary} variant="secondary" onPress={() => go(st.secondaryTarget)} />
         </View>
         <Banner tone="info" icon="info" style={{ marginTop: 20 }}>
-          Your status comes from our verification provider, [KYC provider]. This screen only displays it and can’t change it.
+          Our compliance team reviews your documents, usually within one business day. We’ll notify you when it’s decided.
         </Banner>
       </ScrollBody>
     </Screen>

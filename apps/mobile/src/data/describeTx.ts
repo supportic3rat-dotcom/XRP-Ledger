@@ -207,6 +207,8 @@ const describeDeposit = (tx: Transaction, ctx: DescribeContext): Omit<TxView, 's
 
 const describeWithdrawal = (tx: Transaction, ctx: DescribeContext): Omit<TxView, 'status' | 'tone' | 'aria' | 'date' | 'when' | 'id' | 'ref' | 'asset'> => {
   const a = tx.asset;
+  /** Coins on the custody integration (`automatic`) are signed by the provider; the rest are sent by staff. */
+  const auto = assetSpec(a).deposit === 'automatic';
   const xrp = a === 'XRP';
   const gross = tx.amountDrops ?? 0n;
   const fee = tx.platformFeeDrops ?? 0n;
@@ -219,8 +221,8 @@ const describeWithdrawal = (tx: Transaction, ctx: DescribeContext): Omit<TxView,
     { label: 'Balance reserved', at: at('requested') },
     { label: 'Compliance review', at: at('approved') ? at('in_review') : undefined },
     { label: 'Approved', at: at('approved') },
-    { label: xrp ? 'Sent to custody provider' : 'Sent from platform wallet', at: at('submitted') },
-    { label: xrp ? 'Validated on ledger' : `Confirmed on ${network(a)}`, at: at('validated') },
+    { label: auto ? 'Sent to custody provider' : 'Sent from platform wallet', at: at('submitted') },
+    { label: auto ? 'Validated on ledger' : `Confirmed on ${network(a)}`, at: at('validated') },
     { label: 'Completed', at: at('validated') },
   ];
   const stage = { requested: 2, in_review: 2, approved: 4, submitted: 5, validated: 7 }[tx.status as string] ?? 2;

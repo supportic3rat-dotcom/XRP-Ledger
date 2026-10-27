@@ -95,7 +95,7 @@ export const AssetDetailScreen = () => {
           <PeriodChips label="Chart period" options={PERIOD_IDS} value={period} onChange={setPeriod} />
           <T size={11.5} color="text3" style={{ marginTop: 10 }}>
             {market?.live && history.data?.live
-              ? `Live · updated ${hm(market.updatedAt)} WAT · CoinGecko`
+              ? `Live · updated ${hm(market.updatedAt)} WAT`
               : 'Sample data · live market data is unavailable right now'}
           </T>
         </Card>

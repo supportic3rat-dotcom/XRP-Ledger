@@ -276,7 +276,8 @@ insert into public.prices (asset, usd_micro, change_bps, source, at) values
 insert into public.custody_wallets (id, name, tier, address, signing, ceiling_drops) values
   ('hot', 'Hot', 'hot', 'rHotProtoKcV9tYwZ2hNa19xQb', 'Auto-sign within policy', 100000000000),
   ('warm', 'Warm', 'warm', 'rWarmProtoKcV9tYwZ2hNb24mKc', '2 of 3 signers', null),
-  ('cold', 'Cold vault', 'cold', 'rColdProtoKcV9tYwZ2hNc3V9tY', '3 of 5 · 24h time lock', null);
+  ('cold', 'Cold vault', 'cold', 'rColdProtoKcV9tYwZ2hNc3V9tY', '3 of 5 · 24h time lock', null)
+on conflict (id) do update set name = excluded.name, address = excluded.address, signing = excluded.signing, ceiling_drops = excluded.ceiling_drops;
 insert into public.signers (name, meta, status) values
   ('J. Duru · Compliance', 'Hardware key · last used 12:41', 'active'),
   ('K. Musa · Compliance', 'Hardware key · last used Oct 18', 'active'),

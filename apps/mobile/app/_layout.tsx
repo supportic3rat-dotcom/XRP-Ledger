@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryClient } from '@/data/queryClient';
+import { useUpkeep } from '@/lib/useUpkeep';
 import { ThemeProvider, useTheme } from '@/theme';
 import { ToastHost } from '@/components/Toast';
 
@@ -17,6 +18,7 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const Navigator = () => {
   const { c } = useTheme();
+  useUpkeep();
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(c.bg).catch(() => undefined);
   }, [c.bg]);

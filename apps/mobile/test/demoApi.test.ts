@@ -90,6 +90,9 @@ describe('demo API money rules', () => {
     expect(assets.length).toBe(18);
     const usdt = await api.depositInfo('USDT');
     expect(usdt.mode).toBe('reported');
+    expect(usdt.networks.map((n) => n.id)).toEqual(['tron', 'ethereum']);
+    const usdtEth = await api.depositInfo('USDT', 'ethereum');
+    expect([usdtEth.networkId, usdtEth.network, usdtEth.address.startsWith('0x')]).toEqual(['ethereum', 'Ethereum (ERC-20)', true]);
     expect((await api.depositInfo('XRP')).tag).toBe('48201937');
   });
 });

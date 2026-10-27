@@ -86,7 +86,7 @@ Everything here differs from the design files or the brief on purpose, or still 
 - **Exchange:** sell any asset for USD, or swap into another asset (credited on `paid_out`).
 - **Earn / Borrow:** a Flexible product per asset (sample APRs), each position with live accrual; any asset flagged `collateral` can secure a loan, LTV priced in that asset. Loans now get a `loans` row when activated (previously only seeded).
 - **Live data:** CoinGecko (prices, 24h/7d change, sparklines, market stats, chart history) in mobile, web and admin; the worker records every asset's price every minute (`MARKET_DATA=mock` to disable). Optional `COINGECKO_API_KEY` / `EXPO_PUBLIC_COINGECKO_API_KEY` / `NEXT_PUBLIC_COINGECKO_API_KEY` raise the rate limit — **recommended for production**; the free tier rate-limits (portfolio charts fetch only the 3 largest holdings for that reason). Falls back to labelled sample prices when unreachable.
-- **Logos:** web3icons (MIT) for 17 coins, cryptocurrency-icons (CC0) for DOGE, in `packages/tokens/src/coins.ts`.
+- **Logos:** web3icons (MIT) for 17 coins, cryptocurrency-icons (CC0) for DOGE, in `packages/tokens/src/coins.ts` (see Top 50 below for the rest).
 - **Not done:** XRPL-only connected/self-custody wallets (phrase import derives an XRP account); no automatic on-chain monitoring for non-XRP deposits (staff confirm them); no `deposit-report` from the web dashboard (it points to the app).
 
 ## 2026-10-23 · Scheduled jobs moved from pg_cron to the XRPL worker
@@ -118,3 +118,108 @@ Everything here differs from the design files or the brief on purpose, or still 
 - Fixed (same day): app sign-ups never got a `customers` row (only the seed wrote them). A trigger on `auth.users`
   now creates it from the sign-up metadata, with a unique destination tag and an `ACC-…` reference
   (`20261023000300_customer_on_signup.sql`). Users created without `full_name` (staff) are skipped.
+
+## 2026-10-23 · One mobile app: staff console moved into the app (owner's decision)
+
+- The Next.js staff console (`apps/admin`) and customer web dashboard (`apps/web`) are retired to `old/admin` and
+  `old/web`. They are outside the pnpm workspace, so they are no longer built, tested or deployed.
+- Staff sign in on the app's normal sign-in screen. If the access token carries `app_role` (from
+  `custom_access_token_hook`), the app opens the console at `/ops` instead of the wallet. Customers never see it.
+  The console has every page and action the web console had: Overview, Approval queue (approve, reject with reason),
+  Transactions (mark a manual withdrawal sent/failed), Users (record deposit, flag, freeze), Reconciliation (run,
+  book fee, mark provider contacted), Assets (deposit address and enable), Custody (policy approve/decline) and Audit log
+  (CSV export through the phone's share sheet).
+- The console's data layer is the web console's, copied to `apps/mobile/src/features/admin/data` unchanged except that
+  each Edge Function call reads the current access token (sessions refresh on the phone).
+- Staff sessions are kept in memory only. Closing the app, 15 minutes without a touch, or 15 minutes in the background
+  signs staff out (same idle limit as the web console).
+- Two staff sign-ins (Operations and Compliance) so the two-person approval rule over 1,000 XRP can be met. They are
+  created by `supabase/staff-accounts.local.sql` (git-ignored; holds generated passwords). Gmail's `+compliance`
+  address delivers to the same inbox as `support.xrp@gmail.com`.
+- New Edge Function `staff-password-change`: staff change their own password (current password checked, other sessions
+  signed out, audited). Customers keep `security-update` → `password-change`.
+- Customer features that were only on the web dashboard are now in the app: transaction history filters
+  (All / Received / Sent / Exchanges) and the Transaction emails / Price alerts switches (Profile → Email & alerts).
+  The web's help guides replaced two outdated app help topics (XRP-only networks; authenticator recovery).
+- Not yet verified: the console against the live Supabase project (needs the access-token hook enabled there) and on a
+  physical phone. The Edge Function tests for `staff-password-change` are written but Deno wasn't available to run them.
+
+## 2026-10-23 · Top 50 coins
+
+- 32 coins added (50 in all), taken in order from CoinGecko's market-cap ranking of 2026-10-23: ZEC, HYPE, WBT, LEO,
+  NEAR, RAIN, UNI, SUI, HBAR, TAO, CRO, ENA, QNT, BTW, OKB, AAVE, PUMP, ONDO, M, WLD, ASTER, MNT, SKY, WLFI, MORPHO, ICP,
+  BGB, VVV, ETC, ARB, JST, GT. Registry: `packages/ledger/src/assets.ts`; database: migration `20261023000400_top_50_assets.sql`.
+- Skipped from the ranking: tokenized funds/securities (BUIDL, USYC, USDY, Figure HELOC …), dollar stablecoins and gold
+  tokens beyond USDT/USDC (DAI, USDe, USDS, PYUSD, RLUSD, XAUT, PAXG …), Monero (privacy coin, can't be screened),
+  Canton and Pi (closed networks).
+- Also skipped: SHIB, PEPE, HTX. Prices are stored in micro-dollars ($0.000001), and these trade below $0.00001, so their
+  values would be off by 2–25%. Supporting them needs finer price precision across the ledger, SQL and apps.
+- New coins: reported deposits (staff-confirmed), no deposit address yet, no Earn product, not loan collateral.
+  Limits target USDT's USD values (deposit $10, withdrawal $20, fee $1, or $3 on Ethereum, two approvals over $2,500,
+  daily $60,000) at the day's prices. Zcash withdrawals accept transparent (t1/t3) addresses only.
+- Logos: 17 web3icons token icons; HYPE, WLD, OKB and BGB use their network/exchange artwork; the other 11 show a
+  lettered disc in the coin's colour.
+
+## 2026-10-24 · The owner's 18 coins on 21 networks, with their receive addresses
+
+- Coins cut to the owner's wallet list: XRP, BTC, ETH, USDT, USDC, SOL, BNB, TRX, DOGE, ADA, XLM, HBAR, LTC, CRO, POL,
+  plus new ATOM, DASH, FLR. The other 32 stay in `assets` with `enabled = false` (history); the registry and logos
+  were trimmed. USDT (Tron, Ethereum), USDC (Ethereum, Solana) and POL (Polygon, Ethereum) take two networks.
+- `asset_networks` holds each network's format and platform address (`20261024000100_wallet_networks.sql`). The 21
+  addresses were decoded from the QR codes in the owner's Exodus screenshots (`Wallets/`), not typed. XRP's hot
+  wallet is the owner's address; customers are still told apart by destination tag.
+- Deposit reports and withdrawals carry the network (`p_network`, recorded in `meta.network`); addresses are checked
+  against that network. The allowlist accepts an address on any of the coin's networks. Compliance sets an address
+  per network in the console (`asset_set_network_address`).
+- Receive screen redesigned after the screenshots: network picker, coin logo with network badge, QR on a white tile,
+  "Your … address" with copy, the network line, XRP's required tag, and a Share button (system share sheet).
+- Open: `XRPL_NETWORK` is still `testnet`, but these are mainnet addresses, and the XRPL worker isn't running, so XRP
+  deposits are not credited automatically yet.
+
+## 2026-10-25 · XRP is staff-confirmed like every other coin (owner's decision)
+
+- `assets.deposit_mode` for XRP is now `reported` (`20261025000100_xrp_staff_confirmed.sql`): the customer sends to the
+  shared address with their destination tag and reports the hash; staff confirm and approve the credit. The approval
+  carries a "Destination tag N" check, because on a shared address only the tag proves whose deposit it is.
+- XRP withdrawals are sent by staff and marked sent, like the other coins; the console's "send" panel now follows the
+  coin's mode, not the coin name. The XRPL worker reads XRP's mode at start-up and, while `reported`, does not scan
+  deposits or send withdrawals (it still records prices and balances and runs jobs). Setting the mode back to
+  `automatic` restores the worker path; that needs the worker running against mainnet with a signer.
+- With no automatic path, `XRPL_NETWORK` (still `testnet`) only matters to the worker; the app no longer shows it.
+
+## 2026-10-25 · Mainnet only; no provider name on screen
+
+- `XRPL_NETWORK=mainnet` everywhere (live secret, env files, `.env.example`); the worker now defaults to mainnet on
+  `wss://xrplcluster.com` with `wss://s1.ripple.com` as fallback. Testnet is a development opt-in only.
+- The market-data provider is no longer named in the app ("Live prices · updated …"); stored price sources say
+  "Market data".
+
+## 2026-10-27 · Compliance decides identity checks; exchange quotes at live prices
+
+- No KYC provider is contracted, so its webhook never arrived and every customer stayed "in progress". Compliance
+  now reviews the uploaded documents in the console (customer → Identity check: images signed for 5 minutes) and
+  verifies, asks for more, or rejects (`kyc_review`, `20261027000100_kyc_staff_review.sql`). A reason is required
+  except to verify; the customer is notified and the decision is audited. The provider path (`kyc_decided`) remains.
+- Customer-facing "[KYC provider]" placeholders replaced: the compliance team reviews documents.
+- Exchange quotes came from the liquidity mock (XRP fixed at $2.3742). They now come from the live price feed
+  (`createCoinGecko().requestQuote`; both legs in one request, refused if a price is older than 15 minutes); the
+  platform spread is still applied in `_shared/quotes.ts`. `MARKET_DATA=mock` keeps sample prices for development.
+- Fixed: sign-up account references could collide (first 10 hex of the user id); now md5-derived and retried until unique.
+
+## 2026-10-28 · Upkeep on Supabase; password reset by support; swaps only
+
+- No always-on server and no pg_cron: scheduled upkeep moved from the XRPL worker into the `upkeep` Edge Function,
+  which the app calls while it's open (on launch, on return to the foreground and every 5 minutes). Each job runs
+  only when due (`upkeep_claim`, `job_runs`), so extra calls are free: prices every 5 minutes, quote expiry every
+  minute, loan checks every 5, ledger balances and a heartbeat over XRPL JSON-RPC every 10, yield estimates hourly,
+  and the daily reconciliation (23:00 UTC) and audit check (23:30 UTC) on the first call after their time. If nobody
+  opens the app, nothing runs until someone does. The console's ledger status is stale after 30 minutes, not 90 seconds.
+- Password reset needs no email service: "Forgot password" opens the customer's own email app with a request to
+  support.xrpledger@gmail.com (sending from the account's address shows it's theirs). Compliance opens the customer
+  in the console → Password → Set a new password (`customer-password-reset`; `customer_password_reset` in SQL):
+  every session is signed out, withdrawals pause 24 hours, the customer is notified and it's audited. The password
+  is shown once, with a button that drafts the reply email. Supabase's reset-link email is no longer used.
+- "Sell for USD" removed: there's no bank payout, so USD couldn't be withdrawn. Exchange is coin-to-coin only;
+  `request_exchange` refuses a request without a coin to receive. No live customer held USD.
+- Legal documents: "[KYC provider]", "[Custody provider]" and "[Support email]" replaced (compliance team, platform
+  wallets we control, support.xrpledger@gmail.com). The Terms still need the company's legal details.

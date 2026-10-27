@@ -83,3 +83,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.recon-run]
 verify_jwt = false
+[functions.upkeep]
+verify_jwt = false

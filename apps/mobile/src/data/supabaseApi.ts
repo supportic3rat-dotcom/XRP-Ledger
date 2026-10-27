@@ -85,12 +85,6 @@ export const createSupabaseApi = (): Api => ({
     }
     return { status: 'ok' };
   },
-  requestPasswordReset: async (email) => {
-    // Always resolves, so the UI never reveals whether the email exists.
-    await supabase()
-      .auth.resetPasswordForEmail(email)
-      .catch(() => undefined);
-  },
   signUp: async (input) => {
     const { data, error } = await supabase().auth.signUp({
       email: input.email,
@@ -185,8 +179,8 @@ export const createSupabaseApi = (): Api => ({
       readAt: (n.read_at as string | null) ?? null,
     }));
   },
-  depositInfo: async (asset) => {
-    const r = await call<Row>('deposit-address', { asset });
+  depositInfo: async (asset, network) => {
+    const r = await call<Row>('deposit-address', { asset, network: network ?? null });
     return {
       asset: str(r.asset),
       mode: r.mode as 'automatic' | 'reported',
@@ -194,6 +188,8 @@ export const createSupabaseApi = (): Api => ({
       tag: (r.tag as string | null) ?? null,
       memo: (r.memo as string | null) ?? null,
       network: str(r.network),
+      networkId: str(r.networkId),
+      networks: ((r.networks ?? []) as Row[]).map((n) => ({ id: str(n.id), name: str(n.name), open: Boolean(n.open) })),
       testnet: Boolean(r.testnet),
       minDrops: big(r.minDrops),
     };
@@ -320,7 +316,11 @@ export const createSupabaseApi = (): Api => ({
     await supabase().rpc('mark_notifications_read', { p_ids: ids ?? null });
   },
   reportDeposit: async (input) =>
-    callTx('deposit-report', { asset: input.asset, amountUnits: input.amountUnits.toString(), txHash: input.txHash, from: input.from }, input.idempotencyKey),
+    callTx(
+      'deposit-report',
+      { asset: input.asset, network: input.network ?? null, amountUnits: input.amountUnits.toString(), txHash: input.txHash, from: input.from },
+      input.idempotencyKey,
+    ),
   requestWithdrawal: async (input) =>
     callTx(
       'withdraw-request',
@@ -330,6 +330,7 @@ export const createSupabaseApi = (): Api => ({
         destination: input.destination,
         destinationTag: input.destinationTag,
         memo: input.memo,
+        network: input.network ?? null,
       },
       input.idempotencyKey,
     ),
@@ -391,6 +392,16 @@ export const createSupabaseApi = (): Api => ({
   acceptConsent: async (document, version) => call('consent-accept', { document, version }),
   setDisplayCurrency: async (currency) => {
     await supabase().rpc('set_display_currency', { p_currency: currency });
+  },
+  notificationPrefs: async () => {
+    const id = await uid();
+    const { data } = await supabase().from('customers').select('email_receipts, price_alerts').eq('id', id).single();
+    const row = (data ?? {}) as Row;
+    return { receipts: row.email_receipts !== false, alerts: row.price_alerts === true };
+  },
+  setNotificationPrefs: async (change) => {
+    const { error } = await supabase().rpc('set_notification_prefs', { p_receipts: change.receipts ?? null, p_alerts: change.alerts ?? null });
+    if (error) throw new Error(error.message);
   },
   addWatchWallet: async (address) => {
     await call('external-wallet', { action: 'add', address, access: 'watch' });

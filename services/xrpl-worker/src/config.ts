@@ -26,7 +26,8 @@ const required = (env: NodeJS.ProcessEnv, name: string): string => {
 };
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
-  const network = env.XRPL_NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
+  // Mainnet unless testnet is asked for explicitly (development only).
+  const network = env.XRPL_NETWORK === 'testnet' ? 'testnet' : 'mainnet';
   const testnetHotSeed = env.TESTNET_HOT_WALLET_SEED ?? null;
   if (network === 'mainnet' && testnetHotSeed)
     throw new Error('TESTNET_HOT_WALLET_SEED must not be set on mainnet: signing happens only at the custody provider.');
@@ -35,8 +36,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     serviceRoleKey: required(env, 'SUPABASE_SERVICE_ROLE_KEY'),
     network,
     endpoints: [
-      env.XRPL_PRIMARY_WS ?? (network === 'testnet' ? 'wss://s.altnet.rippletest.net:51233' : required(env, 'XRPL_PRIMARY_WS')),
-      env.XRPL_FALLBACK_WS ?? (network === 'testnet' ? 'wss://testnet.xrpl-labs.com' : 'wss://xrplcluster.com'),
+      env.XRPL_PRIMARY_WS ?? (network === 'testnet' ? 'wss://s.altnet.rippletest.net:51233' : 'wss://xrplcluster.com'),
+      env.XRPL_FALLBACK_WS ?? (network === 'testnet' ? 'wss://testnet.xrpl-labs.com' : 'wss://s1.ripple.com'),
     ],
     workerId: env.WORKER_ID ?? 'xrpl-worker',
     testnetHotSeed,

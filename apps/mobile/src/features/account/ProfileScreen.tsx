@@ -19,7 +19,7 @@ import { T } from '@/components/T';
 import { Toggle } from '@/components/Toggle';
 import { useToast } from '@/components/Toast';
 import { api } from '@/data';
-import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useProfile } from '@/data/hooks';
+import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile } from '@/data/hooks';
 import { removeSelfCustody } from '@/lib/selfCustody';
 import { usePreferences } from '@/state/preferences';
 import { useSession } from '@/state/session';
@@ -63,6 +63,8 @@ export const ProfileScreen = () => {
   const allow = useApiMutation(api.setAllowlist);
   const currency = useApiMutation(api.setDisplayCurrency);
   const remove = useApiMutation(api.removeExternalWallet);
+  const prefs = useNotificationPrefs();
+  const setPrefs = useApiMutation(api.setNotificationPrefs);
   const [connectSheet, setConnectSheet] = useState(false);
   const [signOutSheet, setSignOutSheet] = useState(false);
 
@@ -201,6 +203,24 @@ export const ProfileScreen = () => {
             Display currency
           </T>
           <Select label="Display currency" height={48} value={p?.currency ?? 'USD'} options={CURRENCIES} onChange={(v) => currency.mutate(v)} />
+        </Card>
+
+        <Sec>Email &amp; alerts</Sec>
+        <Card>
+          <Row first minHeight={52}>
+            <View style={{ flex: 1, gap: 1 }}>
+              <T weight={500}>Transaction emails</T>
+              <Val>A receipt for every deposit and withdrawal</Val>
+            </View>
+            <Toggle label="Transaction emails" on={prefs.data?.receipts ?? true} disabled={!prefs.data} onChange={(v) => setPrefs.mutate({ receipts: v })} />
+          </Row>
+          <Row minHeight={52}>
+            <View style={{ flex: 1, gap: 1 }}>
+              <T weight={500}>Price alerts</T>
+              <Val>When an asset you hold moves more than 5% in a day</Val>
+            </View>
+            <Toggle label="Price alerts" on={prefs.data?.alerts ?? false} disabled={!prefs.data} onChange={(v) => setPrefs.mutate({ alerts: v })} />
+          </Row>
         </Card>
 
         <Sec>Legal &amp; disclosures</Sec>

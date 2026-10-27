@@ -17,7 +17,7 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
 };
 
 /** `.tabbar` — 84 tall, padding 6/8/26, five equal tabs; current tab in accent-text with aria-current. */
-export const TabBar = ({ state, navigation }: TabBarProps) => {
+export const TabBar = ({ state, navigateToTab }: TabBarProps) => {
   const { c } = useTheme();
   return (
     <View
@@ -48,8 +48,7 @@ export const TabBar = ({ state, navigation }: TabBarProps) => {
             accessibilityState={{ selected: focused }}
             accessibilityLabel={tab.label}
             onPress={() => {
-              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-              if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+              if (!focused) navigateToTab(route.key);
             }}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 10 }}
           >

@@ -11,9 +11,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "mobile": "pnpm --filter @xrp/mobile start",
-    "admin": "pnpm --filter @xrp/admin dev",
-    "web": "pnpm --filter @xrp/web dev"
+    "mobile": "pnpm --filter @xrp/mobile start"
   },
   "devDependencies": {
     "prettier": "^3.9.10",

@@ -20,5 +20,11 @@ next-env.d.ts
 *.tsbuildinfo
 test-results/
 playwright-report/
-apps/admin/AGENTS.md
-apps/web/AGENTS.md
+old/admin/AGENTS.md
+old/web/AGENTS.md
+
+# One-time setup files with secrets
+*.local.sql
+
+# Owner's wallet screenshots (addresses are in supabase/migrations); kept local only
+Wallets/

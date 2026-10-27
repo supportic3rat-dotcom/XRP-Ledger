@@ -102,7 +102,7 @@ export const IdentityCaptureScreen = () => {
     }
     let uri = 'captured';
     if (useLiveCamera && camera.current) {
-      // Kept in memory only (never written to the camera roll) and uploaded straight to the KYC provider.
+      // Kept in memory only (never written to the camera roll) and uploaded straight to the private kyc bucket.
       const photo = await camera.current.takePictureAsync({ quality: 0.8, skipProcessing: false });
       uri = photo?.uri ?? uri;
     }
@@ -198,7 +198,7 @@ export const IdentityCaptureScreen = () => {
               <Select label="Issuing country" value={country} onChange={setCountry} options={COUNTRIES} />
             </View>
             <Banner tone="info" icon="shield" style={{ marginTop: 18 }}>
-              Photos go straight to [KYC provider] over an encrypted connection. They aren’t saved to your camera roll.
+              Photos are uploaded over an encrypted connection to private storage that only our compliance team can open. They aren’t saved to your camera roll.
             </Banner>
           </>
         ) : null}
@@ -393,7 +393,7 @@ export const IdentityCaptureScreen = () => {
             </Card>
             <CheckRow checked={consent} onChange={setConsent} style={{ marginTop: 18 }}>
               <T size={13.5} lh={1.45}>
-                I agree that [KYC provider] may process my ID and a biometric template of my face to verify my identity, as described in the{' '}
+                I agree that the compliance team may review my ID and selfie to verify my identity, as described in the{' '}
                 <T size={13.5} lh={1.45} color="accentText" accessibilityRole="link" onPress={() => router.push('/legal')}>
                   Privacy Policy
                 </T>{' '}

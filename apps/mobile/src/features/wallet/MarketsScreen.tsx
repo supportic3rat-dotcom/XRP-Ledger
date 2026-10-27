@@ -54,7 +54,7 @@ export const MarketsScreen = () => {
         </T>
         <T size={13} color="text3" style={{ marginHorizontal: 4, marginBottom: 14 }}>
           {live
-            ? `Live USD prices · ${rows.length} assets · updated ${rows[0] ? hm(rows[0].updatedAt) : ''} WAT · CoinGecko`
+            ? `Live USD prices · ${rows.length} assets · updated ${rows[0] ? hm(rows[0].updatedAt) : ''} WAT`
             : markets.isLoading
               ? 'Loading live prices…'
               : 'Sample prices'}

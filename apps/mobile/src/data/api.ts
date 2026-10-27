@@ -17,6 +17,8 @@ import type {
   YieldPosition,
 } from '@xrp/types';
 
+export type NotificationPrefs = { receipts: boolean; alerts: boolean };
+
 export type PriceInfo = { priceMicro: MicroUsd; changeBps: number; at: string; source: string; stale: boolean };
 /** A supported asset as configured on the platform (registry + where deposits go). */
 export type AssetInfo = {
@@ -44,7 +46,10 @@ export type DepositInfo = {
   address: string;
   tag: string | null;
   memo: string | null;
+  /** The network these details are for (its name and registry id), and every network the asset is accepted on. */
   network: string;
+  networkId: string;
+  networks: { id: string; name: string; open: boolean }[];
   testnet: boolean;
   minDrops: bigint;
 };
@@ -69,7 +74,6 @@ export type Api = {
   now: () => Date;
   // Auth
   signIn: (email: string, password: string) => Promise<SignInResult>;
-  requestPasswordReset: (email: string) => Promise<void>;
   signUp: (input: { name: string; email: string; password: string; country: string; currency: string; updates: boolean }) => Promise<void>;
   signOut: () => Promise<void>;
   // Reads
@@ -79,7 +83,7 @@ export type Api = {
   holdings: () => Promise<Holding[]>;
   transactions: () => Promise<Transaction[]>;
   notifications: () => Promise<AppNotification[]>;
-  depositInfo: (asset: string) => Promise<DepositInfo>;
+  depositInfo: (asset: string, network?: string) => Promise<DepositInfo>;
   loan: () => Promise<Loan | null>;
   yieldPositions: () => Promise<YieldPosition[]>;
   allowlist: () => Promise<AllowlistAddress[]>;
@@ -92,18 +96,20 @@ export type Api = {
   custodyStatus: () => Promise<{ provider: ProviderStatus; reconciledAt: string; subAccount: string }>;
   // Writes (all money writes carry an idempotency key)
   markNotificationsRead: (ids?: string[]) => Promise<void>;
-  reportDeposit: (input: { idempotencyKey: string; asset: string; amountUnits: bigint; txHash: string; from: string | null }) => Promise<Transaction>;
+  reportDeposit: (input: { idempotencyKey: string; asset: string; network?: string; amountUnits: bigint; txHash: string; from: string | null }) => Promise<Transaction>;
   requestWithdrawal: (input: {
     idempotencyKey: string;
     asset: string;
+    /** Registry network id; the asset's default network when omitted. */
+    network?: string;
     memo: string | null;
     amountDrops: bigint;
     destination: string;
     destinationTag: string | null;
   }) => Promise<Transaction>;
   cancelWithdrawal: (id: string) => Promise<void>;
-  /** Sell for USD (`toAsset` null) or swap into another asset. */
-  requestExchange: (input: { idempotencyKey: string; asset: string; toAsset: string | null; amountDrops: bigint }) => Promise<Transaction>;
+  /** Swap one coin into another. There's no USD sale: without a bank payout, USD couldn't be withdrawn. */
+  requestExchange: (input: { idempotencyKey: string; asset: string; toAsset: string; amountDrops: bigint }) => Promise<Transaction>;
   acceptQuote: (txId: string, quoteId: string) => Promise<void>;
   requestNewQuote: (txId: string) => Promise<void>;
   cancelExchange: (txId: string) => Promise<void>;
@@ -121,6 +127,9 @@ export type Api = {
   createTicket: (input: { topic: string; transactionRef: string | null; message: string; email?: string }) => Promise<SupportTicket>;
   acceptConsent: (doc: LegalDocumentId, version: string) => Promise<Consent>;
   setDisplayCurrency: (currency: string) => Promise<void>;
+  /** Email receipts for deposits and withdrawals, and alerts when a held asset moves more than 5% in a day. */
+  notificationPrefs: () => Promise<NotificationPrefs>;
+  setNotificationPrefs: (change: Partial<NotificationPrefs>) => Promise<void>;
   addWatchWallet: (address: string) => Promise<void>;
   addSelfCustodyWallet: (address: string) => Promise<void>;
   removeExternalWallet: (address: string) => Promise<void>;

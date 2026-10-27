@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { create } from 'zustand';
-import { hasBackend } from '@/lib/env';
+import { hasBackend, skipAuth } from '@/lib/env';
 
 type SessionState = {
   signedIn: boolean;
@@ -13,7 +13,7 @@ type SessionState = {
 /** Development aids (demo backend only): `?session=1` on the web preview, or EXPO_PUBLIC_SKIP_AUTH=1 on device, starts signed in. */
 const startSignedIn = (): boolean => {
   if (hasBackend()) return false;
-  if (__DEV__ && process.env.EXPO_PUBLIC_SKIP_AUTH === '1') return true;
+  if (skipAuth()) return true;
   return Platform.OS === 'web' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('session') === '1';
 };
 

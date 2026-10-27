@@ -2,6 +2,7 @@ import {
   ASSETS,
   asset as assetSpec,
   assetLimits,
+  assetNetwork,
   canTransition,
   exchangeEstimateFor,
   formatAmount,
@@ -29,6 +30,7 @@ export const createDemoApi = (): Api => {
   const emit = () => listeners.forEach((l) => l());
   const wait = (ms = 350) => new Promise<void>((r) => setTimeout(r, ms));
   const idempotency = new Map<string, Promise<unknown>>();
+  let notificationPrefs = { receipts: true, alerts: false };
 
   const db = {
     signedIn: false,
@@ -161,7 +163,6 @@ export const createDemoApi = (): Api => {
       emit();
       return { status: 'ok' };
     },
-    requestPasswordReset: async () => wait(),
     signUp: async (input) => {
       await wait();
       db.profile = { ...db.profile, fullName: input.name, email: input.email, country: input.country, currency: input.currency as never };
@@ -193,19 +194,26 @@ export const createDemoApi = (): Api => {
     holdings: async () => Object.entries(db.holdings).map(([asset, b]): Holding => ({ asset, ...b })),
     transactions: async () => db.transactions.map((t) => ({ ...t, events: [...t.events] })),
     notifications: async () => db.notifications.map((n) => ({ ...n })),
-    depositInfo: async (asset) => {
+    depositInfo: async (asset, network) => {
       const a = assetSpec(asset);
+      const n = assetNetwork(asset, network);
+      const demoAddress = (id: string) => seed.DEMO_DEPOSIT_ADDRESSES[id === a.networks[0]!.id ? asset : `${asset}:${id}`] ?? '';
+      const where = {
+        network: n.name,
+        networkId: n.id,
+        networks: a.networks.map((x) => ({ id: x.id, name: x.name, open: a.deposit === 'automatic' || !!demoAddress(x.id) })),
+      };
       if (a.deposit === 'automatic') {
-        return { asset, mode: 'automatic', address: seed.DEPOSIT_ADDRESS, tag: '48201937', memo: null, network: a.network, testnet: true, minDrops: assetLimits(asset).minDeposit };
+        return { asset, mode: 'automatic', address: seed.DEPOSIT_ADDRESS, tag: '48201937', memo: null, ...where, testnet: false, minDrops: assetLimits(asset).minDeposit };
       }
       return {
         asset,
         mode: 'reported',
-        address: seed.DEMO_DEPOSIT_ADDRESSES[asset] ?? '',
-        tag: null,
-        memo: a.memo === 'memo' ? '48201937' : null,
-        network: a.network,
-        testnet: true,
+        address: demoAddress(n.id),
+        tag: n.memo === 'tag' ? '48201937' : null,
+        memo: n.memo === 'memo' ? '48201937' : null,
+        ...where,
+        testnet: false,
         minDrops: assetLimits(asset).minDeposit,
       };
     },
@@ -244,7 +252,7 @@ export const createDemoApi = (): Api => {
           amountDrops: input.amountUnits,
           createdAt: iso(),
           ...(input.from ? { counterparty: input.from } : {}),
-          meta: { tx_hash: input.txHash, reported_by: 'customer' },
+          meta: { tx_hash: input.txHash, reported_by: 'customer', network: assetNetwork(input.asset, input.network).id },
           events: [{ fromStatus: null, toStatus: 'reported', at: iso(), actor: 'Customer' }],
         };
         db.transactions.unshift(tx);
@@ -271,7 +279,7 @@ export const createDemoApi = (): Api => {
         if (db.profile.frozen) throw new Error('Your account is frozen. Contact support.');
         const a = assetSpec(input.asset);
         const lim = assetLimits(input.asset);
-        if (!isAssetAddress(input.asset, input.destination)) throw new Error(`That isn’t a valid ${a.network} address.`);
+        if (!isAssetAddress(input.asset, input.destination, input.network)) throw new Error(`That isn’t a valid ${assetNetwork(input.asset, input.network).name} address.`);
         if (input.amountDrops < lim.minWithdrawal) throw new Error(`The minimum withdrawal is ${formatAmount(lim.minWithdrawal, input.asset)}.`);
         const tx = create('withdrawal', 'WD', 'requested', {
           asset: input.asset,
@@ -283,6 +291,7 @@ export const createDemoApi = (): Api => {
           meta: {
             approvals_required: input.amountDrops > lim.approvalThreshold ? '2' : '1',
             ...(a.memo === 'memo' && input.memo ? { memo: input.memo } : {}),
+            network: assetNetwork(input.asset, input.network).id,
           },
         });
         transition(tx, 'in_review');
@@ -304,7 +313,7 @@ export const createDemoApi = (): Api => {
           asset: input.asset,
           counterAsset: input.toAsset,
           amountDrops: input.amountDrops,
-          meta: { indicative_cents: est.receive.toString(), receive: input.toAsset ?? 'USD' },
+          meta: { indicative_cents: est.receive.toString(), receive: input.toAsset },
         });
         schedule([
           [
@@ -567,6 +576,12 @@ export const createDemoApi = (): Api => {
     },
     setDisplayCurrency: async (currency) => {
       db.profile.currency = currency as never;
+      emit();
+    },
+    notificationPrefs: async () => ({ ...notificationPrefs }),
+    setNotificationPrefs: async (change) => {
+      await wait();
+      notificationPrefs = { ...notificationPrefs, ...change };
       emit();
     },
     addWatchWallet: async (address) => {

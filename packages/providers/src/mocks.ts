@@ -13,8 +13,9 @@ const PRICE = usdToMicro('2.38');
 export const MOCK_PRICES: Record<string, bigint> = {
   XRP: PRICE, BTC: usdToMicro('98000'), ETH: usdToMicro('3801.33'), USDT: usdToMicro('1'), USDC: usdToMicro('1'),
   SOL: usdToMicro('182.40'), BNB: usdToMicro('612.50'), ADA: usdToMicro('0.71'), DOGE: usdToMicro('0.215'), TRX: usdToMicro('0.245'),
-  LTC: usdToMicro('96.10'), AVAX: usdToMicro('34.20'), DOT: usdToMicro('6.85'), LINK: usdToMicro('17.90'), XLM: usdToMicro('0.38'),
-  TON: usdToMicro('5.40'), BCH: usdToMicro('455.20'), POL: usdToMicro('0.48'),
+  LTC: usdToMicro('96.10'), XLM: usdToMicro('0.38'), POL: usdToMicro('0.48'), HBAR: usdToMicro('0.07967'), CRO: usdToMicro('0.056756'),
+  // Added 2026-10-24 at the prices in the owner's wallet screenshots.
+  ATOM: usdToMicro('1.78'), DASH: usdToMicro('53.38'), FLR: usdToMicro('0.0062'),
 };
 const mockPrice = (asset = 'XRP') => MOCK_PRICES[asset] ?? PRICE;
 

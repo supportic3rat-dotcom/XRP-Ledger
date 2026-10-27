@@ -241,7 +241,7 @@ await test('allowlist on blocks new addresses', async () => {
 await test('frozen and unverified customers cannot move money', async () => {
   await db.exec(`begin; update customers set frozen_at = now() where id = '${BRENDAN}';`);
   let a = '';
-  try { await db.exec(`select request_exchange('${BRENDAN}', 100000000, 23800, 'k')`); } catch (e) { a = e.message; }
+  try { await db.exec(`select request_exchange('${BRENDAN}', 100000000, 23800, 'k', 'XRP', 'USDT')`); } catch (e) { a = e.message; }
   await db.exec('rollback');
   await db.exec(`begin; update customers set kyc_status = 'in_progress' where id = '${BRENDAN}';`);
   let b = '';
@@ -259,17 +259,17 @@ await test('customer cancels a pending withdrawal and the hold is released', asy
 });
 await test('exchange reserves only when a live quote is accepted; expired quotes fail', async () => {
   await db.exec('begin');
-  const t = await rpc(`select id from request_exchange('${BRENDAN}', 500000000, 117660, 'key-5')`);
+  const t = await rpc(`select id from request_exchange('${BRENDAN}', 500000000, 117660, 'key-5', 'XRP', 'USDT')`);
   const before = await balance(BRENDAN, 'reserved');
   await db.exec(`select transition_tx('${t.id}', 'quote_requested', 'ops')`);
-  const q = await rpc(`select id from record_quote('${t.id}', 2374200, 1337, 116373, now() - interval '1 second')`);
+  const q = await rpc(`select id from record_quote('${t.id}', 2374200, 1337, 116373, now() - interval '1 second', 1163730000)`);
   let expired = '';
   try { await db.exec(`select accept_quote('${BRENDAN}', '${t.id}', '${q.id}')`); } catch (e) { expired = e.message; }
   await db.exec('rollback');
   await db.exec('begin');
-  const t2 = await rpc(`select id from request_exchange('${BRENDAN}', 500000000, 117660, 'key-6')`);
+  const t2 = await rpc(`select id from request_exchange('${BRENDAN}', 500000000, 117660, 'key-6', 'XRP', 'USDT')`);
   await db.exec(`select transition_tx('${t2.id}', 'quote_requested', 'ops')`);
-  const q2 = await rpc(`select id from record_quote('${t2.id}', 2374200, 1337, 116373, now() + interval '60 seconds')`);
+  const q2 = await rpc(`select id from record_quote('${t2.id}', 2374200, 1337, 116373, now() + interval '60 seconds', 1163730000)`);
   await db.exec(`select accept_quote('${BRENDAN}', '${t2.id}', '${q2.id}')`);
   const after = await balance(BRENDAN, 'reserved');
   await db.exec('rollback');
@@ -610,6 +610,126 @@ await test('an unknown job is refused', () => throwsLike(`select run_job('drop-e
 await test('customers cannot run jobs or call the job functions', async () => {
   await as(BRENDAN, null, () => throwsLike(`select run_job('ltv-check')`, /permission denied/));
   await as(BRENDAN, null, () => throwsLike(`select ltv_check()`, /permission denied/));
+});
+
+console.log('\nWallet networks');
+const EVM_ADDR = '0xc33B5D681Fdf4986921123f34156D6957Ab60656';
+await test('only the 18 wallet coins are enabled, with addresses on all 21 networks', async () => {
+  const r = await one(`select (select count(*)::int from assets where enabled) coins,
+                              (select count(*)::int from asset_networks n join assets a on a.id = n.asset where a.enabled and n.deposit_address is not null) nets,
+                              (select count(*)::int from asset_networks n join assets a on a.id = n.asset where a.enabled) total`);
+  assert(r.coins === 18 && r.nets === 21 && r.total === 21, JSON.stringify(r));
+});
+await test('a USDT withdrawal goes out on the chosen network and is checked against it', async () => {
+  await credit('USDT', 100000000);
+  await throwsLike(`select request_withdrawal('${BRENDAN}', 30000000, '${EVM_ADDR}', null, 'wd-usdt-tron', false, 'USDT')`, /valid Tron/);
+  const t = await rpc(`select meta->>'network' net, counterparty from request_withdrawal('${BRENDAN}', 30000000, '${EVM_ADDR}', null, 'wd-usdt-eth', false, 'USDT', null, 'ethereum')`);
+  assert(t.net === 'ethereum' && t.counterparty === EVM_ADDR, JSON.stringify(t));
+});
+await test('a reported USDC deposit records the Solana address it was sent to', async () => {
+  const t = await rpc(`select meta->>'network' net, meta->>'to_address' addr from report_deposit('${BRENDAN}', 'USDC', 50000000, '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW', null, 'dep-usdc-sol', 'solana')`);
+  assert(t.net === 'solana' && t.addr === '6rLbe3VkK29hhtC4yQErCZabheksU3ojg7D1KXa4wQbt', JSON.stringify(t));
+});
+await test('the allowlist accepts an address on any of the coin’s networks', async () => {
+  const a = await one(`select asset, address from allowlist_add('${BRENDAN}', 'Exchange (ERC-20)', '${EVM_ADDR}', null, 'USDT')`);
+  assert(a.asset === 'USDT' && a.address === EVM_ADDR, JSON.stringify(a));
+  await throwsLike(`select allowlist_add('${BRENDAN}', 'Bad', 'not-an-address', null, 'USDT')`, /valid Tether/);
+});
+await test('only Compliance sets a network’s address, and it must match that network', async () => {
+  await as(OPS, 'operations', () => throwsLike(`select asset_set_network_address('USDT', 'ethereum', '${EVM_ADDR}')`, /Only Compliance/));
+  await as(COMP, 'compliance', () => throwsLike(`select asset_set_network_address('USDT', 'tron', '${EVM_ADDR}')`, /valid Tron/));
+  await as(COMP, 'compliance', async () => {
+    await db.exec(`select asset_set_network_address('POL', 'ethereum', null)`);
+    assert((await one(`select deposit_address from asset_networks where asset = 'POL' and network = 'ethereum'`)).deposit_address === null, 'not closed');
+  });
+});
+
+await test('an XRP deposit is reported, and the approval asks staff to match the customer’s tag', async () => {
+  const t = await rpc(`select id, destination_tag::text tag, meta->>'to_address' addr from report_deposit('${BRENDAN}', 'XRP', 20000000, 'E3FE6EA3D48F0C2B639448020EA4F03D4F4F8FFDB243A852A0F59177921B4879', null, 'dep-xrp')`);
+  const c = await one(`select destination_tag::text tag from customers where id = '${BRENDAN}'`);
+  const checks = (await one(`select checks::text c from approvals where transaction_id = $1`, [t.id])).c;
+  assert(t.tag === c.tag && t.addr === 'rp489nfz7Q6KoHYkB6Uj3Ks4RtSoX4CfCV' && checks.includes(`Destination tag ${c.tag}`), JSON.stringify({ t, checks }));
+});
+await test('staff, not the custody integration, send XRP withdrawals', async () => {
+  const t = await rpc(`select id from request_withdrawal('${BRENDAN}', 20000000, 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', 1, 'wd-xrp-staff')`);
+  await as(OPS, 'operations', () => throwsLike(`select withdrawal_mark_sent('${t.id}', 'ABCDEF1234567890')`, /Only approved withdrawals/));
+});
+
+console.log('\nIdentity review');
+const signUp = async (id, email) => db.exec(`insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data)
+  values ('00000000-0000-0000-0000-000000000000', '${id}', 'authenticated', 'authenticated', '${email}', '{"full_name": "Kemi Ade", "country": "NG"}')`);
+const KEMI = '00000000-0000-4000-8000-00000000c0de';
+const KEMI2 = '00000000-0000-4000-8000-00000000c0df';
+await test('Compliance verifies an identity check, which unlocks the customer and tells them', async () => {
+  await signUp(KEMI, 'kemi@example.com');
+  await db.exec(`select kyc_started('${KEMI}', 'KYC-T1', 'passport', 'NG', array['${KEMI}/KYC-T1/id-photo'])`);
+  await as(OPS, 'operations', () => throwsLike(`select kyc_review('${KEMI}', 'verified', null)`, /Only Compliance/));
+  // `as` rolls back, so check the outcome inside it.
+  await as(COMP, 'compliance', async () => {
+    await db.exec(`select kyc_review('${KEMI}', 'verified', null)`);
+    await db.exec('reset role'); // staff can't read customers' notifications; check as the database owner
+    const r = await one(`select c.kyc_status, c.kyc_level, (select title from notifications where customer_id = c.id order by created_at desc limit 1) note
+                         from customers c where id = '${KEMI}'`);
+    assert(r.kyc_status === 'verified' && r.kyc_level === 2 && r.note === 'Identity verified', JSON.stringify(r));
+    await db.exec('set local role authenticated');
+    await throwsLike(`select kyc_review('${KEMI}', 'rejected', 'Document expired last year')`, /already been decided/);
+  });
+});
+await test('a rejection needs a reason, which the customer is shown', async () => {
+  await signUp(KEMI2, 'kemi2@example.com');
+  await db.exec(`select kyc_started('${KEMI2}', 'KYC-T2', 'passport', 'NG', array['${KEMI2}/KYC-T2/id-photo'])`);
+  await as(COMP, 'compliance', () => throwsLike(`select kyc_review('${KEMI2}', 'rejected', 'no')`, /short reason/));
+  await as(COMP, 'compliance', async () => {
+    await db.exec(`select kyc_review('${KEMI2}', 'rejected', 'The passport photo is blurred; please upload a clearer one.')`);
+    await db.exec('reset role');
+    const r = await one(`select c.kyc_status, (select body from notifications where customer_id = c.id order by created_at desc limit 1) body from customers c where id = '${KEMI2}'`);
+    assert(r.kyc_status === 'rejected' && r.body.startsWith('The passport photo is blurred'), JSON.stringify(r));
+  });
+});
+
+console.log('\nNo USD sales');
+await test('an exchange must name the coin to receive', async () => {
+  await db.exec('begin');
+  try {
+    await throwsLike(`select request_exchange('${BRENDAN}', 100000000, 23800, 'usd-1')`, /Choose the coin you want to receive/);
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
+console.log('\nPassword reset by support');
+await test('only Compliance resets a password; sessions end, withdrawals pause and the customer is told', async () => {
+  await as(OPS, 'operations', () => throwsLike(`select customer_password_reset('${BRENDAN}')`, /Only Compliance/));
+  await as(COMP, 'compliance', async () => {
+    await db.exec(`select customer_password_reset('${BRENDAN}')`);
+    await db.exec('reset role');
+    const r = await one(`select c.withdrawals_hold_until > now() + interval '23 hours' held,
+                                (select title from notifications where customer_id = c.id order by created_at desc limit 1) note,
+                                (select action from audit_events order by id desc limit 1) action
+                         from customers c where id = '${BRENDAN}'`);
+    assert(r.held && r.note === 'Your password was reset by support' && /Reset customer password/.test(r.action), JSON.stringify(r));
+  });
+});
+
+console.log('\nUpkeep');
+await test('a job is claimed once per interval, and a daily job once per day after its time', async () => {
+  await db.exec('begin');
+  try {
+    const claim = async (every, daily = null) => (await one(`select upkeep_claim('t', '${every}'::interval, ${daily}) ok`)).ok;
+    const first = await claim('5 minutes');
+    const again = await claim('5 minutes');
+    await db.exec(`update job_runs set last_run_at = now() - interval '6 minutes' where job = 't'`);
+    const later = await claim('5 minutes');
+    await db.exec(`update job_runs set last_run_at = now() - interval '1 day' where job = 't'`);
+    const dailyEarly = await claim('0 seconds', 1440); // never reached: 24:00 UTC
+    const dailyDue = await claim('0 seconds', 0);
+    const dailyAgain = await claim('0 seconds', 0);
+    assert(first && !again && later && !dailyEarly && dailyDue && !dailyAgain, JSON.stringify({ first, again, later, dailyEarly, dailyDue, dailyAgain }));
+    await db.exec('set local role authenticated');
+    await throwsLike(`select upkeep_claim('t', '1 minute'::interval)`, /permission denied/);
+  } finally {
+    await db.exec('rollback');
+  }
 });
 
 console.log('\nSign-up');

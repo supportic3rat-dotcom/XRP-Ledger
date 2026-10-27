@@ -1,6 +1,6 @@
 import { ASSETS, asset } from '@xrp/ledger';
 import type { MicroUsd } from '@xrp/types';
-import type { PriceFeed, PricePoint } from './interfaces.ts';
+import type { LiquidityProvider, PriceFeed, PricePoint } from './interfaces.ts';
 import type { ChartPeriod } from './series.ts';
 
 /**
@@ -29,6 +29,10 @@ export type MarketStats = {
   sparkline: number[];
   updatedAt: string;
 };
+
+/** A quote is only made on prices updated within this window; older means the feed is stale, so no quote. */
+export const MAX_QUOTE_PRICE_AGE_MS = 15 * 60_000;
+const QUOTE_VALID_MS = 60_000;
 
 const PERIOD_DAYS: Record<ChartPeriod, string> = { '1D': '1', '1W': '7', '1M': '30', '3M': '90', '6M': '180', '1Y': '365', ALL: 'max' };
 
@@ -133,12 +137,34 @@ export const createCoinGecko = (opts: CoinGeckoOptions = {}) => {
     getPrice: async (assetId) => {
       const [p] = await prices([assetId]);
       if (!p) throw new Error(`No price for ${assetId}`);
-      return { priceMicro: p.priceMicro, at: p.at, source: 'CoinGecko' };
+      return { priceMicro: p.priceMicro, at: p.at, source: 'Market data' };
     },
     getHistory: (assetId, period) => history(assetId, period),
   };
 
-  return { markets, history, prices, feed };
+  /**
+   * A firm quote at live market prices: the same prices the app shows. The platform's spread and fees are applied
+   * by the caller (swapEstimate / exchangeEstimateFor). Both legs of a swap come from one request.
+   */
+  const requestQuote: LiquidityProvider['requestQuote'] = async ({ asset: from = 'XRP', toAsset }) => {
+    const rows = await prices(toAsset ? [from, toAsset] : [from]);
+    const now = Date.now();
+    const current = (id: string): MicroUsd => {
+      const row = rows.find((r) => r.asset === id);
+      if (!row || row.priceMicro <= 0n || now - Date.parse(row.at) > MAX_QUOTE_PRICE_AGE_MS) {
+        throw new Error(`There's no current price for ${id} right now. Try again in a minute.`);
+      }
+      return row.priceMicro;
+    };
+    return {
+      quoteId: `QT-${crypto.randomUUID()}`,
+      priceMicro: current(from),
+      ...(toAsset ? { toPriceMicro: current(toAsset) } : {}),
+      expiresAt: new Date(now + QUOTE_VALID_MS).toISOString(),
+    };
+  };
+
+  return { markets, history, prices, feed, requestQuote };
 };
 
 export type CoinGecko = ReturnType<typeof createCoinGecko>;

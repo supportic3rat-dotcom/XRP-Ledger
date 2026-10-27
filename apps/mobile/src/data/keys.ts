@@ -4,7 +4,7 @@ export const qk = {
   holdings: ['holdings'] as const,
   activity: ['activity'] as const,
   notifications: ['notifications'] as const,
-  deposit: (asset: string) => ['deposit', asset] as const,
+  deposit: (asset: string, network?: string) => ['deposit', asset, network ?? ''] as const,
   loan: ['loan'] as const,
   yield: ['yield'] as const,
   allowlist: ['allowlist'] as const,
@@ -16,5 +16,6 @@ export const qk = {
   externalWallets: ['externalWallets'] as const,
   custody: ['custody'] as const,
   kyc: ['kyc'] as const,
+  notificationPrefs: ['notificationPrefs'] as const,
   quote: (txId: string) => ['quote', txId] as const,
 };

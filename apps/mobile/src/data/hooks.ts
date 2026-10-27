@@ -22,12 +22,13 @@ export const usePrice = (asset = 'XRP') => {
   const m = useMarkets();
   const row = m.data?.find((r) => r.asset === asset);
   const data: PriceInfo | undefined = row
-    ? { priceMicro: row.priceMicro, changeBps: row.changeBps, at: row.updatedAt, source: row.live ? 'CoinGecko' : 'sample prices', stale: !row.live }
+    ? { priceMicro: row.priceMicro, changeBps: row.changeBps, at: row.updatedAt, source: row.live ? 'live prices' : 'sample prices', stale: !row.live }
     : undefined;
   return { ...m, data };
 };
 export const useNotifications = () => useQuery({ queryKey: qk.notifications, queryFn: api.notifications });
-export const useDepositInfo = (asset = 'XRP') => useQuery({ queryKey: qk.deposit(asset), queryFn: () => api.depositInfo(asset), staleTime: 60_000 });
+export const useDepositInfo = (asset = 'XRP', network?: string) =>
+  useQuery({ queryKey: qk.deposit(asset, network), queryFn: () => api.depositInfo(asset, network), staleTime: 60_000 });
 export const useLoan = () => useQuery({ queryKey: qk.loan, queryFn: api.loan });
 export const useYieldPositions = () => useQuery({ queryKey: qk.yield, queryFn: api.yieldPositions });
 export const useYield = (asset = 'XRP') =>
@@ -93,6 +94,12 @@ export const useLiveUpdates = () => {
 };
 
 /** Mutation helper: runs an API write and refreshes everything it may have touched. */
+/** Email receipts and price alerts (Profile → Notifications). */
+export const useNotificationPrefs = () => {
+  const signedIn = useSession((x) => x.signedIn);
+  return useQuery({ queryKey: qk.notificationPrefs, queryFn: api.notificationPrefs, enabled: signedIn });
+};
+
 export const useApiMutation = <TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries() });

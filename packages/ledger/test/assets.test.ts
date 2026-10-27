@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assetNetwork,
   ASSETS,
   assetLimits,
   centsToUnits,
@@ -60,5 +61,24 @@ describe('multi-asset money', () => {
   });
   it('deducts the per-asset withdrawal fee', () => {
     expect(withdrawalReceiveFor('BTC', parseUnits('0.001', 'BTC')!)).toBe(95_000n);
+  });
+});
+
+describe('networks', () => {
+  const EVM = '0xc33B5D681Fdf4986921123f34156D6957Ab60656';
+  it('lists the owner’s 18 coins, with USDT, USDC and POL on two networks', () => {
+    expect(ASSETS).toHaveLength(18);
+    expect(ASSETS.filter((a) => a.networks.length > 1).map((a) => a.id)).toEqual(['USDT', 'USDC', 'POL']);
+  });
+  it('checks an address against the chosen network, or any network without one', () => {
+    expect(isAssetAddress('USDT', EVM)).toBe(true);
+    expect(isAssetAddress('USDT', EVM, 'ethereum')).toBe(true);
+    expect(isAssetAddress('USDT', EVM, 'tron')).toBe(false);
+    expect(isAssetAddress('USDT', 'TLriwtKfzQkth9uLtmWXcghCSvNqj28Kns', 'tron')).toBe(true);
+  });
+  it('falls back to the default network for an unknown id', () => {
+    expect(assetNetwork('USDC').id).toBe('ethereum');
+    expect(assetNetwork('USDC', 'solana').name).toBe('Solana (SPL)');
+    expect(assetNetwork('BTC', 'nope').id).toBe('bitcoin');
   });
 });

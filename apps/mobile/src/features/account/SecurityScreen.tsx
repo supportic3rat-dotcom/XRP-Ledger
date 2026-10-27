@@ -93,7 +93,11 @@ export const SecurityScreen = () => {
   const pwErr = (path: string) => (pw.tried && !pwParse.success ? (pwParse.error.issues.find((i) => i.path[0] === path)?.message ?? '') : '');
   const adLabelErr = ad.tried && !ad.label.trim() ? 'Give this address a name.' : '';
   const adSpec = assetSpec(ad.asset);
-  const adAddrErr = ad.tried && !isAssetAddress(ad.asset, ad.address) ? `Enter a valid ${adSpec.network} address. ${adSpec.addressHint}` : '';
+  const adNetworks = adSpec.networks.map((n) => n.name).join(' or ');
+  const adAddrErr =
+    ad.tried && !isAssetAddress(ad.asset, ad.address)
+      ? `Enter a valid ${adNetworks} address.${adSpec.networks.length === 1 ? ` ${adSpec.addressHint}` : ''}`
+      : '';
 
   const savePw = async () => {
     if (!pwParse.success) {
@@ -358,7 +362,7 @@ export const SecurityScreen = () => {
             <ErrorText>{adLabelErr}</ErrorText>
           </Field>
           <Field>
-            <Label nativeID="ad-addr">{`${adSpec.network} address`}</Label>
+            <Label nativeID="ad-addr">{`${adNetworks} address`}</Label>
             <TextField
               accessibilityLabelledBy="ad-addr"
               height={null}

@@ -20,7 +20,7 @@ type Exception = { kind: 'unbooked_fee' | 'deposit_no_tag' | 'provider_delay' | 
 const xrp = (drops: bigint) => `${formatXrp(drops)} XRP`;
 
 /**
- * Three-way reconciliation: internal ledger vs custody provider vs XRP Ledger. Daily from the XRPL worker (00:00 WAT)
+ * Three-way reconciliation: internal ledger vs custody provider vs XRP Ledger. Daily from the upkeep function (00:00 WAT)
  * and on demand from the console. Differences become exceptions; nothing is corrected automatically.
  *
  * The ledger keeps one omnibus account. Warm and cold balances only move by provider-run sweeps, so their
@@ -31,36 +31,39 @@ export const handler = defineFunction({
   name: 'recon-run',
   schema: fnSchemas['recon-run'],
   access: { kind: 'staff_or_cron', roles: ['operations', 'compliance'] },
-  run: async (ctx) => {
-    const inputs = await ctx.rpc<Inputs>('recon_inputs', {});
-    const providerWallets = await ctx.providers.custody.listWallets();
-    const providerByTier = new Map(providerWallets.map((w) => [w.tier, w.balanceDrops]));
-
-    const omnibus = BigInt(inputs.omnibus_drops);
-    const nonHot = inputs.wallets.filter((w) => w.tier !== 'hot').reduce((sum, w) => sum + (providerByTier.get(w.tier) ?? 0n), 0n);
-    const result: Record<string, { internal: string; provider: string; chain: string }> = {};
-    for (const w of inputs.wallets) {
-      const provider = providerByTier.get(w.tier) ?? 0n;
-      const internal = w.tier === 'hot' ? omnibus - nonHot : provider;
-      result[w.id] = { internal: internal.toString(), provider: provider.toString(), chain: inputs.chain[w.address] ?? '0' };
-    }
-    const exceptions = findExceptions(inputs, result);
-    const run = await ctx.rpc<{ id: string; ref: string }>(
-      'recon_record',
-      {
-        p_validated_ledger: inputs.validated_ledger,
-        p_result: {
-          ...result,
-          liabilities: { customers: inputs.customer_liabilities_drops, suspense: inputs.suspense_drops },
-        },
-        p_exceptions: exceptions,
-        p_actor: actorName(ctx),
-      },
-      'service',
-    );
-    return { run: run.ref, exceptions: exceptions.length };
-  },
+  run: (ctx) => reconcile(ctx),
 });
+
+/** One reconciliation run, recorded with its exceptions. Also run daily by the upkeep function. */
+export const reconcile = async (ctx: Ctx<unknown>) => {
+  const inputs = await ctx.rpc<Inputs>('recon_inputs', {});
+  const providerWallets = await ctx.providers.custody.listWallets();
+  const providerByTier = new Map(providerWallets.map((w) => [w.tier, w.balanceDrops]));
+
+  const omnibus = BigInt(inputs.omnibus_drops);
+  const nonHot = inputs.wallets.filter((w) => w.tier !== 'hot').reduce((sum, w) => sum + (providerByTier.get(w.tier) ?? 0n), 0n);
+  const result: Record<string, { internal: string; provider: string; chain: string }> = {};
+  for (const w of inputs.wallets) {
+    const provider = providerByTier.get(w.tier) ?? 0n;
+    const internal = w.tier === 'hot' ? omnibus - nonHot : provider;
+    result[w.id] = { internal: internal.toString(), provider: provider.toString(), chain: inputs.chain[w.address] ?? '0' };
+  }
+  const exceptions = findExceptions(inputs, result);
+  const run = await ctx.rpc<{ id: string; ref: string }>(
+    'recon_record',
+    {
+      p_validated_ledger: inputs.validated_ledger,
+      p_result: {
+        ...result,
+        liabilities: { customers: inputs.customer_liabilities_drops, suspense: inputs.suspense_drops },
+      },
+      p_exceptions: exceptions,
+      p_actor: actorName(ctx),
+    },
+    'service',
+  );
+  return { run: run.ref, exceptions: exceptions.length };
+};
 
 const actorName = (ctx: Ctx<unknown>): string => (ctx.claims ? (ctx.claims.email ?? 'Staff') : 'System');
 

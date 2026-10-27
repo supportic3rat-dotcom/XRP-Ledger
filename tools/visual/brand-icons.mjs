@@ -49,12 +49,6 @@ const write = (rel, data) => {
   console.log('wrote', rel);
 };
 
-const fav32 = await png(favicon, 32);
-for (const app of ['apps/web/src/app', 'apps/admin/src/app']) {
-  write(`${app}/icon.svg`, favicon);
-  write(`${app}/favicon.ico`, ico(fav32, 32));
-  write(`${app}/apple-icon.png`, await png(touchIcon, 180));
-}
 write('apps/mobile/assets/icon.png', await png(appIcon, 1024));
 // Android adaptive icon: the foreground must sit inside the 66% safe zone of a 108dp canvas.
 write('apps/mobile/assets/adaptive-icon.png', await png(glyphOnly(0.5), 1024));

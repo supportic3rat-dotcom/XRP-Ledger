@@ -3,7 +3,7 @@ import { customerId, type TxRow } from '../_shared/customer.ts';
 import { defineFunction, serve } from '../_shared/handler.ts';
 
 /**
- * The customer tells us they've sent a non-XRP asset to the platform address, with the network transaction hash.
+ * The customer tells us they've sent a non-XRP asset to the platform address on a network, with the transaction hash.
  * Nothing is credited here: staff confirm it on the network and approve the credit in the queue.
  */
 export const handler = defineFunction({
@@ -20,6 +20,7 @@ export const handler = defineFunction({
       p_tx_hash: ctx.input.txHash,
       p_from: ctx.input.from ?? null,
       p_idempotency_key: ctx.idempotencyKey,
+      p_network: ctx.input.network ?? null,
     });
     if (screening) {
       const { data } = await ctx.db.from('approvals').select('checks').eq('transaction_id', tx.id).single();

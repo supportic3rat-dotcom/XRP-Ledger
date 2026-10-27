@@ -12,7 +12,7 @@ export const handler = defineFunction({
   access: { kind: 'customer' },
   idempotent: true,
   run: async (ctx) => {
-    const { asset, amountDrops, destination, destinationTag, memo } = ctx.input;
+    const { asset, amountDrops, destination, destinationTag, memo, network } = ctx.input;
     const { paused } = await touchDevice(ctx);
     const screening = await ctx.providers.screening.screenAddress(destination);
     const tx = await ctx.rpc<TxRow>('request_withdrawal', {
@@ -24,6 +24,7 @@ export const handler = defineFunction({
       p_device_paused: paused,
       p_asset: asset,
       p_memo: memo ?? null,
+      p_network: network ?? null,
     });
     // Screening goes on the approval for the reviewer; a hit holds it there rather than failing the request.
     const { data: approval } = await ctx.db.from('approvals').select('checks').eq('transaction_id', tx.id).single();

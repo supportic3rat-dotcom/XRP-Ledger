@@ -20,5 +20,5 @@ export const recordPrice = async (feed: PriceFeed, store: Store, asset = 'XRP') 
 
 /** Every supported asset's price and 24-hour change from CoinGecko, in one request. */
 export const recordAllPrices = async (cg: CoinGecko, store: Store) => {
-  for (const p of await cg.prices(ASSET_IDS)) await store.insertPrice(p.asset, p.priceMicro, p.changeBps, 'CoinGecko');
+  for (const p of await cg.prices(ASSET_IDS)) await store.insertPrice(p.asset, p.priceMicro, p.changeBps, 'Market data');
 };

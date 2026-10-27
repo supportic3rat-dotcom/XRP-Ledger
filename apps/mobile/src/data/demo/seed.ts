@@ -55,12 +55,16 @@ export const seedHoldings: Holding[] = [
 
 /** Demo deposit addresses for reported assets. Sample values: never send funds to them. */
 export const DEMO_DEPOSIT_ADDRESSES: Record<string, string> = {
+  XRP: DEPOSIT_ADDRESS,
   BTC: 'bc1qdemo0address0do0not0send0funds0xyz9k',
   ETH: '0xDe00000000000000000000000000000000000001',
   USDT: 'TDemoAddressDoNotSendFundsXyz12345',
   USDC: '0xDe00000000000000000000000000000000000001',
   SOL: 'DemoSo1anaAddressDoNotSendFunds11111111111',
   BNB: '0xDe00000000000000000000000000000000000001',
+  // A coin's other networks, keyed `ASSET:network`.
+  'USDT:ethereum': '0xDe00000000000000000000000000000000000001',
+  'USDC:solana': 'DemoSo1anaAddressDoNotSendFunds11111111111',
 };
 
 export const PRICE = usdToMicro('2.38');

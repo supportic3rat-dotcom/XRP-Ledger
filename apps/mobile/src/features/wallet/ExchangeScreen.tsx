@@ -1,11 +1,11 @@
-import { assetLimits, exchangeEstimateFor, formatAmount, formatAssetPrice, formatUnits, formatUsd, isAssetId, parseUnits, swapEstimate } from '@xrp/ledger';
+import { assetLimits, formatAmount, formatAssetPrice, formatUnits, formatUsd, isAssetId, parseUnits, swapEstimate } from '@xrp/ledger';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { Badge, type BadgeTone } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
-import { AssetList, UsdOption } from '@/components/AssetPicker';
+import { AssetList } from '@/components/AssetPicker';
 import { Card } from '@/components/Card';
 import { CoinLogo } from '@/components/CoinLogo';
 import { Grab, Sheet } from '@/components/Sheet';
@@ -22,12 +22,15 @@ import { useActivity, useApiMutation, useAssets, useBalances, usePriceMap, useQu
 import { newIdempotencyKey } from '@/lib/idempotency';
 import { familyFor, useTheme } from '@/theme';
 
+/** A default coin to receive that isn't the one being swapped. */
+const otherCoin = (from: string) => (from === 'USDT' ? 'XRP' : 'USDT');
+
 const STEPS = [
   { label: 'Submitted', note: 'Request recorded' },
   { label: 'Under review', note: 'Eligibility and limit checks' },
   { label: 'Awaiting your acceptance', note: 'Firm quote, valid 60 seconds' },
   { label: 'Approved', note: 'Reserved at the accepted rate' },
-  { label: 'Processing', note: 'Liquidity provider and payout in progress' },
+  { label: 'Processing', note: 'Liquidity provider filling the swap' },
   { label: 'Completed', note: 'Both legs settled, receipt issued' },
 ];
 const STAGE: Record<string, number> = { requested: 1, quote_requested: 1, quoted: 2, quote_expired: 2, accepted: 3, sold: 4, paid_out: 5 };
@@ -70,7 +73,8 @@ export const ExchangeScreen = () => {
   const { c } = useTheme();
   const params = useLocalSearchParams<{ asset?: string }>();
   const [from, setFrom] = useState<string>(params.asset && isAssetId(params.asset) ? params.asset : 'XRP');
-  const [to, setTo] = useState<string>('USD');
+  // Coin-to-coin only: there's no bank payout, so a USD sale would leave money that can't be withdrawn.
+  const [to, setTo] = useState<string>(() => otherCoin(params.asset && isAssetId(params.asset) ? params.asset : 'XRP'));
   const [picking, setPicking] = useState<'from' | 'to' | null>(null);
   const assets = useAssets();
   const balances = useBalances(from);
@@ -88,14 +92,12 @@ export const ExchangeScreen = () => {
   const cancel = useApiMutation(api.cancelExchange);
   const quote = useQuote(txId);
 
-  const swap = to !== 'USD';
   const lim = assetLimits(from);
   const available = balances.data?.available ?? 0n;
   const p = prices[from] ?? 0n;
   const amt = parseUnits(amount, from);
   const ok = amt !== null && amt >= lim.minProduct && amt <= available;
-  const est = exchangeEstimateFor(from, amt ?? 0n, p);
-  const sw = swap ? swapEstimate(amt ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n }) : null;
+  const sw = swapEstimate(amt ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n });
   const err =
     tried && !ok
       ? amt === null || amt === 0n
@@ -109,7 +111,7 @@ export const ExchangeScreen = () => {
       setFrom(id);
       setAmount('');
       setTried(false);
-      if (id === to) setTo('USD');
+      if (id === to) setTo(otherCoin(id));
     } else if (picking === 'to') setTo(id);
     setPicking(null);
   };
@@ -168,7 +170,7 @@ export const ExchangeScreen = () => {
     }
     setError('');
     try {
-      const created = await request.mutateAsync({ idempotencyKey: idem.current, asset: from, toAsset: swap ? to : null, amountDrops: amt });
+      const created = await request.mutateAsync({ idempotencyKey: idem.current, asset: from, toAsset: to, amountDrops: amt });
       setTxId(created.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'We couldn’t submit this request.');
@@ -178,7 +180,7 @@ export const ExchangeScreen = () => {
   return (
     <Screen>
       <ScrollBody bottom={108}>
-        <TopBar leading="close" title={txId ? 'Request status' : swap ? 'Swap request' : 'Exchange request'} onLeading={() => router.replace('/')} />
+        <TopBar leading="close" title={txId ? 'Request status' : 'Swap request'} onLeading={() => router.replace('/')} />
         {error ? (
           <Banner tone="error" icon="alert" alert style={{ marginBottom: 12 }}>
             {error}
@@ -190,7 +192,7 @@ export const ExchangeScreen = () => {
             <Card clip={false}>
               <View style={{ paddingVertical: 14, paddingHorizontal: 16, gap: 8 }}>
                 <T size={12.5} color="text3" nativeID="x-amt">
-                  {swap ? 'You swap' : 'You sell'}
+                  You swap
                 </T>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <TextInput
@@ -236,12 +238,12 @@ export const ExchangeScreen = () => {
                 </T>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <T size={28} weight={500} num color="text2" style={{ flex: 1 }} numberOfLines={1} adjustsFontSizeToFit>
-                    {sw ? formatUnits(sw.receive > 0n ? sw.receive : 0n, to) : formatUsd(est.receive).replace('$', '')}
+                    {formatUnits(sw.receive > 0n ? sw.receive : 0n, to)}
                   </T>
                   <AssetPill asset={to} label={`Receive: ${to}. Change`} onPress={() => setPicking('to')} />
                 </View>
                 <T size={12.5} color="text3">
-                  {swap ? `To your ${to} balance` : 'To [Bank account •••• 0000]'}
+                  {`To your ${to} balance`}
                 </T>
               </View>
             </Card>
@@ -256,18 +258,9 @@ export const ExchangeScreen = () => {
               <KV
                 num
                 items={[
-                  ...(sw
-                    ? [
-                        { k: 'Indicative rate', v: `1 ${from} ≈ ${formatUnits(swapEstimate(parseUnits('1', from) ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n }).gross, to, { minDecimals: 2, maxDecimals: 6 })} ${to}` },
-                        { k: 'Spread & service fee (1.00%)', v: `≈ ${formatAmount(sw.fee, to)}` },
-                        { k: 'Estimated receive', v: `≈ ${formatAmount(sw.receive > 0n ? sw.receive : 0n, to)}` },
-                      ]
-                    : [
-                        { k: 'Indicative rate', v: `1 ${from} ≈ ${formatAssetPrice(p)}` },
-                        { k: 'Spread & service fee (1.00%)', v: `≈ ${formatUsd(est.fee)}` },
-                        { k: 'Payout fee', v: formatUsd(est.payout) },
-                        { k: 'Estimated receive', v: `≈ ${formatUsd(est.receive)}` },
-                      ]),
+                  { k: 'Indicative rate', v: `1 ${from} ≈ ${formatUnits(swapEstimate(parseUnits('1', from) ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n }).gross, to, { minDecimals: 2, maxDecimals: 6 })} ${to}` },
+                  { k: 'Spread & service fee (1.00%)', v: `≈ ${formatAmount(sw.fee, to)}` },
+                  { k: 'Estimated receive', v: `≈ ${formatAmount(sw.receive > 0n ? sw.receive : 0n, to)}` },
                   { k: 'Processing', v: 'Manual · business hours' },
                 ]}
               />
@@ -347,14 +340,12 @@ export const ExchangeScreen = () => {
                 num
                 items={[
                   { k: `1 · Debit ${from}`, v: <Badge label={legA[0]} tone={legA[1]} /> },
-                  { k: swap ? `2 · Credit ${to}` : '2 · USD payout', v: <Badge label={legB[0]} tone={legB[1]} /> },
+                  { k: `2 · Credit ${to}`, v: <Badge label={legB[0]} tone={legB[1]} /> },
                 ]}
               />
             </Card>
             <T size={12} lh={1.5} color="text3" style={{ marginTop: 12, marginHorizontal: 4 }}>
-              {swap
-                ? `Each leg is recorded separately. ${to} is credited only when the liquidity provider confirms the fill.`
-                : 'Each leg is recorded separately. USD isn’t marked received until the payout provider confirms settlement.'}
+              {`Each leg is recorded separately. ${to} is credited only when the liquidity provider confirms the fill.`}
             </T>
           </>
         )}
@@ -374,13 +365,8 @@ export const ExchangeScreen = () => {
       <Sheet open={picking !== null} onClose={() => setPicking(null)} maxHeight={0.86} accessibilityLabel={picking === 'from' ? 'Asset to sell' : 'Asset to receive'}>
         <Grab />
         <T size={18} weight={600} style={{ marginBottom: 14 }} accessibilityRole="header">
-          {picking === 'from' ? 'Sell or swap' : 'Receive'}
+          {picking === 'from' ? 'Swap' : 'Receive'}
         </T>
-        {picking === 'to' ? (
-          <Card style={{ marginBottom: 12 }}>
-            <UsdOption on={to === 'USD'} onPress={() => pick('USD')} />
-          </Card>
-        ) : null}
         <AssetList
           assets={assetOptions.filter((a) => (picking === 'to' ? a.id !== from : true))}
           value={picking === 'from' ? from : to}

@@ -30,6 +30,8 @@ export type Store = {
   insertPrice(asset: string, priceMicro: bigint, changeBps: number, source: string): Promise<void>;
   /** Scheduled upkeep through public.run_job (service role only). */
   runJob(job: string): Promise<void>;
+  /** XRP's deposit mode: `automatic` (this worker credits and sends) or `reported` (staff confirm and send). */
+  xrpMode(): Promise<'automatic' | 'reported'>;
 };
 
 const must = <T>(r: { data: T; error: { message: string } | null }): T => {
@@ -104,5 +106,9 @@ export const supabaseStore = (url: string, serviceRoleKey: string): Store => {
       must(await db.from('prices').insert({ asset, usd_micro: priceMicro.toString(), change_bps: changeBps, source }));
     },
     runJob: (job) => rpc('run_job', { p_job: job }),
+    xrpMode: async () => {
+      const row = must(await db.from('assets').select('deposit_mode').eq('id', 'XRP').single()) as { deposit_mode: string } | null;
+      return row?.deposit_mode === 'automatic' ? 'automatic' : 'reported';
+    },
   };
 };

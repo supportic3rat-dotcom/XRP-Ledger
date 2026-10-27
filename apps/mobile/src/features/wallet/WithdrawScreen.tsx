@@ -1,6 +1,7 @@
 import {
   asset as assetSpec,
   assetLimits,
+  assetNetwork,
   formatAmount,
   formatUnitsPrecise,
   formatUsd,
@@ -27,6 +28,7 @@ import { Footer } from '@/components/Footer';
 import { HeroIcon } from '@/components/Glyph';
 import { KV } from '@/components/KV';
 import { Row } from '@/components/Row';
+import { Segmented } from '@/components/Segmented';
 import { Screen, ScrollBody } from '@/components/Screen';
 import { StepBar } from '@/components/Steps';
 import { T } from '@/components/T';
@@ -39,15 +41,15 @@ import { newIdempotencyKey } from '@/lib/idempotency';
 import { useTheme } from '@/theme';
 import { slopFor } from '@/components/hitSlop';
 
-const LIFE = (xrp: boolean, network: string) => [
-  { label: 'Submitted', note: 'Request recorded with your 2FA confirmation' },
+const LIFE = (auto: boolean, network: string) => [
+  { label: 'Submitted', note: 'Request recorded and confirmed on your device' },
   { label: 'Balance reserved', note: 'Amount earmarked so it can’t be spent twice' },
   { label: 'Compliance review', note: 'Address screening and limit checks' },
   { label: 'Approved', note: 'Authorised by operations staff' },
-  xrp
+  auto
     ? { label: 'Sent to custody provider', note: 'Signed inside the provider’s security boundary' }
     : { label: 'Sent from platform wallet', note: 'Sent by our team after approval' },
-  xrp
+  auto
     ? { label: 'Validated on ledger', note: 'Transaction hash recorded from a validated ledger' }
     : { label: `Confirmed on ${network}`, note: 'Network transaction hash recorded' },
   { label: 'Completed', note: 'Ledger entries finalised and receipt sent' },
@@ -111,12 +113,15 @@ export const WithdrawScreen = () => {
   const [tag, setTag] = useState('');
   const [noTag, setNoTag] = useState(false);
   const [memo, setMemo] = useState('');
+  const [networkId, setNetworkId] = useState<string | undefined>(undefined);
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
   const [txId, setTxId] = useState<string | null>(null);
   const idem = useRef(newIdempotencyKey());
 
   const spec = assetSpec(assetId);
+  /** The network it's sent on: the customer's pick for multi-network coins, else the coin's own. */
+  const net = assetNetwork(assetId, networkId);
   const xrp = assetId === 'XRP';
   const lim = assetLimits(assetId);
   const available = balances.data?.available ?? 0n;
@@ -126,9 +131,9 @@ export const WithdrawScreen = () => {
   const saved = (allowlist.data ?? []).filter((s) => s.asset === assetId);
   const activeSaved = saved.filter((s) => Date.parse(s.activeFrom) <= now);
   const a = addr.trim();
-  const addrOk = isAssetAddress(assetId, a);
+  const addrOk = isAssetAddress(assetId, a, net.id);
   const allowBlocked = allowOn && addrOk && !activeSaved.some((s) => s.address === a);
-  const tagOk = spec.memo !== 'tag' || noTag || isDestinationTag(tag);
+  const tagOk = net.memo !== 'tag' || noTag || isDestinationTag(tag);
   const amt = parseUnits(amount, assetId);
   const amtOk = amt !== null && amt >= lim.minWithdrawal && amt <= available;
   const receive = amt !== null ? withdrawalReceiveFor(assetId, amt) : 0n;
@@ -140,13 +145,14 @@ export const WithdrawScreen = () => {
     setMemo('');
     setAmount('');
     setTried(0);
+    setNetworkId(undefined);
   }, [assetId]);
 
   const errs = {
     addr:
       tried >= 1 && !addrOk
         ? a
-          ? `That isn’t a valid ${spec.network} address. ${spec.addressHint}`
+          ? `That isn’t a valid ${net.name} address. ${net.addressHint}`
           : 'Enter the address you’re sending to.'
         : tried >= 1 && allowBlocked
           ? 'Your allowlist is on. Choose a saved address, or add this one in Security — it activates after 24 hours.'
@@ -172,7 +178,7 @@ export const WithdrawScreen = () => {
     const status = (tx?.status as string | undefined) ?? 'requested';
     const cancelled = ['cancelled', 'rejected', 'failed'].includes(status);
     const idx = STAGE[status] ?? 2;
-    const lifeSteps = LIFE(xrp, spec.network);
+    const lifeSteps = LIFE(spec.deposit === 'automatic', net.name);
     const steps: TimelineStep[] = lifeSteps.map((x, i) => ({
       ...x,
       state: cancelled ? (i < 2 ? 'done' : 'skip') : status === 'validated' || i < idx ? 'done' : i === idx ? 'now' : '',
@@ -191,7 +197,7 @@ export const WithdrawScreen = () => {
       ? status === 'cancelled'
         ? 'Request cancelled. The reserved amount went back to your available balance.'
         : 'This withdrawal didn’t go ahead. The reserved amount went back to your available balance.'
-      : `Approval isn’t the same as sent. This shows Completed only after the transaction is confirmed on ${spec.network}.`;
+      : `Approval isn’t the same as sent. This shows Completed only after the transaction is confirmed on ${net.name}.`;
     return {
       steps,
       label,
@@ -199,7 +205,7 @@ export const WithdrawScreen = () => {
       tone: status === 'validated' ? ('okPos' as const) : cancelled ? ('off' as const) : ('warn' as const),
       canCancel: !cancelled && idx <= 2 && status !== 'approved',
     };
-  }, [tx, xrp, spec.network]);
+  }, [tx, spec.deposit, net.name]);
 
   const fiat = amt !== null ? `≈ ${formatUsd(unitsToCents(amt, p, assetId))}` : '≈ $0.00';
   const amountText = amt === null ? '—' : formatAmount(amt, assetId);
@@ -236,10 +242,11 @@ export const WithdrawScreen = () => {
         const created = await submitMut.mutateAsync({
           idempotencyKey: idem.current,
           asset: assetId,
-          memo: spec.memo === 'memo' && memo.trim() ? memo.trim() : null,
+          memo: net.memo === 'memo' && memo.trim() ? memo.trim() : null,
           amountDrops: amt ?? 0n,
           destination: a,
-          destinationTag: spec.memo !== 'tag' || noTag ? null : tag,
+          destinationTag: net.memo !== 'tag' || noTag ? null : tag,
+          network: net.id,
         });
         setTxId(created.id);
         setStep(5);
@@ -278,11 +285,32 @@ export const WithdrawScreen = () => {
               <AssetSelect
                 label="Asset to withdraw"
                 value={assetId}
-                assets={(assets.data ?? []).map((x) => ({ id: x.id, name: x.name, network: x.network }))}
+                assets={(assets.data ?? []).map((x) => ({
+                  id: x.id,
+                  name: x.name,
+                  network: assetSpec(x.id)
+                    .networks.map((n) => n.name)
+                    .join(' · '),
+                }))}
                 onChange={setAssetId}
               />
-              <Help>{`Sent on ${spec.network} only. Available ${formatAmount(available, assetId)}.`}</Help>
+              <Help>{`Sent on ${net.name} only. Available ${formatAmount(available, assetId)}.`}</Help>
             </Field>
+            {spec.networks.length > 1 ? (
+              <Field>
+                <Label>Network</Label>
+                <Segmented
+                  label="Network"
+                  value={net.id}
+                  onChange={(v) => {
+                    setNetworkId(v);
+                    setTried(0);
+                  }}
+                  options={spec.networks.map((n) => ({ value: n.id, label: n.name }))}
+                />
+                <Help>Choose the network the receiving wallet uses. Sending on the wrong one can lose the funds.</Help>
+              </Field>
+            ) : null}
             {allowOn ? (
               <Field>
                 <Label>Saved addresses</Label>
@@ -305,6 +333,7 @@ export const WithdrawScreen = () => {
                           active
                             ? () => {
                                 setAddr(s.address);
+                                setNetworkId(spec.networks.find((n) => n.address.test(s.address))?.id);
                                 setTag(s.tag ?? '');
                                 setNoTag(!s.tag);
                                 setMemo(s.memo ?? '');
@@ -334,7 +363,7 @@ export const WithdrawScreen = () => {
                 onChangeText={setAddr}
                 invalid={!!errs.addr}
                 size={14}
-                placeholder={spec.addressHint}
+                placeholder={net.addressHint}
                 autoCapitalize="none"
                 autoCorrect={false}
                 spellCheck={false}
@@ -352,7 +381,7 @@ export const WithdrawScreen = () => {
               />
               <ErrorText>{errs.addr}</ErrorText>
             </Field>
-            {spec.memo === 'tag' ? (
+            {net.memo === 'tag' ? (
               <Field>
                 <Label nativeID="w-tag">Destination tag</Label>
                 <TextField
@@ -380,7 +409,7 @@ export const WithdrawScreen = () => {
                 </CheckRow>
               </Field>
             ) : null}
-            {spec.memo === 'memo' ? (
+            {net.memo === 'memo' ? (
               <Field>
                 <Label nativeID="w-memo" optional>
                   Memo
@@ -402,7 +431,7 @@ export const WithdrawScreen = () => {
               </Banner>
             ) : (
               <Banner tone="warn" icon="alert">
-                {`Double-check the address is for ${spec.network}. Sending to an address on another network can lose the funds.`}
+                {`Double-check the address is for ${net.name}. Sending to an address on another network can lose the funds.`}
               </Banner>
             )}
           </View>
@@ -467,9 +496,9 @@ export const WithdrawScreen = () => {
                 num
                 items={[
                   { k: 'To', v: a, mono: true, valueSize: 12.5, valueWeight: 400 },
-                  ...(spec.memo === 'tag' ? [{ k: 'Destination tag', v: noTag ? 'None' : tag, mono: true }] : []),
-                  ...(spec.memo === 'memo' ? [{ k: 'Memo', v: memo.trim() || 'None', mono: true }] : []),
-                  { k: 'Network', v: spec.network },
+                  ...(net.memo === 'tag' ? [{ k: 'Destination tag', v: noTag ? 'None' : tag, mono: true }] : []),
+                  ...(net.memo === 'memo' ? [{ k: 'Memo', v: memo.trim() || 'None', mono: true }] : []),
+                  { k: 'Network', v: net.name },
                   ...feeRows,
                 ]}
               />
@@ -480,7 +509,7 @@ export const WithdrawScreen = () => {
               </Banner>
             ) : null}
             <Banner tone="info" icon="info" style={{ marginTop: 12 }}>
-              {`Withdrawals are reviewed before they’re sent. Once confirmed on ${spec.network} they can’t be reversed.`}
+              {`Withdrawals are reviewed before they’re sent. Once confirmed on ${net.name} they can’t be reversed.`}
             </Banner>
           </>
         ) : null}

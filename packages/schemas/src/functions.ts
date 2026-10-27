@@ -16,9 +16,11 @@ const tag = z
   .regex(/^\d{1,10}$/)
   .refine((t) => BigInt(t) <= 4294967295n, 'Destination tag is too large');
 /** Checks an address against the request's asset network. */
-const addressFor = <T extends { asset: string; destination?: string; address?: string }>(v: T, ctx: z.RefinementCtx) => {
+/** A network id from the asset registry (`tron`, `ethereum`, …); omitted means the asset's default network. */
+const network = z.string().regex(/^[a-z0-9-]{2,24}$/).nullable().optional();
+const addressFor = <T extends { asset: string; destination?: string; address?: string; network?: string | null }>(v: T, ctx: z.RefinementCtx) => {
   const a = v.destination ?? v.address ?? '';
-  if (!isAssetAddress(v.asset, a)) ctx.addIssue({ code: 'custom', path: [v.destination !== undefined ? 'destination' : 'address'], message: `Not a valid ${v.asset} address` });
+  if (!isAssetAddress(v.asset, a, v.network)) ctx.addIssue({ code: 'custom', path: [v.destination !== undefined ? 'destination' : 'address'], message: `Not a valid ${v.asset} address` });
 };
 const legalDocument = z.enum(['tos', 'privacy', 'risk', 'custody', 'deposits', 'fees', 'yield', 'lending', 'complaints']);
 
@@ -30,15 +32,16 @@ export const fnSchemas = {
       destination: anyAddress,
       destinationTag: tag.nullable(),
       memo: z.string().trim().max(64).nullable().optional(),
+      network,
     })
     .superRefine(addressFor),
   'withdraw-cancel': z.object({ transactionId: z.string().uuid() }),
   /** `requote` asks for a fresh firm quote on an existing request (amount ignored). */
-  'exchange-request': z.object({ asset, amountDrops: drops, toAsset: z.enum(ASSET_IDS as [AssetId, ...AssetId[]]).nullable().optional(), requote: uuid.optional() }),
+  'exchange-request': z.object({ asset, amountDrops: drops, toAsset: z.enum(ASSET_IDS as [AssetId, ...AssetId[]]).optional(), requote: uuid.optional() }),
   'quote-current': z.object({ transactionId: uuid }),
-  'deposit-address': z.object({ asset }),
+  'deposit-address': z.object({ asset, network }),
   /** Customer reports a deposit of a non-XRP asset sent to the platform address; staff confirm it on the network. */
-  'deposit-report': z.object({ asset, amountUnits: drops, txHash, from: z.string().trim().max(120).nullable().optional() }),
+  'deposit-report': z.object({ asset, amountUnits: drops, txHash, from: z.string().trim().max(120).nullable().optional(), network }),
   'price-history': z.object({ asset: z.string().regex(/^[A-Z]{2,6}$/), period: z.enum(['1D', '1W', '1M', '3M', '6M', '1Y', 'ALL']) }),
   'mfa-backup-verify': z.object({ code: z.string().toUpperCase().regex(BACKUP_CODE) }),
   'security-update': z.discriminatedUnion('action', [
@@ -81,6 +84,10 @@ export const fnSchemas = {
   'recon-adjust': z.object({ exceptionId: z.string().uuid(), reason: z.string().min(10) }),
   'recon-contact': z.object({ exceptionId: z.string().uuid() }),
   'customer-freeze': z.object({ customerId: z.string().uuid(), frozen: z.boolean() }),
+  /** Compliance sets a new password for a customer who emailed support; it's shown once to send back. */
+  'customer-password-reset': z.object({ customerId: uuid }),
+  /** Runs whatever scheduled upkeep is due (prices, jobs, balances, daily reconciliation). Called by the app. */
+  upkeep: z.object({}),
   'customer-flag': z.object({ customerId: z.string().uuid(), note: z.string() }),
   'policy-decide': z.object({ policyChangeId: z.string().uuid(), decision: z.enum(['approve', 'decline']) }),
   'audit-export': z.object({ filter: z.enum(['all', 'staff', 'customer', 'system']) }),
@@ -93,8 +100,17 @@ export const fnSchemas = {
     z.object({ action: z.literal('sent'), transactionId: uuid, txHash }),
     z.object({ action: z.literal('failed'), transactionId: uuid, reason: z.string().trim().min(10) }),
   ]),
+  /** Any staff member changes their own password; the current one is checked first. */
+  'staff-password-change': z.object({ current: z.string().min(1), next: z.string().refine(isStrongPassword, 'Password is too weak') }),
   /** Compliance sets where customers send each asset, or closes deposits for it. */
-  'asset-update': z.object({ asset, depositAddress: z.string().trim().max(120).nullable(), memo: z.string().trim().max(64).nullable(), enabled: z.boolean() }),
+  'asset-update': z.object({
+    asset,
+    depositAddress: z.string().trim().max(120).nullable(),
+    memo: z.string().trim().max(64).nullable(),
+    enabled: z.boolean(),
+    /** Addresses for the asset's other networks, keyed by network id; null closes that network. */
+    networks: z.record(z.string().regex(/^[a-z0-9-]{2,24}$/), z.string().trim().max(120).nullable()).optional(),
+  }),
 } as const;
 
 export type FnName = keyof typeof fnSchemas;

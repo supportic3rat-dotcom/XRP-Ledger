@@ -2,19 +2,21 @@ import { asset as assetSpec, formatAmount, isAssetId, parseUnits } from '@xrp/le
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { AssetSelect, type PickableAsset } from '@/components/AssetPicker';
 import { Badge } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { CoinLogo } from '@/components/CoinLogo';
 import { CopyButton } from '@/components/CopyButton';
 import { ErrorText, Field, Help, Label, TextField } from '@/components/Form';
 import { Icon } from '@/components/Icon';
 import { KV } from '@/components/KV';
 import { Screen, ScrollBody } from '@/components/Screen';
 import { Sec } from '@/components/Sec';
+import { Segmented } from '@/components/Segmented';
 import { T } from '@/components/T';
 import { Timeline, type TimelineStep } from '@/components/Timeline';
 import { useToast } from '@/components/Toast';
@@ -40,6 +42,8 @@ const REPORTED_STEPS = (network: string) => [
   { label: 'Credited', note: 'Added to your available balance with a receipt' },
 ];
 const REPORTED_STAGE: Record<string, number> = { reported: 1, validated: 2, screened: 3, credited: 4 };
+/** The coin whose logo marks a network on the receive card (a token's chain). */
+const NETWORK_COIN: Record<string, string> = { tron: 'TRX', ethereum: 'ETH', solana: 'SOL', polygon: 'POL', bnb: 'BNB' };
 
 export const DepositScreen = () => {
   useNoScreenCapture('deposit');
@@ -48,8 +52,9 @@ export const DepositScreen = () => {
   const showToast = useToast((s) => s.show);
   const params = useLocalSearchParams<{ asset?: string }>();
   const [assetId, setAssetId] = useState<string>(params.asset && isAssetId(params.asset) ? params.asset : 'XRP');
+  const [networkId, setNetworkId] = useState<string | undefined>(undefined);
   const assets = useAssets();
-  const info = useDepositInfo(assetId);
+  const info = useDepositInfo(assetId, networkId);
   const profile = useProfile();
   const activity = useActivity();
   const report = useApiMutation(api.reportDeposit);
@@ -71,6 +76,7 @@ export const DepositScreen = () => {
     setFrom('');
     setTried(false);
     setError('');
+    setNetworkId(undefined);
   }, [assetId]);
 
   const spec = assetSpec(assetId);
@@ -79,7 +85,9 @@ export const DepositScreen = () => {
   const options: PickableAsset[] = (assets.data ?? []).map((a) => ({
     id: a.id,
     name: a.name,
-    network: a.network,
+    network: assetSpec(a.id)
+      .networks.map((n) => n.name)
+      .join(' · '),
     ...(a.depositOpen ? {} : { note: 'Deposits not open yet', disabled: true }),
   }));
   const open = assets.data?.find((a) => a.id === assetId)?.depositOpen ?? true;
@@ -99,10 +107,23 @@ export const DepositScreen = () => {
   };
   const address = info.data?.address ?? '';
   const tag = info.data?.tag ?? info.data?.memo ?? '';
+  const network = info.data?.network ?? spec.network;
+  const networks = info.data?.networks ?? [];
+  const badgeCoin = NETWORK_COIN[info.data?.networkId ?? ''];
+  const share = () => {
+    const extra = tag ? `\n${spec.memo === 'tag' ? 'Destination tag' : 'Memo'} (required): ${tag}` : '';
+    Share.share({ message: `My ${spec.name} (${assetId}) address on ${network}:\n${address}${extra}` }).catch(() => undefined);
+  };
   const min = info.data?.minDrops ?? 0n;
 
   const units = parseUnits(amount, assetId);
-  const amountErr = !tried ? '' : units === null || units === 0n ? 'Enter the amount you sent.' : units < min ? `The minimum deposit is ${formatAmount(min, assetId, { minDecimals: 0, maxDecimals: 8 })}.` : '';
+  const amountErr = !tried
+    ? ''
+    : units === null || units === 0n
+      ? 'Enter the amount you sent.'
+      : units < min
+        ? `The minimum deposit is ${formatAmount(min, assetId, { minDecimals: 0, maxDecimals: 8 })}.`
+        : '';
   const hashErr = !tried ? '' : hash.trim().length < 8 ? 'Paste the transaction hash (ID) from your wallet.' : '';
 
   const submit = async () => {
@@ -112,7 +133,14 @@ export const DepositScreen = () => {
       return;
     }
     try {
-      await report.mutateAsync({ idempotencyKey: idem.current, asset: assetId, amountUnits: units, txHash: hash.trim(), from: from.trim() || null });
+      await report.mutateAsync({
+        idempotencyKey: idem.current,
+        asset: assetId,
+        network: info.data?.networkId,
+        amountUnits: units,
+        txHash: hash.trim(),
+        from: from.trim() || null,
+      });
       idem.current = newIdempotencyKey();
       setAmount('');
       setHash('');
@@ -131,16 +159,19 @@ export const DepositScreen = () => {
         <Sec top={0}>Asset</Sec>
         <AssetSelect label="Asset to deposit" value={assetId} assets={options} onChange={setAssetId} />
 
-        <Sec top={22}>Network</Sec>
-        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }}>
-          <Icon name="lock" color="text3" />
-          <T weight={500} style={{ flex: 1 }}>
-            {spec.network}
-          </T>
-          {reported ? <Badge label="Only this network" tone="warn" /> : <Badge label={info.data?.testnet === false ? 'Mainnet' : 'Testnet'} tone="warn" />}
-        </Card>
+        {networks.length > 1 ? (
+          <>
+            <Sec top={22}>Network</Sec>
+            <Segmented
+              label="Network"
+              value={info.data?.networkId ?? networks[0]!.id}
+              onChange={setNetworkId}
+              options={networks.map((n) => ({ value: n.id, label: n.name }))}
+            />
+          </>
+        ) : null}
 
-        <Sec top={22}>Send to</Sec>
+        <Sec top={22}>Receive</Sec>
         {!verified ? (
           <Card style={{ padding: 16, gap: 12 }}>
             <Banner tone="info" icon="lock">
@@ -150,39 +181,80 @@ export const DepositScreen = () => {
           </Card>
         ) : !open || (info.data && !address) ? (
           <Banner tone="info" icon="info">
-            {`${spec.name} deposits aren’t open yet. Choose another asset, or check back soon.`}
+            {networks.length > 1
+              ? `${spec.name} deposits on ${network} aren’t open yet. Choose another network, or check back soon.`
+              : `${spec.name} deposits aren’t open yet. Choose another asset, or check back soon.`}
           </Banner>
         ) : (
           <>
-            <Card clip={false} style={{ padding: 16, gap: 14 }}>
-              <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-                <View
-                  accessible
-                  accessibilityRole="image"
-                  accessibilityLabel={`QR code for the ${spec.name} deposit address`}
-                  style={{ width: 104, height: 104, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.surface }}
-                >
-                  {address ? (
-                    <QRCode value={assetId === 'XRP' ? `${address}?dt=${tag}` : address} size={96} color={c.text} backgroundColor={c.surface} quietZone={4} ecl="M" />
-                  ) : null}
-                </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                  <T size={12.5} color="text3">{`${spec.name} deposit address`}</T>
-                  <T size={13} lh={1.5} mono selectable>
-                    {address}
-                  </T>
-                  <CopyButton
-                    label={copied === 'addr' ? 'Copied' : 'Copy address'}
-                    font={14}
-                    accessibilityLabel="Copy deposit address"
-                    icon={<Icon name="copy" size="sm" />}
-                    style={{ alignSelf: 'flex-start' }}
-                    onPress={() => copy('addr', address)}
-                  />
-                </View>
+            <Card clip={false} style={{ paddingTop: 22, paddingBottom: 16, paddingHorizontal: 16, alignItems: 'center' }}>
+              <View accessible accessibilityLabel={badgeCoin && badgeCoin !== assetId ? `${spec.name} on ${network}` : spec.name}>
+                <CoinLogo asset={assetId} size={56} />
+                {badgeCoin && badgeCoin !== assetId ? (
+                  <View style={{ position: 'absolute', right: -6, bottom: -4, borderRadius: 14, borderWidth: 2.5, borderColor: c.surface }}>
+                    <CoinLogo asset={badgeCoin} size={22} />
+                  </View>
+                ) : null}
               </View>
+              <View
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={`QR code for your ${spec.name} address`}
+                style={{ marginTop: 18, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: '#FFFFFF' }}
+              >
+                {address ? (
+                  <QRCode
+                    value={assetId === 'XRP' && tag ? `${address}?dt=${tag}` : address}
+                    size={176}
+                    color="#0A0A0A"
+                    backgroundColor="#FFFFFF"
+                    quietZone={0}
+                    ecl="M"
+                  />
+                ) : (
+                  <View style={{ width: 176, height: 176 }} />
+                )}
+              </View>
+              <T size={15} weight={500} align="center" style={{ marginTop: 16 }}>{`Your ${spec.name} address`}</T>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${spec.name} address ${address}. Copy`}
+                onPress={() => copy('addr', address)}
+                style={({ pressed }) => ({
+                  alignSelf: 'stretch',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginTop: 10,
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  borderRadius: 12,
+                  backgroundColor: pressed ? c.border : c.sunken,
+                })}
+              >
+                {/* Addresses have no spaces: let them break anywhere (web needs telling; native wraps by character). */}
+                <T size={13.5} lh={1.5} mono selectable style={[{ flex: 1, minWidth: 0 }, { wordBreak: 'break-all' } as object]}>
+                  {address}
+                </T>
+                <Icon name={copied === 'addr' ? 'check' : 'copy'} size={18} color={copied === 'addr' ? 'pos' : 'text2'} />
+              </Pressable>
+              <T size={12.5} color="text3" align="center" style={{ marginTop: 10 }}>
+                {copied === 'addr' ? 'Address copied' : `Receive ${assetId} on the ${network} network.`}
+                {assetId === 'XRP' && info.data?.testnet ? ' · Testnet' : ''}
+              </T>
               {tag ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, backgroundColor: c.sunken }}>
+                <View
+                  style={{
+                    alignSelf: 'stretch',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginTop: 14,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: c.sunken,
+                  }}
+                >
                   <View style={{ flex: 1, gap: 2 }}>
                     <T size={12.5} color="text3">
                       {spec.memo === 'tag' ? 'Destination tag · required' : 'Memo · required'}
@@ -199,6 +271,13 @@ export const DepositScreen = () => {
                   />
                 </View>
               ) : null}
+              <Button
+                label="Share"
+                icon={<Icon name="share" size="sm" color="onAccent" />}
+                block
+                onPress={share}
+                style={{ alignSelf: 'stretch', marginTop: 16 }}
+              />
             </Card>
             <Banner tone="warn" icon="alert" style={{ marginTop: 12 }}>
               <T size={13} lh={1.45} color="warn">
@@ -211,7 +290,7 @@ export const DepositScreen = () => {
                     , and send native XRP only — issued tokens sent here can’t be credited.
                   </>
                 ) : (
-                  `Send only ${assetId} on ${spec.network}${tag ? `, with the memo ${tag}` : ''}. Other networks or tokens sent here may be lost.`
+                  `Send only ${assetId} on ${network}${tag ? `, with the memo ${tag}` : ''}. Other networks or tokens sent here may be lost.`
                 )}
               </T>
             </Banner>
@@ -231,7 +310,7 @@ export const DepositScreen = () => {
                 <Sec top={22}>Already sent it?</Sec>
                 <Card style={{ padding: 16, gap: 14 }}>
                   <T size={13.5} lh={1.5} color="text2">
-                    {`Tell us about the transaction so we can match it to your account. We check it on ${spec.network} and credit it — usually within a few hours.`}
+                    {`Tell us about the transaction so we can match it to your account. We check it on ${network} and credit it — usually within a few hours.`}
                   </T>
                   {error ? (
                     <Banner tone="error" icon="alert" alert>
@@ -307,7 +386,10 @@ export const DepositScreen = () => {
                     {`${reported ? 'Reported' : 'Detected'} ${isSameDay(pending.createdAt, api.now()) ? `today, ${hm(pending.createdAt)}` : `${md(pending.createdAt)}, ${hm(pending.createdAt)}`}`}
                   </T>
                 </View>
-                <Badge label={reported ? (stage <= 1 ? 'Confirming' : 'Screening') : (['Detected', 'Validating', 'Screening', 'Credited'][stage] ?? 'Validating')} tone="warn" />
+                <Badge
+                  label={reported ? (stage <= 1 ? 'Confirming' : 'Screening') : (['Detected', 'Validating', 'Screening', 'Credited'][stage] ?? 'Validating')}
+                  tone="warn"
+                />
               </View>
               <Timeline steps={steps} />
             </Card>

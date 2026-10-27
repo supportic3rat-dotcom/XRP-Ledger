@@ -6,7 +6,7 @@ import { HttpError } from '../_shared/http.ts';
 import { firmQuote } from '../_shared/quotes.ts';
 
 /**
- * Exchange any asset for USD, or swap it into another asset (manual). A new request is recorded for Operations to review; nothing is reserved.
+ * Swap one coin into another (manual). There's no USD sale: without a bank payout, USD couldn't be withdrawn. A new request is recorded for Operations to review; nothing is reserved.
  * `requote` asks the liquidity provider for a fresh firm quote after the previous one expired.
  */
 export const handler = defineFunction({
