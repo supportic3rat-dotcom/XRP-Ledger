@@ -219,7 +219,10 @@ Everything here differs from the design files or the brief on purpose, or still 
   in the console → Password → Set a new password (`customer-password-reset`; `customer_password_reset` in SQL):
   every session is signed out, withdrawals pause 24 hours, the customer is notified and it's audited. The password
   is shown once, with a button that drafts the reply email. Supabase's reset-link email is no longer used.
-- "Sell for USD" removed: there's no bank payout, so USD couldn't be withdrawn. Exchange is coin-to-coin only;
-  `request_exchange` refuses a request without a coin to receive. No live customer held USD.
+- Exchanges are settled by staff (no liquidity or payout provider): "Sell for USD" asks for the bank, account number
+  and account name to pay (stored on the request, shown in the approval checks and on the transaction). Once the
+  customer accepts the quote, Operations makes the bank transfer and taps "Mark as paid" with its reference
+  (`exchange-complete`, `exchange_complete`, `20261028000200_staff_settled_exchanges.sql`); the customer is notified
+  and it's audited. Swaps get "Mark as completed", which credits the bought coin. The provider webhooks remain.
 - Legal documents: "[KYC provider]", "[Custody provider]" and "[Support email]" replaced (compliance team, platform
   wallets we control, support.xrpledger@gmail.com). The Terms still need the company's legal details.

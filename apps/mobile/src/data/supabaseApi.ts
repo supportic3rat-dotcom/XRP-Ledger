@@ -338,7 +338,11 @@ export const createSupabaseApi = (): Api => ({
     await call('withdraw-cancel', { transactionId: id });
   },
   requestExchange: async (input) =>
-    callTx('exchange-request', { asset: input.asset, toAsset: input.toAsset, amountDrops: input.amountDrops.toString() }, input.idempotencyKey),
+    callTx(
+      'exchange-request',
+      { asset: input.asset, toAsset: input.toAsset, ...(input.payout ? { payout: input.payout } : {}), amountDrops: input.amountDrops.toString() },
+      input.idempotencyKey,
+    ),
   currentQuote: async (txId) => {
     const r = await call<Row | null>('quote-current', { transactionId: txId });
     return r

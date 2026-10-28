@@ -58,6 +58,8 @@ export type TxItem = {
   asset: string;
   /** An approved non-XRP withdrawal that staff send from the platform wallet and then mark sent. */
   manualSend: boolean;
+  /** An accepted exchange staff settle: a USD sale paid by bank transfer, or a swap credited from the platform wallet. */
+  settle: 'usd' | 'swap' | null;
 };
 
 /** One asset's balances for a customer, valued at the latest price. */
@@ -220,6 +222,8 @@ export type AdminData = {
   /** Record a deposit seen arriving for a customer; a different staff member approves the credit in the queue. */
   recordDeposit(customerId: string, asset: string, amountUnits: bigint, txHash: string, note: string): Promise<ActionResult>;
   /** Approved non-XRP withdrawal: mark sent (with the network hash) or failed (funds return to the customer). */
+  /** Settle an accepted exchange; a USD sale needs the bank transfer reference. */
+  completeExchange(txId: string, reference: string): Promise<ActionResult>;
   completeWithdrawal(txId: string, outcome: { action: 'sent'; txHash: string } | { action: 'failed'; reason: string }): Promise<ActionResult>;
   /** The signed-in staff member changes their own password (current one checked on the server). */
   changePassword(current: string, next: string): Promise<ActionResult>;

@@ -209,7 +209,7 @@ const initialQueue = (): QueueItem[] => [
 ];
 
 const r = (k: string, v: string, mono = false) => ({ k, v, ...(mono ? { mono } : {}) });
-type TxSeed = Omit<TxItem, 'asset' | 'manualSend'> & Partial<Pick<TxItem, 'asset' | 'manualSend'>>;
+type TxSeed = Omit<TxItem, 'asset' | 'manualSend' | 'settle'> & Partial<Pick<TxItem, 'asset' | 'manualSend' | 'settle'>>;
 const TX_SEED: TxSeed[] = [
   {
     id: 't1',
@@ -357,7 +357,7 @@ const TX_SEED: TxSeed[] = [
 ];
 
 const TXS: TxItem[] = [
-  ...TX_SEED.map((x) => ({ asset: 'XRP', manualSend: false, ...x })),
+  ...TX_SEED.map((x) => ({ asset: 'XRP', manualSend: false, settle: null, ...x })),
   {
     id: 't9',
     ref: 'WD-PROTO-2044',
@@ -371,6 +371,7 @@ const TXS: TxItem[] = [
     queueId: null,
     asset: 'BTC',
     manualSend: true,
+    settle: null,
     rows: [r('To', 'bc1qar0srrr7xfkvy5l643lyd…mdq', true), r('Network', 'Bitcoin'), r('Fee', '0.00005 BTC'), r('Approvals', '1 of 1 · K. Musa')],
     journal: [j('Customer available · BTC', '0.0125', ''), j('Customer reserved · BTC', '', '0.0125')],
     timeline: [t('10:05', 'Customer submitted (confirmed on device)'), t('10:05', 'System reserved 0.012500 BTC'), t('10:40', 'K. Musa (Compliance) approved')],
@@ -388,9 +389,28 @@ const TXS: TxItem[] = [
     queueId: 'dep2052',
     asset: 'USDT',
     manualSend: false,
+    settle: null,
     rows: [r('Network', 'Tron (TRC-20)'), r('Transaction hash', 'a3f1c9e07b…b9c0d1e2', true), r('Reported by', 'Customer')],
     journal: [],
     timeline: [t('10:58', 'Customer reported deposit')],
+  },
+  {
+    id: 't11',
+    ref: 'EX-PROTO-0331',
+    customer: 'CUS-0042',
+    kind: 'exchange',
+    type: 'Sell · XRP for USD',
+    amount: '−500.00 XRP',
+    time: 'Today 11:20',
+    status: 'Accepted',
+    tone: 'wait',
+    queueId: null,
+    asset: 'XRP',
+    manualSend: false,
+    settle: 'usd',
+    rows: [r('Pay to', 'Access Bank'), r('Account number', '0123456789', true), r('Account name', 'Tobi Adeyemi'), r('Quote accepted', '$652.40')],
+    journal: [j('Customer available · XRP', '500.00', ''), j('Customer reserved · XRP', '', '500.00')],
+    timeline: [t('11:12', 'Customer submitted'), t('11:15', 'A. Bello (Operations) approved · firm quote sent'), t('11:20', 'Customer accepted the quote')],
   },
 ];
 
@@ -677,8 +697,15 @@ export const createDemoData = (role: Role): AdminData => {
         const done = state().sent[tx.id];
         if (done) {
           return 'hash' in done
-            ? { ...tx, status: 'Completed', tone: 'ok' as const, manualSend: false, rows: [...tx.rows, r('Transaction hash', done.hash, true)] }
-            : { ...tx, status: 'Failed', tone: 'bad' as const, manualSend: false, rows: [...tx.rows, r('Reason', done.failed)] };
+            ? {
+                ...tx,
+                status: 'Completed',
+                tone: 'ok' as const,
+                manualSend: false,
+                settle: null,
+                rows: [...tx.rows, r(tx.kind === 'exchange' ? 'Bank reference' : 'Transaction hash', done.hash, true)],
+              }
+            : { ...tx, status: 'Failed', tone: 'bad' as const, manualSend: false, settle: null, rows: [...tx.rows, r('Reason', done.failed)] };
         }
         const q = tx.queueId && state().touched.has(tx.queueId) ? state().queue.find((x) => x.id === tx.queueId) : undefined;
         if (!q) return tx;
@@ -1059,6 +1086,15 @@ export const createDemoData = (role: Role): AdminData => {
       });
       log(`Recorded deposit of ${amount} for approval`, customerId);
       return { ok: true, message: 'Deposit recorded. A second staff member approves the credit in the queue.' };
+    },
+    completeExchange: async (txId, reference) => {
+      if (role === 'auditor') return { ok: false, error: 'Read-only role: you can view but not act.' };
+      const tx = TXS.find((x) => x.id === txId);
+      if (!tx || !tx.settle || state().sent[txId]) return { ok: false, error: 'Only exchanges the customer has accepted can be completed.' };
+      if (tx.settle === 'usd' && reference.trim().length < 4) return { ok: false, error: 'Enter the bank transfer reference.' };
+      state().sent[txId] = { hash: reference.trim() || '—' };
+      log(tx.settle === 'usd' ? 'Paid USD sale by bank transfer' : 'Completed swap', tx.ref);
+      return { ok: true, message: 'Completed. The customer has been told.' };
     },
     completeWithdrawal: async (txId, outcome) => {
       if (role === 'auditor') return { ok: false, error: 'Read-only role: you can view but not act.' };

@@ -220,6 +220,16 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         rowsKv.push({ k: 'Destination tag', v: t.destination_tag ? str(t.destination_tag) : 'Missing', mono: Boolean(t.destination_tag) });
         if (meta.claimed_by) rowsKv.push({ k: 'Claimed by', v: refs.get(str(meta.claimed_by)) ?? str(meta.claimed_by) });
         if (t.ledger_index) rowsKv.push({ k: 'Ledger index', v: Number(t.ledger_index).toLocaleString('en-US'), mono: true });
+      } else if (t.kind === 'exchange') {
+        const payout = meta.payout as Row | undefined;
+        if (payout) {
+          rowsKv.push({ k: 'Pay to', v: str(payout.bank) });
+          rowsKv.push({ k: 'Account number', v: str(payout.account_number), mono: true });
+          rowsKv.push({ k: 'Account name', v: str(payout.account_name) });
+        } else if (t.counter_asset && t.counter_amount) {
+          rowsKv.push({ k: 'Credit', v: formatAmount(big(t.counter_amount), str(t.counter_asset)) });
+        }
+        if (meta.reason) rowsKv.push({ k: 'Reason', v: str(meta.reason) });
       } else if (meta.reason) {
         rowsKv.push({ k: 'Reason', v: str(meta.reason) });
       }
@@ -242,6 +252,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         queueId: pending ? str(pending.id) : null,
         asset: str(t.asset) || 'XRP',
         manualSend: t.kind === 'withdrawal' && t.status === 'approved' && isAssetId(str(t.asset)) && assetSpec(str(t.asset)).deposit !== 'automatic',
+        settle: t.kind === 'exchange' && t.status === 'accepted' ? (t.counter_asset ? 'swap' : 'usd') : null,
       };
     });
   };
@@ -599,6 +610,10 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
     setFrozen: async (id, frozen) => {
       const r = await call('customer-freeze', { customerId: id, frozen });
       return r.ok ? { ok: true, message: frozen ? 'Frozen. Withdrawals and new requests are blocked.' : 'Unfrozen.' } : r;
+    },
+    completeExchange: async (txId, reference) => {
+      const r = await call('exchange-complete', { transactionId: txId, reference });
+      return r.ok ? { ok: true, message: 'Completed. The customer has been told.' } : r;
     },
     resetPassword: async (id) => {
       const r = await call('customer-password-reset', { customerId: id });

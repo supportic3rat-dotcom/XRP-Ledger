@@ -1,3 +1,4 @@
+import type { BankPayout } from '@xrp/schemas';
 import type { AssetLimits, DepositMode, MemoKind } from '@xrp/ledger';
 import type {
   AllowlistAddress,
@@ -108,8 +109,8 @@ export type Api = {
     destinationTag: string | null;
   }) => Promise<Transaction>;
   cancelWithdrawal: (id: string) => Promise<void>;
-  /** Swap one coin into another. There's no USD sale: without a bank payout, USD couldn't be withdrawn. */
-  requestExchange: (input: { idempotencyKey: string; asset: string; toAsset: string; amountDrops: bigint }) => Promise<Transaction>;
+  /** Swap into another coin, or sell for USD (`toAsset` null) paid by bank transfer to `payout`. */
+  requestExchange: (input: { idempotencyKey: string; asset: string; toAsset: string | null; payout?: BankPayout; amountDrops: bigint }) => Promise<Transaction>;
   acceptQuote: (txId: string, quoteId: string) => Promise<void>;
   requestNewQuote: (txId: string) => Promise<void>;
   cancelExchange: (txId: string) => Promise<void>;

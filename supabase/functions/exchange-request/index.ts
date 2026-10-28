@@ -1,12 +1,13 @@
 import { unitsToCents } from '@xrp/ledger';
-import { fnSchemas } from '@xrp/schemas';
+import { type BankPayout, fnSchemas } from '@xrp/schemas';
 import { currentPriceMicro, customerId, type TxRow } from '../_shared/customer.ts';
 import { type Ctx, defineFunction, serve } from '../_shared/handler.ts';
 import { HttpError } from '../_shared/http.ts';
 import { firmQuote } from '../_shared/quotes.ts';
 
 /**
- * Swap one coin into another (manual). There's no USD sale: without a bank payout, USD couldn't be withdrawn. A new request is recorded for Operations to review; nothing is reserved.
+ * Swap one coin into another, or sell it for USD paid by bank transfer to the account given (staff pay it once the
+ * customer accepts the quote). A new request is recorded for Operations to review; nothing is reserved.
  * `requote` asks the liquidity provider for a fresh firm quote after the previous one expired.
  */
 export const handler = defineFunction({
@@ -23,15 +24,23 @@ export const handler = defineFunction({
       await ctx.rpc('transition_tx', { p_tx: tx.id, p_to: 'quote_requested', p_actor: 'Customer', p_note: 'New quote requested' });
       return { transaction: tx, quote: await firmQuote(ctx, tx.id, BigInt(String(tx.amount_drops)), tx.asset, tx.counter_asset) };
     }
-    const { asset, toAsset } = ctx.input;
+    const { asset, toAsset, payout } = ctx.input;
     const amount = BigInt(ctx.input.amountDrops);
     const indicative = unitsToCents(amount, await currentPriceMicro(ctx, asset), asset);
-    return { transaction: await existingOrNew(ctx, me, amount, indicative, asset, toAsset ?? null) };
+    return { transaction: await existingOrNew(ctx, me, amount, indicative, asset, toAsset ?? null, payout ?? null) };
   },
 });
 
 /** A retry with the same Idempotency-Key returns the original request instead of creating a second one. */
-const existingOrNew = async (ctx: Ctx<unknown>, me: string, amount: bigint, indicativeCents: bigint, asset: string, toAsset: string | null): Promise<TxRow> => {
+const existingOrNew = async (
+  ctx: Ctx<unknown>,
+  me: string,
+  amount: bigint,
+  indicativeCents: bigint,
+  asset: string,
+  toAsset: string | null,
+  payout: BankPayout | null,
+): Promise<TxRow> => {
   const key = ctx.idempotencyKey;
   if (key) {
     const { data } = await ctx.db.from('transactions').select('*').match({ customer_id: me, idempotency_key: key }).maybeSingle();
@@ -44,6 +53,7 @@ const existingOrNew = async (ctx: Ctx<unknown>, me: string, amount: bigint, indi
     p_idempotency_key: key,
     p_asset: asset,
     p_to_asset: toAsset,
+    p_payout: payout ? { bank: payout.bank, account_number: payout.accountNumber, account_name: payout.accountName } : null,
   });
 };
 

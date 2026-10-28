@@ -131,6 +131,50 @@ const ManualSendPanel = ({ t, disabled }: { t: TxItem; disabled: boolean }) => {
   );
 };
 
+/**
+ * An accepted exchange staff settle: for a USD sale, pay the bank account above and record the transfer reference;
+ * for a swap, mark it completed to credit the bought coin. The customer is notified.
+ */
+const SettlePanel = ({ t, disabled }: { t: TxItem; disabled: boolean }) => {
+  const { data } = useStaffSession();
+  const { pending, run } = useOpsAction();
+  const [reference, setReference] = useState('');
+  const usd = t.settle === 'usd';
+  return (
+    <Card style={{ padding: 14, gap: 12 }}>
+      <SecT>{usd ? 'Pay this sale' : 'Complete this swap'}</SecT>
+      <T size={12.5} lh={1.45} color="text3" style={{ marginTop: -8 }}>
+        {usd
+          ? 'The customer accepted the quote. Send the USD amount by bank transfer to the account above (the name must match the customer), then record the transfer reference.'
+          : 'The customer accepted the quote. Completing it credits the coin they bought to their balance.'}
+      </T>
+      {usd ? (
+        <Field>
+          <Label nativeID="settle-ref">Bank transfer reference</Label>
+          <TextField
+            accessibilityLabelledBy="settle-ref"
+            value={reference}
+            onChangeText={setReference}
+            placeholder="From your bank’s confirmation"
+            mono
+            autoCapitalize="characters"
+            autoCorrect={false}
+            height={48}
+          />
+        </Field>
+      ) : null}
+      <Button
+        label={usd ? 'Mark as paid' : 'Mark as completed'}
+        size={48}
+        disabled={disabled}
+        loading={pending}
+        onPress={() => void run(() => data.completeExchange(t.id, reference.trim()), () => setReference(''))}
+      />
+      <BlockNote>{disabled ? 'Read-only role: you can view but not act.' : ''}</BlockNote>
+    </Card>
+  );
+};
+
 export const TransactionScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -166,6 +210,7 @@ export const TransactionScreen = () => {
           <Timeline rows={t.timeline} />
         </View>
         {t.manualSend ? <ManualSendPanel key={t.id} t={t} disabled={me.role === 'auditor'} /> : null}
+        {t.settle ? <SettlePanel key={t.id} t={t} disabled={me.role === 'auditor'} /> : null}
         {t.queueId ? <Button label="Open in approval queue" variant="secondary" size={48} onPress={() => router.push(`/ops/approval/${t.queueId}`)} /> : null}
       </Panel>
     </OpsScreen>

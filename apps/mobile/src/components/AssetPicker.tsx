@@ -152,3 +152,17 @@ export const AssetSelect = ({
     </>
   );
 };
+
+/** "US dollars to your bank account" choice, shown above the asset list when receiving. */
+export const UsdOption = ({ on, onPress }: { on: boolean; onPress: () => void }) => (
+  <Row first minHeight={60} accessibilityRole="button" accessibilityLabel="US dollars, paid to your bank account" accessibilityState={{ selected: on }} onPress={onPress}>
+    <CoinLogo asset="USD" size={36} />
+    <View style={{ flex: 1, gap: 1 }}>
+      <T weight={500}>US dollars · USD</T>
+      <T size={12} color="text3">
+        Paid to your bank account
+      </T>
+    </View>
+    <Radio on={on} />
+  </Row>
+);

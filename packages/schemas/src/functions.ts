@@ -22,6 +22,17 @@ const addressFor = <T extends { asset: string; destination?: string; address?: s
   const a = v.destination ?? v.address ?? '';
   if (!isAssetAddress(v.asset, a, v.network)) ctx.addIssue({ code: 'custom', path: [v.destination !== undefined ? 'destination' : 'address'], message: `Not a valid ${v.asset} address` });
 };
+/** The bank account a USD sale is paid to. */
+export const bankPayout = z.object({
+  bank: z.string().trim().min(2, 'Enter your bank').max(80),
+  accountNumber: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ''))
+    .pipe(z.string().regex(/^[A-Za-z0-9-]{6,34}$/, 'Enter a valid account number')),
+  accountName: z.string().trim().min(2, 'Enter the name on the account').max(80),
+});
+export type BankPayout = z.infer<typeof bankPayout>;
+
 const legalDocument = z.enum(['tos', 'privacy', 'risk', 'custody', 'deposits', 'fees', 'yield', 'lending', 'complaints']);
 
 export const fnSchemas = {
@@ -37,7 +48,14 @@ export const fnSchemas = {
     .superRefine(addressFor),
   'withdraw-cancel': z.object({ transactionId: z.string().uuid() }),
   /** `requote` asks for a fresh firm quote on an existing request (amount ignored). */
-  'exchange-request': z.object({ asset, amountDrops: drops, toAsset: z.enum(ASSET_IDS as [AssetId, ...AssetId[]]).optional(), requote: uuid.optional() }),
+  /** Swap into another coin (`toAsset`), or sell for USD paid by bank transfer to `payout` (`toAsset` null). */
+  'exchange-request': z.object({
+    asset,
+    amountDrops: drops,
+    toAsset: z.enum(ASSET_IDS as [AssetId, ...AssetId[]]).nullable().optional(),
+    payout: bankPayout.optional(),
+    requote: uuid.optional(),
+  }),
   'quote-current': z.object({ transactionId: uuid }),
   'deposit-address': z.object({ asset, network }),
   /** Customer reports a deposit of a non-XRP asset sent to the platform address; staff confirm it on the network. */
@@ -100,6 +118,8 @@ export const fnSchemas = {
     z.object({ action: z.literal('sent'), transactionId: uuid, txHash }),
     z.object({ action: z.literal('failed'), transactionId: uuid, reason: z.string().trim().min(10) }),
   ]),
+  /** Staff settle an accepted exchange: a USD sale after the bank transfer (reference required), or a swap. */
+  'exchange-complete': z.object({ transactionId: uuid, reference: z.string().trim().max(80).default('') }),
   /** Any staff member changes their own password; the current one is checked first. */
   'staff-password-change': z.object({ current: z.string().min(1), next: z.string().refine(isStrongPassword, 'Password is too weak') }),
   /** Compliance sets where customers send each asset, or closes deposits for it. */

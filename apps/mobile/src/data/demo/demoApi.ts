@@ -308,12 +308,13 @@ export const createDemoApi = (): Api => {
         const lim = assetLimits(input.asset);
         if (input.amountDrops < lim.minProduct) throw new Error(`The minimum request is ${formatAmount(lim.minProduct, input.asset)}.`);
         if (input.amountDrops > available(input.asset)) throw new Error('That’s more than your available balance.');
+        if (!input.toAsset && !input.payout) throw new Error('Enter the bank, account number and account name to be paid.');
         const est = exchangeEstimateFor(input.asset, input.amountDrops, latestPrice(input.asset));
         const tx = create('exchange', 'EX', 'requested', {
           asset: input.asset,
           counterAsset: input.toAsset,
           amountDrops: input.amountDrops,
-          meta: { indicative_cents: est.receive.toString(), receive: input.toAsset },
+          meta: { indicative_cents: est.receive.toString(), receive: input.toAsset ?? 'USD', ...(input.payout ? { payout_bank: input.payout.bank } : {}) },
         });
         schedule([
           [

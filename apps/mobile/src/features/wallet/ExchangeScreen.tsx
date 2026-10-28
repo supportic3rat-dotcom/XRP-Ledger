@@ -1,15 +1,16 @@
-import { assetLimits, formatAmount, formatAssetPrice, formatUnits, formatUsd, isAssetId, parseUnits, swapEstimate } from '@xrp/ledger';
+import { assetLimits, exchangeEstimateFor, formatAmount, formatAssetPrice, formatUnits, formatUsd, isAssetId, parseUnits, swapEstimate } from '@xrp/ledger';
+import { bankPayout } from '@xrp/schemas';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { Badge, type BadgeTone } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
-import { AssetList } from '@/components/AssetPicker';
+import { AssetList, UsdOption } from '@/components/AssetPicker';
 import { Card } from '@/components/Card';
 import { CoinLogo } from '@/components/CoinLogo';
 import { Grab, Sheet } from '@/components/Sheet';
-import { ErrorText } from '@/components/Form';
+import { ErrorText, Field, Label, TextField } from '@/components/Form';
 import { Footer } from '@/components/Footer';
 import { Icon } from '@/components/Icon';
 import { KV } from '@/components/KV';
@@ -22,15 +23,12 @@ import { useActivity, useApiMutation, useAssets, useBalances, usePriceMap, useQu
 import { newIdempotencyKey } from '@/lib/idempotency';
 import { familyFor, useTheme } from '@/theme';
 
-/** A default coin to receive that isn't the one being swapped. */
-const otherCoin = (from: string) => (from === 'USDT' ? 'XRP' : 'USDT');
-
 const STEPS = [
   { label: 'Submitted', note: 'Request recorded' },
   { label: 'Under review', note: 'Eligibility and limit checks' },
   { label: 'Awaiting your acceptance', note: 'Firm quote, valid 60 seconds' },
   { label: 'Approved', note: 'Reserved at the accepted rate' },
-  { label: 'Processing', note: 'Liquidity provider filling the swap' },
+  { label: 'Processing', note: 'Our team is completing the payment' },
   { label: 'Completed', note: 'Both legs settled, receipt issued' },
 ];
 const STAGE: Record<string, number> = { requested: 1, quote_requested: 1, quoted: 2, quote_expired: 2, accepted: 3, sold: 4, paid_out: 5 };
@@ -73,8 +71,9 @@ export const ExchangeScreen = () => {
   const { c } = useTheme();
   const params = useLocalSearchParams<{ asset?: string }>();
   const [from, setFrom] = useState<string>(params.asset && isAssetId(params.asset) ? params.asset : 'XRP');
-  // Coin-to-coin only: there's no bank payout, so a USD sale would leave money that can't be withdrawn.
-  const [to, setTo] = useState<string>(() => otherCoin(params.asset && isAssetId(params.asset) ? params.asset : 'XRP'));
+  const [to, setTo] = useState<string>('USD');
+  // A USD sale is paid by bank transfer, so it needs the account to pay.
+  const [bank, setBank] = useState({ bank: '', accountNumber: '', accountName: '' });
   const [picking, setPicking] = useState<'from' | 'to' | null>(null);
   const assets = useAssets();
   const balances = useBalances(from);
@@ -97,7 +96,11 @@ export const ExchangeScreen = () => {
   const p = prices[from] ?? 0n;
   const amt = parseUnits(amount, from);
   const ok = amt !== null && amt >= lim.minProduct && amt <= available;
-  const sw = swapEstimate(amt ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n });
+  const swap = to !== 'USD';
+  const est = exchangeEstimateFor(from, amt ?? 0n, p);
+  const sw = swap ? swapEstimate(amt ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n }) : null;
+  const payout = bankPayout.safeParse(bank);
+  const payoutErr = tried && !swap && !payout.success ? (payout.error.issues[0]?.message ?? 'Enter your bank details.') : '';
   const err =
     tried && !ok
       ? amt === null || amt === 0n
@@ -111,7 +114,7 @@ export const ExchangeScreen = () => {
       setFrom(id);
       setAmount('');
       setTried(false);
-      if (id === to) setTo(otherCoin(id));
+      if (id === to) setTo('USD');
     } else if (picking === 'to') setTo(id);
     setPicking(null);
   };
@@ -159,18 +162,18 @@ export const ExchangeScreen = () => {
       ? ['Not started', 'neutral']
       : stage >= 5
         ? ['Settled', 'ok']
-        : stage === 4
-          ? ['Pending provider', 'warn']
+        : stage >= 3
+          ? ['With our team', 'warn']
           : ['Not started', 'neutral'];
 
   const submit = async () => {
-    if (!ok || amt === null) {
+    if (!ok || amt === null || (!swap && !payout.success)) {
       setTried(true);
       return;
     }
     setError('');
     try {
-      const created = await request.mutateAsync({ idempotencyKey: idem.current, asset: from, toAsset: to, amountDrops: amt });
+      const created = await request.mutateAsync({ idempotencyKey: idem.current, asset: from, toAsset: swap ? to : null, ...(!swap && payout.success ? { payout: payout.data } : {}), amountDrops: amt });
       setTxId(created.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'We couldn’t submit this request.');
@@ -180,7 +183,7 @@ export const ExchangeScreen = () => {
   return (
     <Screen>
       <ScrollBody bottom={108}>
-        <TopBar leading="close" title={txId ? 'Request status' : 'Swap request'} onLeading={() => router.replace('/')} />
+        <TopBar leading="close" title={txId ? 'Request status' : swap ? 'Swap request' : 'Sell request'} onLeading={() => router.replace('/')} />
         {error ? (
           <Banner tone="error" icon="alert" alert style={{ marginBottom: 12 }}>
             {error}
@@ -192,7 +195,7 @@ export const ExchangeScreen = () => {
             <Card clip={false}>
               <View style={{ paddingVertical: 14, paddingHorizontal: 16, gap: 8 }}>
                 <T size={12.5} color="text3" nativeID="x-amt">
-                  You swap
+                  {swap ? 'You swap' : 'You sell'}
                 </T>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <TextInput
@@ -238,16 +241,55 @@ export const ExchangeScreen = () => {
                 </T>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <T size={28} weight={500} num color="text2" style={{ flex: 1 }} numberOfLines={1} adjustsFontSizeToFit>
-                    {formatUnits(sw.receive > 0n ? sw.receive : 0n, to)}
+                    {sw ? formatUnits(sw.receive > 0n ? sw.receive : 0n, to) : formatUsd(est.receive).replace('$', '')}
                   </T>
                   <AssetPill asset={to} label={`Receive: ${to}. Change`} onPress={() => setPicking('to')} />
                 </View>
                 <T size={12.5} color="text3">
-                  {`To your ${to} balance`}
+                  {swap ? `To your ${to} balance` : 'To your bank account'}
                 </T>
               </View>
             </Card>
             <ErrorText style={{ marginTop: 8, marginHorizontal: 4 }}>{err}</ErrorText>
+            {!swap ? (
+              <>
+                <T size={13} weight={600} color="text2" style={{ marginTop: 18, marginHorizontal: 4, marginBottom: 8 }}>
+                  Pay to
+                </T>
+                <Card style={{ padding: 16, gap: 12 }}>
+                  <Field>
+                    <Label nativeID="x-bank">Bank</Label>
+                    <TextField accessibilityLabelledBy="x-bank" value={bank.bank} onChangeText={(v) => setBank((b) => ({ ...b, bank: v }))} placeholder="e.g. Access Bank" height={48} />
+                  </Field>
+                  <Field>
+                    <Label nativeID="x-acct">Account number</Label>
+                    <TextField
+                      accessibilityLabelledBy="x-acct"
+                      value={bank.accountNumber}
+                      onChangeText={(v) => setBank((b) => ({ ...b, accountNumber: v }))}
+                      keyboardType="number-pad"
+                      autoCorrect={false}
+                      mono
+                      height={48}
+                    />
+                  </Field>
+                  <Field>
+                    <Label nativeID="x-name">Account name</Label>
+                    <TextField
+                      accessibilityLabelledBy="x-name"
+                      value={bank.accountName}
+                      onChangeText={(v) => setBank((b) => ({ ...b, accountName: v }))}
+                      autoComplete="name"
+                      height={48}
+                    />
+                  </Field>
+                  <T size={12} lh={1.5} color="text3">
+                    The account must be in your name. We pay by bank transfer once you accept the quote.
+                  </T>
+                </Card>
+                <ErrorText style={{ marginTop: 8, marginHorizontal: 4 }}>{payoutErr}</ErrorText>
+              </>
+            ) : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18, marginHorizontal: 4, marginBottom: 8 }}>
               <T size={13} weight={600} color="text2">
                 Estimate
@@ -258,9 +300,18 @@ export const ExchangeScreen = () => {
               <KV
                 num
                 items={[
-                  { k: 'Indicative rate', v: `1 ${from} ≈ ${formatUnits(swapEstimate(parseUnits('1', from) ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n }).gross, to, { minDecimals: 2, maxDecimals: 6 })} ${to}` },
-                  { k: 'Spread & service fee (1.00%)', v: `≈ ${formatAmount(sw.fee, to)}` },
-                  { k: 'Estimated receive', v: `≈ ${formatAmount(sw.receive > 0n ? sw.receive : 0n, to)}` },
+                  ...(sw
+                    ? [
+                        { k: 'Indicative rate', v: `1 ${from} ≈ ${formatUnits(swapEstimate(parseUnits('1', from) ?? 0n, { asset: from, price: p }, { asset: to, price: prices[to] ?? 1n }).gross, to, { minDecimals: 2, maxDecimals: 6 })} ${to}` },
+                        { k: 'Spread & service fee (1.00%)', v: `≈ ${formatAmount(sw.fee, to)}` },
+                        { k: 'Estimated receive', v: `≈ ${formatAmount(sw.receive > 0n ? sw.receive : 0n, to)}` },
+                      ]
+                    : [
+                        { k: 'Indicative rate', v: `1 ${from} ≈ ${formatAssetPrice(p)}` },
+                        { k: 'Spread & service fee (1.00%)', v: `≈ ${formatUsd(est.fee)}` },
+                        { k: 'Payout fee', v: formatUsd(est.payout) },
+                        { k: 'Estimated receive', v: `≈ ${formatUsd(est.receive)}` },
+                      ]),
                   { k: 'Processing', v: 'Manual · business hours' },
                 ]}
               />
@@ -340,12 +391,14 @@ export const ExchangeScreen = () => {
                 num
                 items={[
                   { k: `1 · Debit ${from}`, v: <Badge label={legA[0]} tone={legA[1]} /> },
-                  { k: `2 · Credit ${to}`, v: <Badge label={legB[0]} tone={legB[1]} /> },
+                  { k: swap ? `2 · Credit ${to}` : '2 · USD bank transfer', v: <Badge label={legB[0]} tone={legB[1]} /> },
                 ]}
               />
             </Card>
             <T size={12} lh={1.5} color="text3" style={{ marginTop: 12, marginHorizontal: 4 }}>
-              {`Each leg is recorded separately. ${to} is credited only when the liquidity provider confirms the fill.`}
+              {swap
+                ? `Each leg is recorded separately. ${to} is credited when our team completes the swap.`
+                : 'Each leg is recorded separately. The USD is marked paid when our team has made the bank transfer.'}
             </T>
           </>
         )}
@@ -365,8 +418,13 @@ export const ExchangeScreen = () => {
       <Sheet open={picking !== null} onClose={() => setPicking(null)} maxHeight={0.86} accessibilityLabel={picking === 'from' ? 'Asset to sell' : 'Asset to receive'}>
         <Grab />
         <T size={18} weight={600} style={{ marginBottom: 14 }} accessibilityRole="header">
-          {picking === 'from' ? 'Swap' : 'Receive'}
+          {picking === 'from' ? 'Sell or swap' : 'Receive'}
         </T>
+        {picking === 'to' ? (
+          <Card style={{ marginBottom: 12 }}>
+            <UsdOption on={to === 'USD'} onPress={() => pick('USD')} />
+          </Card>
+        ) : null}
         <AssetList
           assets={assetOptions.filter((a) => (picking === 'to' ? a.id !== from : true))}
           value={picking === 'from' ? from : to}

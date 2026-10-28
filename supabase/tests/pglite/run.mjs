@@ -687,11 +687,59 @@ await test('a rejection needs a reason, which the customer is shown', async () =
   });
 });
 
-console.log('\nNo USD sales');
-await test('an exchange must name the coin to receive', async () => {
+console.log('\nStaff-settled exchanges');
+const BANK = `'{"bank": "Access Bank", "account_number": "0123 456 789", "account_name": "Brendan Ebson"}'::jsonb`;
+const acceptedSale = async (toAsset, payout) => {
+  const t = await rpc(`select id from request_exchange('${BRENDAN}', 500000000, 117660, 'sale-${toAsset ?? 'usd'}', 'XRP', ${toAsset ? `'${toAsset}'` : 'null'}, ${payout})`);
+  await db.exec(`select transition_tx('${t.id}', 'quote_requested', 'ops')`);
+  const q = await rpc(`select id from record_quote('${t.id}', 2374200, 1337, 65240, now() + interval '60 seconds', ${toAsset ? 1163730000 : 'null'})`);
+  await db.exec(`select accept_quote('${BRENDAN}', '${t.id}', '${q.id}')`);
+  return t.id;
+};
+await test('a USD sale needs the bank account to pay', async () => {
   await db.exec('begin');
   try {
-    await throwsLike(`select request_exchange('${BRENDAN}', 100000000, 23800, 'usd-1')`, /Choose the coin you want to receive/);
+    await throwsLike(`select request_exchange('${BRENDAN}', 100000000, 23800, 'usd-1')`, /bank, account number and account name/);
+  } finally {
+    await db.exec('rollback');
+  }
+});
+await test('staff pay an accepted USD sale with a bank reference; the customer is told', async () => {
+  await db.exec('begin');
+  try {
+    const reservedXrp = async () => BigInt((await one(`select balance_drops::text b from balances where customer_id = '${BRENDAN}' and kind = 'reserved' and asset = 'XRP'`))?.b ?? '0');
+    const before = await reservedXrp();
+    const id = await acceptedSale(null, BANK);
+    await actAs(AUDITOR, 'auditor');
+    await db.exec('savepoint s1');
+    await throwsLike(`select exchange_complete('${id}', 'FT2610280001')`, /Read-only/);
+    await db.exec('rollback to savepoint s1; reset role');
+    await actAs(OPS, 'operations');
+    await throwsLike(`select exchange_complete('${id}', '')`, /bank transfer reference/);
+    await db.exec('rollback to savepoint s1');
+    await actAs(OPS, 'operations');
+    await db.exec(`select exchange_complete('${id}', 'FT2610280001')`);
+    await db.exec('reset role');
+    const r = await one(`select t.status, t.meta->'payout'->>'account_number' acct, (select body from notifications where customer_id = t.customer_id and title = 'USD payout sent') body
+                         from transactions t where id = '${id}'`);
+    const reserved = await reservedXrp();
+    assert(r.status === 'paid_out' && r.acct === '0123456789' && /\$652\.40 .* Access Bank \(reference FT2610280001\)/.test(r.body ?? '') && reserved === before, JSON.stringify({ ...r, reserved: String(reserved), before: String(before) }));
+    await actAs(OPS, 'operations');
+    await throwsLike(`select exchange_complete('${id}', 'FT2610280001')`, /Only exchanges the customer has accepted/);
+  } finally {
+    await db.exec('rollback');
+  }
+});
+await test('completing a swap credits the bought coin', async () => {
+  await db.exec('begin');
+  try {
+    const id = await acceptedSale('USDT', 'null');
+    await actAs(OPS, 'operations');
+    await db.exec(`select exchange_complete('${id}', '')`);
+    await db.exec('reset role');
+    const r = await one(`select status from transactions where id = '${id}'`);
+    const usdt = await one(`select balance_drops::text b from balances where customer_id = '${BRENDAN}' and kind = 'available' and asset = 'USDT'`);
+    assert(r.status === 'paid_out' && BigInt(usdt?.b ?? '0') >= 1163730000n, JSON.stringify({ r, usdt }));
   } finally {
     await db.exec('rollback');
   }
