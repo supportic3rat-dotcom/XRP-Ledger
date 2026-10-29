@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { centsIn, formatFiat, formatFiatCompact, formatFiatPrice, formatUsd } from '@xrp/ledger';
 import { useEffect, useMemo } from 'react';
 import { api } from './index';
 import { describeTx, type TxView } from './describeTx';
 import { qk } from './keys';
 import { subscribeDemo } from './demo/demoApi';
 import { supabase } from './supabaseApi';
-import type { Transaction, YieldPosition } from '@xrp/types';
+import type { Cents, MicroUsd, Transaction, YieldPosition } from '@xrp/types';
 import type { Holding, PriceInfo } from './api';
 import { useMarkets, usePriceMap } from './market';
 import { useSession } from '@/state/session';
@@ -53,21 +54,51 @@ export const occurredAt = (t: Transaction): string => {
   return t.createdAt;
 };
 
+/**
+ * Formats values in the customer's own currency (set from their country; changeable in Profile). Money is always
+ * USD underneath: this converts only for showing. Until a rate is known, values show in USD.
+ */
+export const useMoney = () => {
+  const profile = useProfile();
+  const wanted = profile.data?.currency ?? 'USD';
+  const rate = useQuery({ queryKey: qk.fx(wanted), queryFn: () => api.fxRate(wanted), staleTime: 60 * 60_000, enabled: wanted !== 'USD' });
+  const known = wanted === 'USD' ? 1 : (rate.data ?? null);
+  const code = known === null ? 'USD' : wanted;
+  const r = known ?? 1;
+  return useMemo(
+    () => ({
+      /** ISO code values are shown in (USD until a rate loads). */
+      code,
+      /** A USD amount (cents) as the customer's currency: "₦1,234,567.89". */
+      money: (cents: Cents): string => (code === 'USD' ? formatUsd(cents) : formatFiat(centsIn(cents, r), code)),
+      /** A coin price (micro-USD per coin). */
+      price: (micro: MicroUsd): string => formatFiatPrice(micro, code, r),
+      /** A large USD figure (market cap, volume): "₦2.3T". */
+      compact: (usd: number): string => formatFiatCompact(usd * r, code),
+      /** The customer-currency equivalent of a USD amount, for USD-denominated items: "≈ ₦156,000.00", or '' in USD. */
+      equivalent: (cents: Cents): string => (code === 'USD' ? '' : `≈ ${formatFiat(centsIn(cents, r), code)}`),
+    }),
+    [code, r],
+  );
+};
+export type Money = ReturnType<typeof useMoney>;
+
 /** Customer-facing activity: newest first, described for the list and the detail sheet. */
 export const useActivity = () => {
   const signedIn = useSession((s) => s.signedIn);
   const txs = useQuery({ queryKey: qk.activity, queryFn: api.transactions, enabled: signedIn });
   const { prices } = usePriceMap();
   const wallets = useExternalWallets();
+  const m = useMoney();
   const views = useMemo<TxView[]>(() => {
     if (!txs.data) return [];
-    const ctx = { now: api.now(), prices, connectedWallets: (wallets.data ?? []).map((w) => w.address) };
+    const ctx = { now: api.now(), prices, connectedWallets: (wallets.data ?? []).map((w) => w.address), money: m.money, price: m.price };
     return txs.data
       .filter((t) => ['deposit', 'withdrawal', 'exchange', 'yield_reward', 'loan'].includes(t.kind))
       .map((t) => ({ ...t, createdAt: occurredAt(t) }))
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .map((t) => describeTx(t, ctx));
-  }, [txs.data, prices, wallets.data]);
+  }, [txs.data, prices, wallets.data, m]);
   return { ...txs, views, raw: txs.data ?? [] };
 };
 

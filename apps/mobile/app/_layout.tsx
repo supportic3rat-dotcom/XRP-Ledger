@@ -1,7 +1,6 @@
 import 'react-native-get-random-values';
 import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, useFonts } from '@expo-google-fonts/geist';
 import { GeistMono_400Regular, GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -41,9 +40,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            <BottomSheetModalProvider>
-              <Navigator />
-            </BottomSheetModalProvider>
+            <Navigator />
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

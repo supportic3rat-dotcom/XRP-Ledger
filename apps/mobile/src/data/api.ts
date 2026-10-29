@@ -129,6 +129,8 @@ export type Api = {
   createTicket: (input: { topic: string; transactionRef: string | null; message: string; email?: string }) => Promise<SupportTicket>;
   acceptConsent: (doc: LegalDocumentId, version: string) => Promise<Consent>;
   setDisplayCurrency: (currency: string) => Promise<void>;
+  /** Units of `currency` per US dollar, for display; null when no rate is known. */
+  fxRate: (currency: string) => Promise<number | null>;
   /** Email receipts for deposits and withdrawals, and alerts when a held asset moves more than 5% in a day. */
   notificationPrefs: () => Promise<NotificationPrefs>;
   setNotificationPrefs: (change: Partial<NotificationPrefs>) => Promise<void>;

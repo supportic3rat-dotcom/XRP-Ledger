@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { COUNTRIES, CURRENCY_NAMES, currencyForCountry } from '@xrp/ledger';
 import { createAccountSchema, passwordRules, type CreateAccountInput } from '@xrp/schemas';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -16,14 +17,8 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useSession } from '@/state/session';
 
-const COUNTRIES = [
-  { value: '', label: 'Select' },
-  { value: 'NG', label: 'Nigeria' },
-  { value: 'GH', label: 'Ghana' },
-  { value: 'GB', label: 'United Kingdom' },
-  { value: 'OTHER', label: 'Other' },
-];
-const CURRENCIES = ['USD', 'NGN', 'GBP', 'EUR'].map((v) => ({ value: v, label: v }));
+const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c.code, label: c.name }));
+const CURRENCY_OPTIONS = Object.keys(CURRENCY_NAMES).map((code) => ({ value: code, label: code }));
 
 export const CreateAccountScreen = () => {
   const router = useRouter();
@@ -190,8 +185,13 @@ export const CreateAccountScreen = () => {
                       label="Country of residence"
                       height={48}
                       value={field.value}
-                      onChange={field.onChange}
-                      options={COUNTRIES}
+                      placeholder="Select"
+                      onChange={(code) => {
+                        field.onChange(code);
+                        // The country sets the currency values are shown in; they can still pick another.
+                        form.setValue('currency', currencyForCountry(code));
+                      }}
+                      options={COUNTRY_OPTIONS}
                       invalid={!!errors.country}
                     />
                   )}
@@ -202,15 +202,15 @@ export const CreateAccountScreen = () => {
                 <Controller
                   control={form.control}
                   name="currency"
-                  render={({ field }) => <Select label="Display currency" height={48} value={field.value} onChange={field.onChange} options={CURRENCIES} />}
+                  render={({ field }) => <Select label="Display currency" height={48} value={field.value} onChange={field.onChange} options={CURRENCY_OPTIONS} />}
                 />
               </Field>
             </View>
             {errors.country ? <ErrorText style={{ marginTop: -10 }}>{errors.country.message}</ErrorText> : null}
-            {country === 'OTHER' ? (
-              <Banner tone="info" icon="info" style={{ marginTop: -6 }}>
-                Services depend on approved jurisdictions. We’ll tell you what’s available after you sign up.
-              </Banner>
+            {country ? (
+              <T size={12.5} color="text3" style={{ marginTop: -8 }}>
+                {`Values in the app will show in ${CURRENCY_NAMES[form.watch('currency')] ?? form.watch('currency')}. You can change this later in Profile.`}
+              </T>
             ) : null}
             <View style={{ gap: 12, paddingTop: 4 }}>
               <Controller

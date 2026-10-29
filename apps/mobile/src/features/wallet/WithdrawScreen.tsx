@@ -4,7 +4,6 @@ import {
   assetNetwork,
   formatAmount,
   formatUnitsPrecise,
-  formatUsd,
   isAssetAddress,
   isAssetId,
   isDestinationTag,
@@ -38,6 +37,7 @@ import { api } from '@/data';
 import { useActivity, useAllowlist, useApiMutation, useAssets, useBalances, usePrice, useProfile } from '@/data/hooks';
 import { confirmWithDevice } from '@/lib/deviceAuth';
 import { newIdempotencyKey } from '@/lib/idempotency';
+import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 import { slopFor } from '@/components/hitSlop';
 
@@ -97,6 +97,7 @@ export { Mini };
 
 export const WithdrawScreen = () => {
   const router = useRouter();
+  const m = useMoney();
   const params = useLocalSearchParams<{ asset?: string }>();
   const [assetId, setAssetId] = useState<string>(params.asset && isAssetId(params.asset) ? params.asset : 'XRP');
   const assets = useAssets();
@@ -207,7 +208,7 @@ export const WithdrawScreen = () => {
     };
   }, [tx, spec.deposit, net.name]);
 
-  const fiat = amt !== null ? `≈ ${formatUsd(unitsToCents(amt, p, assetId))}` : '≈ $0.00';
+  const fiat = `≈ ${m.money(amt !== null ? unitsToCents(amt, p, assetId) : 0n)}`;
   const amountText = amt === null ? '—' : formatAmount(amt, assetId);
   const receiveText = amt === null ? '—' : `${formatUnitsPrecise(receive, assetId)} ${assetId}`;
   const feeRows = [

@@ -1,8 +1,9 @@
-import { ASSET_IDS } from '@xrp/ledger';
+import { ASSET_IDS, CURRENCY_NAMES } from '@xrp/ledger';
 import { fnSchemas } from '@xrp/schemas';
 import { type Ctx, defineFunction, serve } from '../_shared/handler.ts';
 import { liveMarketData } from '../_shared/providers.ts';
 import { reconcile } from '../recon-run/index.ts';
+import { ledgerNodes, xrpl } from '../_shared/xrpl.ts';
 
 /**
  * Scheduled upkeep on Supabase (prices, Earn rewards, loan interest and LTV checks, reconciliation), with no server and no pg_cron: the app calls this while it's open, and each job runs
@@ -18,6 +19,7 @@ const job = (name: string) => (ctx: Ctx<unknown>) => ctx.rpc('run_job', { p_job:
 
 export const JOBS: Job[] = [
   { name: 'prices', everySec: 5 * MIN, run: (ctx) => recordPrices(ctx) },
+  { name: 'fx-rates', everySec: 60 * MIN, run: (ctx) => recordFxRates(ctx) },
   { name: 'quote-expiry', everySec: MIN, run: job('quote-expiry') },
   { name: 'ltv-check', everySec: 5 * MIN, run: job('ltv-check') },
   { name: 'balances-snapshot', everySec: 10 * MIN, run: job('balances-snapshot') },
@@ -62,22 +64,18 @@ const recordPrices = async (ctx: Ctx<unknown>) => {
   if (error) throw new Error(error.message);
 };
 
-const NODES: Record<string, string[]> = {
-  mainnet: ['https://xrplcluster.com/', 'https://s2.ripple.com:51234/'],
-  testnet: ['https://s.altnet.rippletest.net:51234/', 'https://testnet.xrpl-labs.com/'],
-};
-
-type RpcResult = { status?: string; error?: string; ledger_index?: number; account_data?: { Balance: string } };
-
-const xrpl = async (node: string, method: string, params: Record<string, unknown>): Promise<RpcResult> => {
-  const res = await fetch(node, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method, params: [params] }),
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!res.ok) throw new Error(`${node} returned ${res.status}`);
-  return ((await res.json()) as { result: RpcResult }).result;
+/** USD → local currency rates, for showing values in each customer's currency (display only; money stays in USD). */
+const recordFxRates = async (ctx: Ctx<unknown>) => {
+  const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`Exchange rates unavailable (${res.status})`);
+  const body = (await res.json()) as { result?: string; rates?: Record<string, number> };
+  if (body.result !== 'success' || !body.rates) throw new Error('Exchange rates unavailable');
+  const at = new Date().toISOString();
+  const rows = Object.entries(body.rates)
+    .filter(([code, rate]) => code in CURRENCY_NAMES && Number.isFinite(rate) && rate > 0)
+    .map(([currency, per_usd]) => ({ currency, per_usd, at }));
+  const { error } = await ctx.db.from('fx_rates').upsert(rows);
+  if (error) throw new Error(error.message);
 };
 
 /**
@@ -85,7 +83,7 @@ const xrpl = async (node: string, method: string, params: Record<string, unknown
  * wallets, and a heartbeat with the latest validated ledger and how many of the two nodes answered.
  */
 const readLedger = async (ctx: Ctx<unknown>) => {
-  const nodes = NODES[Deno.env.get('XRPL_NETWORK') === 'testnet' ? 'testnet' : 'mainnet'] ?? [];
+  const nodes = ledgerNodes();
   const answers = await Promise.allSettled(nodes.map((n) => xrpl(n, 'ledger', { ledger_index: 'validated' })));
   const live = nodes.filter((_, i) => answers[i]?.status === 'fulfilled');
   const node = live[0];

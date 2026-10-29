@@ -401,7 +401,13 @@ export const createSupabaseApi = (): Api => ({
   createTicket: async (input) => call(input.email ? 'ticket-create-public' : 'ticket-create', input),
   acceptConsent: async (document, version) => call('consent-accept', { document, version }),
   setDisplayCurrency: async (currency) => {
-    await supabase().rpc('set_display_currency', { p_currency: currency });
+    const { error } = await supabase().rpc('set_display_currency', { p_currency: currency });
+    if (error) throw new Error(error.message);
+  },
+  fxRate: async (currency) => {
+    if (currency === 'USD') return 1;
+    const { data } = await supabase().from('fx_rates').select('per_usd').eq('currency', currency).maybeSingle();
+    return data ? Number((data as { per_usd: number | string }).per_usd) : null;
   },
   notificationPrefs: async () => {
     const id = await uid();

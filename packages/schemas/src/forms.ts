@@ -43,7 +43,7 @@ export const createAccountSchema = z.object({
   email: z.string().trim().regex(EMAIL, msg.email),
   password: z.string().refine(isStrongPassword),
   country: z.string().min(1, msg.country),
-  currency: z.enum(['USD', 'NGN', 'GBP', 'EUR']),
+  currency: z.string().regex(/^[A-Z]{3}$/),
   terms: z.literal(true, { error: msg.terms }),
   updates: z.boolean(),
 });

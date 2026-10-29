@@ -1,4 +1,4 @@
-import { asset as assetSpec, formatAmount, formatUnitsPrecise, formatUsd, isAssetId, parseUnits, percentOf, simpleInterest, unitsToCents } from '@xrp/ledger';
+import { asset as assetSpec, formatAmount, formatUnitsPrecise, isAssetId, parseUnits, percentOf, simpleInterest, unitsToCents } from '@xrp/ledger';
 import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -23,6 +23,7 @@ import { useApiMutation, useAssets, useHoldings, usePriceMap, useProfile, useYie
 import { flexibleProduct } from '@/data/products';
 import { md, mdhm } from '@/lib/dates';
 import { newIdempotencyKey } from '@/lib/idempotency';
+import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 import { slopFor } from '@/components/hitSlop';
 import { LiveAccrual } from './LiveAccrual';
@@ -80,6 +81,7 @@ export const EarnScreen = () => {
   const holdings = useHoldings();
   const assets = useAssets();
   const { prices } = usePriceMap();
+  const m = useMoney();
   const profile = useProfile();
   const allocate = useApiMutation(api.allocateYield);
   const redeem = useApiMutation(api.redeemYield);
@@ -108,7 +110,7 @@ export const EarnScreen = () => {
   const active = (positions.data ?? []).filter((p) => p.allocatedDrops > 0n);
   const availableOf = (id: string) => holdings.data?.find((h) => h.asset === id)?.available ?? 0n;
   const allocatedOf = (id: string) => (positions.data ?? []).find((p) => p.asset === id)?.allocatedDrops ?? 0n;
-  const usd = (units: bigint, id: string) => formatUsd(unitsToCents(units, prices[id] ?? 0n, id));
+  const usd = (units: bigint, id: string) => m.money(unitsToCents(units, prices[id] ?? 0n, id));
   const totalEarningCents = active.reduce((s, p) => s + unitsToCents(p.allocatedDrops, prices[p.asset] ?? 0n, p.asset), 0n);
 
   const days = dur === 0 ? Math.max(0, parseInt(customDays, 10) || 0) : dur;
@@ -178,7 +180,7 @@ export const EarnScreen = () => {
         </T>
         <T size={13} color="text3" style={{ marginHorizontal: 4, marginBottom: 16 }}>
           {active.length
-            ? `${formatUsd(totalEarningCents)} earning across ${active.length} ${active.length === 1 ? 'asset' : 'assets'}. Rates can change; rewards aren’t guaranteed.`
+            ? `${m.money(totalEarningCents)} earning across ${active.length} ${active.length === 1 ? 'asset' : 'assets'}. Rates can change; rewards aren’t guaranteed.`
             : 'Rates are variable and can change. Rewards aren’t guaranteed.'}
         </T>
 

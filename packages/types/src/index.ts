@@ -13,7 +13,8 @@ export type IsoDateTime = string;
 export type KycStatus = 'not_started' | 'in_progress' | 'more_info' | 'verified' | 'rejected' | 'restricted';
 export type StaffRole = 'operations' | 'compliance' | 'auditor';
 export type ThemePreference = 'dark' | 'light' | 'system';
-export type DisplayCurrency = 'USD' | 'NGN' | 'GBP' | 'EUR';
+/** ISO 4217 code of the currency values are shown in (money itself is always USD). */
+export type DisplayCurrency = string;
 
 export type LedgerAccountKind =
   'available' | 'reserved' | 'pending_yield' | 'yield' | 'collateral' | 'omnibus' | 'suspense' | 'fee_revenue' | 'provider_receivable';

@@ -1,4 +1,4 @@
-import { formatAmount, formatAssetPrice, formatUsd, unitsToCents } from '@xrp/ledger';
+import { formatAmount, unitsToCents } from '@xrp/ledger';
 import { sparkPathFrom } from '@xrp/providers';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -14,8 +14,8 @@ import { Screen, ScrollBody } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { T } from '@/components/T';
 import { useHoldings, useMarkets } from '@/data/hooks';
-import { compactUsd } from '@/data/market';
 import { hm } from '@/lib/dates';
+import { useMoney } from '@/lib/money';
 import { familyFor, useTheme } from '@/theme';
 
 type Filter = 'all' | 'held' | 'up' | 'down';
@@ -26,6 +26,7 @@ const pctText = (bps: number) => `${bps >= 0 ? '+' : '−'}${Math.abs(bps / 100)
 export const MarketsScreen = () => {
   const router = useRouter();
   const { c } = useTheme();
+  const m = useMoney();
   const markets = useMarkets();
   const holdings = useHoldings();
   const [filter, setFilter] = useState<Filter>('all');
@@ -72,7 +73,7 @@ export const MarketsScreen = () => {
                 Market cap · these assets
               </T>
               <T size={16} weight={600} num>
-                {compactUsd(totalCap)}
+                {m.compact(totalCap)}
               </T>
             </View>
             <View style={{ flex: 1, gap: 2 }}>
@@ -122,7 +123,7 @@ export const MarketsScreen = () => {
                 minHeight={66}
                 onPress={() => router.push(`/asset/${a.asset}`)}
                 accessibilityRole="link"
-                accessibilityLabel={`${a.name}, ${formatAssetPrice(a.priceMicro)}, ${up ? 'up' : 'down'} ${Math.abs(a.changeBps / 100).toFixed(2)} percent today. Show details`}
+                accessibilityLabel={`${a.name}, ${m.price(a.priceMicro)}, ${up ? 'up' : 'down'} ${Math.abs(a.changeBps / 100).toFixed(2)} percent today. Show details`}
               >
                 <CoinLogo asset={a.asset} size={36} />
                 <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
@@ -130,13 +131,13 @@ export const MarketsScreen = () => {
                     {a.name}
                   </T>
                   <T size={12} color="text3" numberOfLines={1}>
-                    {units > 0n ? `${formatAmount(units, a.asset)} · ${formatUsd(unitsToCents(units, a.priceMicro, a.asset))}` : `${a.rank ? `#${a.rank} · ` : ''}${a.asset}`}
+                    {units > 0n ? `${formatAmount(units, a.asset)} · ${m.money(unitsToCents(units, a.priceMicro, a.asset))}` : `${a.rank ? `#${a.rank} · ` : ''}${a.asset}`}
                   </T>
                 </View>
                 {a.sparkline.length > 1 ? <Sparkline path={sparkPathFrom(a.sparkline)} color={color} /> : null}
                 <View style={{ alignItems: 'flex-end', gap: 2, minWidth: 84 }}>
                   <T weight={500} num>
-                    {formatAssetPrice(a.priceMicro)}
+                    {m.price(a.priceMicro)}
                   </T>
                   <T size={12.5} weight={500} num rawColor={color}>
                     {pctText(a.changeBps)}

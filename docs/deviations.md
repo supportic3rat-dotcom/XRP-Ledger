@@ -246,3 +246,21 @@ Everything here differs from the design files or the brief on purpose, or still 
 - Terms of Service taken down until the company details exist: removed from the live legal documents and the sign-up
   wording; the draft is in `supabase/legal-drafts-terms-of-service.sql` to restore later.
 - Prices for money actions fall back to the live feed when the stored price is older than 15 minutes.
+
+## 2026-10-29 · Sheets on Modal; country sets the currency; connecting your own wallet works
+
+- `Sheet` is now built on React Native's `Modal` instead of `@gorhom/bottom-sheet`, which targets gesture-handler v2
+  (the app uses v3) and was the likely reason pickers didn't open on Android phones. Same props for every caller;
+  the back button and the scrim close it. Long `Select` lists (countries, currencies) get a search box.
+- Sign-up lists every country (243, `packages/ledger/src/countries.ts`); picking one sets the display currency
+  (changeable at sign-up and in Profile, any of 152 currencies). Values (balances, portfolio, prices, market caps,
+  activity, estimates) show in that currency via `useMoney`; money stays in USD underneath. Real US-dollar amounts
+  (USD sales, loans) stay in USD with the local equivalent beside them. Rates: `fx_rates`, refreshed hourly by the
+  `upkeep` function (`20261029000300_local_currency.sql`).
+- Connect a wallet: "Wallet app" (which waited on a non-existent wallet-connection provider) is replaced by scanning
+  the wallet's receive QR code; the address field has Paste. Wallets connected before sign-up are kept on the phone
+  (addresses only) and linked after sign-up or sign-in. The balance is read at once (`external-wallet`).
+- Wallets imported with a recovery phrase can send XRP (`/wallet-send`): the payment is built and signed on the phone
+  (`src/lib/xrpl.ts`, ripple-binary-codec + ripple-keypairs) after fingerprint/face/passcode, submitted to the public
+  XRP Ledger and reported sent only when validated. Keys are stored per wallet; phones without biometrics fall back
+  to the passcode. Tested with a real payment on the XRP testnet.

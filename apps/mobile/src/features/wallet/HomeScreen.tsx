@@ -1,4 +1,4 @@
-import { asset as assetSpec, formatAmount, formatUsd, splitUsd, unitsToCents } from '@xrp/ledger';
+import { asset as assetSpec, formatAmount, unitsToCents } from '@xrp/ledger';
 import { chartPeriods } from '@xrp/providers';
 import type { IconName } from '@xrp/tokens';
 import { useRouter, type Href } from 'expo-router';
@@ -25,6 +25,7 @@ import { useActivity, useHoldings, useLoan, useMarkets, useNotifications, usePor
 import { PERIOD_IDS } from '@/data/series';
 import { hm } from '@/lib/dates';
 import { MASK, useHideAmounts } from '@/state/ui';
+import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 import type { ChartPeriod } from '@xrp/providers';
 
@@ -151,12 +152,19 @@ const SecLink = ({ label, onPress, element }: { label: string; onPress: () => vo
   </Pressable>
 );
 
+/** Splits "₦15,279.84" into ["₦15,279", ".84"] for the balance hero (no split for whole-unit currencies). */
+const splitMoney = (text: string): [string, string] => {
+  const dot = text.lastIndexOf('.');
+  return dot < 0 ? [text, ''] : [text.slice(0, dot), text.slice(dot)];
+};
+
 export const HomeScreen = () => {
   const router = useRouter();
   const { c } = useTheme();
   const profile = useProfile();
   const holdings = useHoldings();
   const { prices, live, at } = usePriceMap();
+  const m = useMoney();
   const markets = useMarkets();
   const loan = useLoan();
   const positions = useYieldPositions();
@@ -202,8 +210,8 @@ export const HomeScreen = () => {
     const diff = endCents - startCents;
     return { diff, up: diff >= 0n, pct: Math.abs(series.data?.pct ?? 0).toFixed(2) };
   }, [series.data]);
-  const [whole, centsPart] = splitUsd(totalCents);
-  const money = (c: bigint) => (hidden ? MASK : formatUsd(c));
+  const [whole, centsPart] = splitMoney(m.money(totalCents));
+  const money = (c: bigint) => (hidden ? MASK : m.money(c));
   const change24 = (a: string) => markets.data?.find((m) => m.asset === a)?.changeBps ?? 0;
   const recent = activity.views.slice(0, 3);
   const kindOf = new Map(activity.raw.map((t) => [t.id, t.kind]));
@@ -269,7 +277,7 @@ export const HomeScreen = () => {
           {change && !hidden ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
               <T size={13} weight={500} num color={change.up ? 'pos' : 'neg'}>
-                {`${change.up ? '+' : '−'}${formatUsd(change.diff < 0n ? -change.diff : change.diff)} (${change.pct}%)`}
+                {`${change.up ? '+' : '−'}${m.money(change.diff < 0n ? -change.diff : change.diff)} (${change.pct}%)`}
               </T>
               <T size={13} color="text3">
                 {suffix}
@@ -340,7 +348,7 @@ export const HomeScreen = () => {
                     minHeight={62}
                     onPress={() => router.push(`/asset/${x.asset}`)}
                     accessibilityRole="link"
-                    accessibilityLabel={`${assetSpec(x.asset).name}, ${hidden ? 'hidden' : `${formatAmount(x.units, x.asset)}, ${formatUsd(x.value)}`}. Show details`}
+                    accessibilityLabel={`${assetSpec(x.asset).name}, ${hidden ? 'hidden' : `${formatAmount(x.units, x.asset)}, ${m.money(x.value)}`}. Show details`}
                     chevron
                   >
                     <CoinLogo asset={x.asset} size={36} />
@@ -392,11 +400,11 @@ export const HomeScreen = () => {
                 v={money(pendingCents)}
                 vs={pending.length === 1 ? '1 deposit' : `${pending.length} deposits`}
               />
-              <Line k="Outstanding borrowing" ks="Principal + accrued interest" v={hidden ? MASK : formatUsd(owed)} vs={loan.data ? '1 loan' : 'No loans'} />
+              <Line k="Outstanding borrowing" ks="Principal + accrued interest" v={hidden ? MASK : m.money(owed)} vs={loan.data ? '1 loan' : 'No loans'} />
               <Line
                 k="Estimated accrued rewards"
                 ks="Not yet confirmed or credited"
-                v={hidden ? MASK : `≈ ${formatUsd(accruedCents)}`}
+                v={hidden ? MASK : `≈ ${m.money(accruedCents)}`}
                 vs={`${(positions.data ?? []).filter((p) => p.allocatedDrops > 0n).length} positions`}
               />
             </Card>

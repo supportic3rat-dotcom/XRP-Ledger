@@ -1,4 +1,4 @@
-import { asset as assetSpec, assetLimits, formatAmount, formatAssetPrice, formatUsd, isAssetId, unitsToCents } from '@xrp/ledger';
+import { asset as assetSpec, assetLimits, formatAmount, isAssetId, unitsToCents } from '@xrp/ledger';
 import { chartPeriods, type ChartPeriod } from '@xrp/providers';
 import type { IconName } from '@xrp/tokens';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,9 +21,10 @@ import { TxDetailSheet } from '@/components/TxDetailSheet';
 import { TxRow } from '@/components/TxRow';
 import type { TxView } from '@/data/describeTx';
 import { useActivity, useBalances, useMarket, usePriceHistory, useProfile } from '@/data/hooks';
-import { compactNumber, compactUsd } from '@/data/market';
+import { compactNumber } from '@/data/market';
 import { PERIOD_IDS } from '@/data/series';
 import { hm, md } from '@/lib/dates';
+import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 
 type Act = { label: string; icon: IconName; path: '/deposit' | '/withdraw' | '/exchange' | '/earn' };
@@ -32,6 +33,7 @@ type Act = { label: string; icon: IconName; path: '/deposit' | '/withdraw' | '/e
 export const AssetDetailScreen = () => {
   const router = useRouter();
   const { c } = useTheme();
+  const m = useMoney();
   const params = useLocalSearchParams<{ symbol?: string }>();
   const id = params.symbol && isAssetId(params.symbol.toUpperCase()) ? params.symbol.toUpperCase() : 'XRP';
   const spec = assetSpec(id);
@@ -56,7 +58,7 @@ export const AssetDetailScreen = () => {
     { label: 'Exchange', icon: 'exchange', path: '/exchange' },
     ...(spec.yieldAprBps !== null ? [{ label: 'Earn', icon: 'sprout' as IconName, path: '/earn' as const }] : []),
   ];
-  const usd = (units: bigint) => formatUsd(unitsToCents(units, p, id));
+  const usd = (units: bigint) => m.money(unitsToCents(units, p, id));
   const change7d = market?.change7dBps;
 
   return (
@@ -69,7 +71,7 @@ export const AssetDetailScreen = () => {
             <View style={{ gap: 2, flex: 1 }}>
               <T size={13} color="text2">{`${id} price · ${spec.network}`}</T>
               <T size={28} weight={500} ls={-0.02} lh={1.1} num>
-                {p ? formatAssetPrice(p) : '—'}
+                {p ? m.price(p) : '—'}
               </T>
             </View>
           </View>
@@ -189,12 +191,12 @@ export const AssetDetailScreen = () => {
               fixedKeys
               num
               items={[
-                { k: 'Market cap', v: compactUsd(market.marketCapUsd), sub: market.rank ? `Rank #${market.rank}` : undefined },
-                { k: '24h volume', v: compactUsd(market.volume24hUsd) },
-                { k: '24h range', v: `${formatAssetPrice(market.low24hMicro)} – ${formatAssetPrice(market.high24hMicro)}` },
+                { k: 'Market cap', v: m.compact(market.marketCapUsd), sub: market.rank ? `Rank #${market.rank}` : undefined },
+                { k: '24h volume', v: m.compact(market.volume24hUsd) },
+                { k: '24h range', v: `${m.price(market.low24hMicro)} – ${m.price(market.high24hMicro)}` },
                 { k: '24h change', v: `${market.changeBps >= 0 ? '+' : '−'}${Math.abs(market.changeBps / 100).toFixed(2)}%` },
                 ...(change7d !== null && change7d !== undefined ? [{ k: '7d change', v: `${change7d >= 0 ? '+' : '−'}${Math.abs(change7d / 100).toFixed(2)}%` }] : []),
-                { k: 'All-time high', v: formatAssetPrice(market.athMicro), sub: market.athDate ? md(market.athDate) + ` ${new Date(market.athDate).getFullYear()}` : undefined },
+                { k: 'All-time high', v: m.price(market.athMicro), sub: market.athDate ? md(market.athDate) + ` ${new Date(market.athDate).getFullYear()}` : undefined },
                 { k: 'Circulating supply', v: `${compactNumber(market.circulatingSupply)} ${id}` },
                 { k: 'Max supply', v: market.maxSupply ? `${compactNumber(market.maxSupply)} ${id}` : 'No fixed cap' },
               ]}

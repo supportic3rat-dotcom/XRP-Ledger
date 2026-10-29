@@ -21,6 +21,7 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useActivity, useApiMutation, useAssets, useBalances, usePriceMap, useQuote } from '@/data/hooks';
 import { newIdempotencyKey } from '@/lib/idempotency';
+import { useMoney } from '@/lib/money';
 import { familyFor, useTheme } from '@/theme';
 
 const STEPS = [
@@ -68,6 +69,7 @@ const AssetPill = ({ asset, onPress, label }: { asset: string; onPress: () => vo
 
 export const ExchangeScreen = () => {
   const router = useRouter();
+  const m = useMoney();
   const { c } = useTheme();
   const params = useLocalSearchParams<{ asset?: string }>();
   const [from, setFrom] = useState<string>(params.asset && isAssetId(params.asset) ? params.asset : 'XRP');
@@ -246,7 +248,7 @@ export const ExchangeScreen = () => {
                   <AssetPill asset={to} label={`Receive: ${to}. Change`} onPress={() => setPicking('to')} />
                 </View>
                 <T size={12.5} color="text3">
-                  {swap ? `To your ${to} balance` : 'To your bank account'}
+                  {swap ? `To your ${to} balance` : `To your bank account${m.equivalent(est.receive) ? ` · ${m.equivalent(est.receive)}` : ''}`}
                 </T>
               </View>
             </Card>

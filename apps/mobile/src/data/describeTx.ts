@@ -29,12 +29,23 @@ export type TxView = {
 };
 
 /** `prices`: latest USD price per asset (micro-USD), for the fiat line. */
-export type DescribeContext = { now: Date; prices: Record<string, MicroUsd>; connectedWallets: string[] };
+export type DescribeContext = {
+  now: Date;
+  prices: Record<string, MicroUsd>;
+  connectedWallets: string[];
+  /** Values in the customer's currency (USD when omitted). USD amounts the customer is actually paid stay in USD. */
+  money?: (cents: bigint) => string;
+  price?: (micro: MicroUsd) => string;
+};
 
-const BANK = '[Bank account •••• 0000]';
+/** The bank account a USD sale or loan is paid to, as the customer entered it. */
+const bankOf = (tx: Transaction): string => {
+  const p = (tx.meta as Record<string, unknown>).payout as { bank?: string; account_number?: string } | undefined;
+  return p?.bank ? `${p.bank} •••• ${String(p.account_number ?? '').slice(-4)}` : 'your bank account';
+};
 const priceOf = (ctx: DescribeContext, a: string): MicroUsd => ctx.prices[a] ?? 0n;
-const usdOf = (units: bigint, a: string, ctx: DescribeContext): string => formatUsd(unitsToCents(units, priceOf(ctx, a), a));
-const atPrice = (a: string, ctx: DescribeContext): string => formatAssetPrice(priceOf(ctx, a));
+const usdOf = (units: bigint, a: string, ctx: DescribeContext): string => (ctx.money ?? formatUsd)(unitsToCents(units, priceOf(ctx, a), a));
+const atPrice = (a: string, ctx: DescribeContext): string => (ctx.price ?? formatAssetPrice)(priceOf(ctx, a));
 const network = (a: string): string => assetSpec(a).network;
 
 const eventAt = (tx: Transaction, status: string): string | undefined => tx.events.find((e: TxEvent) => e.toStatus === status)?.at;
@@ -290,7 +301,7 @@ const describeExchange = (tx: Transaction, ctx: DescribeContext): Omit<TxView, '
     rows: [
       { k: 'Type', v: to ? 'Swap request' : 'Exchange request' },
       { k: to ? 'Swap' : 'Sell', v: formatAmount(amount, a) },
-      { k: 'Receive', v: to ? (tx.counterAmount ? `${formatAmount(tx.counterAmount, to)} to your balance` : `${to} to your balance`) : `USD to ${BANK}` },
+      { k: 'Receive', v: to ? (tx.counterAmount ? `${formatAmount(tx.counterAmount, to)} to your balance` : `${to} to your balance`) : `USD to ${bankOf(tx)}` },
       { k: 'Fees charged', v: rejected ? 'None' : 'Shown on the firm quote' },
       ...(tx.meta.reason ? [{ k: 'Reason', v: tx.meta.reason }] : []),
       { k: 'Reference', v: tx.ref, mono: true },
@@ -351,7 +362,7 @@ const describeLoan = (tx: Transaction): Omit<TxView, 'status' | 'tone' | 'aria' 
       ...(tx.meta.starting_ltv ? [{ k: 'Starting LTV', v: tx.meta.starting_ltv }] : []),
       { k: 'Interest', v: tx.meta.interest ?? '10.00% APR · fixed' },
       ...(tx.meta.origination_fee ? [{ k: 'Origination fee', v: tx.meta.origination_fee }] : []),
-      { k: 'Paid to', v: tx.meta.paid_to ?? BANK },
+      { k: 'Paid to', v: tx.meta.paid_to ?? bankOf(tx) },
       { k: 'Reference', v: tx.ref, mono: true },
     ],
     steps: [

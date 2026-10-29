@@ -1,7 +1,8 @@
-import { formatAmount, formatUsd, unitsToCents } from '@xrp/ledger';
+import { formatAmount, unitsToCents } from '@xrp/ledger';
 import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { useHoldings, usePriceMap } from '@/data/hooks';
+import { useMoney } from '@/lib/money';
 import { familyFor, useTheme } from '@/theme';
 import { Card } from './Card';
 import { CoinLogo } from './CoinLogo';
@@ -28,6 +29,7 @@ export const AssetList = ({
   const { c } = useTheme();
   const holdings = useHoldings();
   const { prices } = usePriceMap();
+  const m = useMoney();
   const [q, setQ] = useState('');
   const avail = (id: string) => holdings.data?.find((h) => h.asset === id)?.available ?? 0n;
   const list = useMemo(() => {
@@ -83,7 +85,7 @@ export const AssetList = ({
                     {formatAmount(units, a.id)}
                   </T>
                   <T size={12} color="text3" num>
-                    {formatUsd(unitsToCents(units, prices[a.id] ?? 0n, a.id))}
+                    {m.money(unitsToCents(units, prices[a.id] ?? 0n, a.id))}
                   </T>
                 </View>
               ) : null}

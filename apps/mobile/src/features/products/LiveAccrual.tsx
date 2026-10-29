@@ -1,10 +1,11 @@
-import { asset as assetSpec, formatAmount, formatUnits, formatUsd, percentOf, simpleInterest, unitsToCents } from '@xrp/ledger';
+import { asset as assetSpec, formatAmount, formatUnits, percentOf, simpleInterest, unitsToCents } from '@xrp/ledger';
 import type { YieldPosition } from '@xrp/types';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { AreaChart } from '@/components/Charts';
 import { KV } from '@/components/KV';
 import { T } from '@/components/T';
+import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 
 const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -37,6 +38,7 @@ const useNow = () => {
  */
 export const LiveAccrual = ({ pos, asOf, priceMicro }: { pos: YieldPosition; asOf: number; priceMicro?: bigint }) => {
   const { c } = useTheme();
+  const m = useMoney();
   const a = pos.asset;
   const d = assetSpec(a).decimals;
   // Enough decimals that the counter visibly moves every second.
@@ -64,7 +66,7 @@ export const LiveAccrual = ({ pos, asOf, priceMicro }: { pos: YieldPosition; asO
           {`${formatUnits(accrued, a, tick)} ${a}`}
         </T>
         <T size={12} color="text2" num>
-          {`≈ ${amt(perDay, 8)} a day at ${(pos.aprBps / 100).toFixed(2)}% APR${priceMicro ? ` · ≈ ${formatUsd(unitsToCents(accrued, priceMicro, a))} so far` : ''}`}
+          {`≈ ${amt(perDay, 8)} a day at ${(pos.aprBps / 100).toFixed(2)}% APR${priceMicro ? ` · ≈ ${m.money(unitsToCents(accrued, priceMicro, a))} so far` : ''}`}
         </T>
       </View>
 
@@ -82,7 +84,7 @@ export const LiveAccrual = ({ pos, asOf, priceMicro }: { pos: YieldPosition; asO
         rowPad={8}
         items={HORIZONS.map((h) => ({
           k: h.l,
-          sub: priceMicro ? `≈ ${formatUsd(unitsToCents(net(h.d), priceMicro, a))} · net of fee` : 'Net of platform fee',
+          sub: priceMicro ? `≈ ${m.money(unitsToCents(net(h.d), priceMicro, a))} · net of fee` : 'Net of platform fee',
           v: `≈ ${amt(net(h.d), 8)}`,
         }))}
       />

@@ -39,6 +39,7 @@ import { useApiMutation, useAssets, useBalances, useLoan, usePriceMap, useProfil
 import { lendingTerms } from '@/data/products';
 import { md } from '@/lib/dates';
 import { newIdempotencyKey } from '@/lib/idempotency';
+import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 
 const LEVEL: Record<ReturnType<typeof ltvLevel>, { label: string; tone: BadgeTone }> = {
@@ -68,6 +69,7 @@ const Req = ({ first, done, label, note }: { first?: boolean; done: boolean; lab
 
 export const BorrowScreen = () => {
   const router = useRouter();
+  const m = useMoney();
   const { c } = useTheme();
   const showToast = useToast((s) => s.show);
   const loan = useLoan();
@@ -259,7 +261,7 @@ export const BorrowScreen = () => {
                 </T>
               }
             />
-            <T size={12} color="text3">{`Available ${formatAmount(available, collAsset)} · this collateral is worth ${formatUsd(cValue)}`}</T>
+            <T size={12} color="text3">{`Available ${formatAmount(available, collAsset)} · this collateral is worth ${m.money(cValue)}`}</T>
           </Field>
           <Field>
             <Label nativeID="b-amt">Borrow</Label>
@@ -283,7 +285,7 @@ export const BorrowScreen = () => {
                 </T>
               }
             />
-            <T size={12} color="text3">{`You can request up to ${formatUsd(cap)} at a 50% starting LTV`}</T>
+            <T size={12} color="text3">{`You can request up to ${formatUsd(cap)}${m.equivalent(cap) ? ` (${m.equivalent(cap)})` : ''} at a 50% starting LTV. Loans are paid and repaid in US dollars.`}</T>
           </Field>
           <KV
             num

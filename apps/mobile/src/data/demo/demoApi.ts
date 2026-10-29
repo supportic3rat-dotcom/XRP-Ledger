@@ -575,6 +575,8 @@ export const createDemoApi = (): Api => {
       emit();
       return consent;
     },
+    // Demo: fixed sample rates.
+    fxRate: async (currency) => ({ USD: 1, NGN: 1580, GBP: 0.78, EUR: 0.92, GHS: 15.4, KES: 129, ZAR: 18.3 } as Record<string, number>)[currency] ?? null,
     setDisplayCurrency: async (currency) => {
       db.profile.currency = currency as never;
       emit();

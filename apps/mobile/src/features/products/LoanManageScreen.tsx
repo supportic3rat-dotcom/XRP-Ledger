@@ -34,6 +34,7 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useActivity, useApiMutation, useBalances, useLoan, usePriceMap } from '@/data/hooks';
 import { newIdempotencyKey } from '@/lib/idempotency';
+import { useMoney } from '@/lib/money';
 import { SUPPORT_EMAIL } from '@/lib/support';
 
 type Mode = 'repay' | 'collateral';
@@ -63,6 +64,7 @@ const COLL_STAGE: Record<string, number> = { recorded: 0, sent: 1, lock_confirme
 
 export const LoanManageScreen = () => {
   const router = useRouter();
+  const m = useMoney();
   const params = useLocalSearchParams<{ mode?: string }>();
   const loan = useLoan();
   const la = loan.data?.collateralAsset ?? 'XRP';
@@ -212,7 +214,7 @@ export const LoanManageScreen = () => {
                 fixedKeys
                 items={[
                   { k: 'Loan', v: l?.ref ?? '', mono: true, valueSize: 12.5 },
-                  { k: 'Outstanding', v: formatUsd(owed) },
+                  { k: 'Outstanding', v: formatUsd(owed), sub: m.equivalent(owed) || undefined },
                   { k: 'Collateral', v: `${fmt(collDrops)} · ${formatUsd(unitsToCents(collDrops, p, la))}` },
                   { k: 'Current LTV', v: formatBps(ltvBps(owed, collDrops, p, ld)) },
                 ]}

@@ -1,8 +1,8 @@
-import { formatXrpUnit, shortAddress } from '@xrp/ledger';
+import { CURRENCY_NAMES, formatXrpUnit, shortAddress } from '@xrp/ledger';
 import type { ThemePreference } from '@xrp/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Pill } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
@@ -20,13 +20,13 @@ import { Toggle } from '@/components/Toggle';
 import { useToast } from '@/components/Toast';
 import { api } from '@/data';
 import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile } from '@/data/hooks';
-import { removeSelfCustody } from '@/lib/selfCustody';
+import { hasKey, removeSelfCustody } from '@/lib/selfCustody';
 import { usePreferences } from '@/state/preferences';
 import { useSession } from '@/state/session';
 import { useTheme } from '@/theme';
 
 const DOC_ORDER = ['tos', 'privacy', 'custody', 'fees', 'risk'] as const;
-const CURRENCIES = ['USD', 'NGN', 'GBP', 'EUR'].map((v) => ({ value: v, label: v }));
+const CURRENCIES = Object.entries(CURRENCY_NAMES).map(([code, name]) => ({ value: code, label: `${code} · ${name}` }));
 
 /** `.val` — 13px text-3 secondary line. */
 const Val = ({ children }: { children: string }) => (
@@ -69,12 +69,18 @@ export const ProfileScreen = () => {
   const [signOutSheet, setSignOutSheet] = useState(false);
 
   const p = profile.data;
-  const wallet = wallets.data?.[0];
+  const linked = wallets.data ?? [];
   const saved = allowlist.data?.length ?? 0;
+  // Which self-custody wallets have their key on this phone (only those can send from here).
+  const [keysHere, setKeysHere] = useState<string[]>([]);
+  useEffect(() => {
+    void Promise.all(linked.filter((w) => w.access === 'self_custody').map(async (w) => ((await hasKey(w.address)) ? w.address : null))).then((r) =>
+      setKeysHere(r.filter((x): x is string => x !== null)),
+    );
+  }, [wallets.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const disconnect = async () => {
-    if (!wallet) return;
-    if (wallet.access === 'self_custody') await removeSelfCustody();
+  const disconnect = async (wallet: { address: string; access: string }) => {
+    if (wallet.access === 'self_custody') await removeSelfCustody(wallet.address);
     await remove.mutateAsync(wallet.address);
     showToast('Wallet disconnected. Nothing in custody was affected.', { durationMs: 2600 });
   };
@@ -140,8 +146,8 @@ export const ProfileScreen = () => {
 
         <Sec>External wallets</Sec>
         <Card>
-          {wallet ? (
-            <View style={{ padding: 14, gap: 10 }}>
+          {linked.map((wallet, i) => (
+            <View key={wallet.address} style={{ padding: 14, gap: 10, borderTopWidth: i === 0 ? 0 : 1, borderColor: c.border }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View
                   style={{
@@ -170,18 +176,24 @@ export const ProfileScreen = () => {
               <Banner tone="info" size={12.5} padding={{ v: 10, h: 12 }}>
                 {wallet.access === 'watch'
                   ? 'Not held in custody. Read from the public ledger and never counted in your custodial balance.'
-                  : 'Keys are on this phone. We can’t recover this wallet, and it’s never counted in your custodial balance.'}
+                  : keysHere.includes(wallet.address)
+                    ? 'Keys are on this phone. We can’t recover this wallet, and it’s never counted in your custodial balance.'
+                    : 'Its key is on another phone. Import it here with its recovery phrase to send from this phone.'}
               </Banner>
-              <Button label="Disconnect" variant="secondary" size={36} style={{ alignSelf: 'flex-start' }} loading={remove.isPending} onPress={disconnect} />
-            </View>
-          ) : (
-            <Row first minHeight={52} onPress={() => setConnectSheet(true)} chevron>
-              <View style={{ flex: 1, gap: 1 }}>
-                <T weight={500}>Connect a wallet you own</T>
-                <Val>View its balance alongside your account</Val>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {keysHere.includes(wallet.address) ? (
+                  <Button label="Send XRP" size={36} onPress={() => router.push({ pathname: '/wallet-send', params: { address: wallet.address } })} />
+                ) : null}
+                <Button label="Disconnect" variant="secondary" size={36} loading={remove.isPending} onPress={() => void disconnect(wallet)} />
               </View>
-            </Row>
-          )}
+            </View>
+          ))}
+          <Row first={linked.length === 0} minHeight={52} onPress={() => setConnectSheet(true)} chevron>
+            <View style={{ flex: 1, gap: 1 }}>
+              <T weight={500}>{linked.length ? 'Connect another wallet' : 'Connect a wallet you own'}</T>
+              <Val>View its balance alongside your account</Val>
+            </View>
+          </Row>
         </Card>
 
         <Sec>Preferences</Sec>
@@ -257,13 +269,13 @@ export const ProfileScreen = () => {
           Connect an external wallet
         </T>
         <T size={13.5} lh={1.5} color="text2" style={{ marginBottom: 14 }}>
-          You’ll approve the connection in your wallet app. We only receive your public address, so we can show its balance — we can’t move funds from it.
+          Scan its QR code or paste its address to watch its balance, or import it with its recovery phrase to send from this phone. We never hold or move its funds.
         </T>
         <Banner tone="warn" icon="shield" style={{ marginBottom: 16 }}>
-          We will never ask for your recovery phrase or private key. Anyone who does is trying to steal your funds.
+          Only type a recovery phrase into this app’s import screen, on your own phone. Our staff will never ask for it; anyone who does is trying to steal your funds.
         </Banner>
         <Button
-          label="Open wallet app"
+          label="Connect a wallet"
           onPress={() => {
             setConnectSheet(false);
             router.push('/connect-wallet');

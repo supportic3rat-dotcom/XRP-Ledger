@@ -1,8 +1,9 @@
 import { isXrplAddress, formatXrpUnit, shortAddress } from '@xrp/ledger';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { IconName } from '@xrp/tokens';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -17,27 +18,15 @@ import { Select } from '@/components/Select';
 import { T } from '@/components/T';
 import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
-import { useApiMutation, useExternalWallets } from '@/data/hooks';
-import { connectWalletApp, type WalletAppVia } from '@/lib/walletApp';
-import { importFromPhrase, isKnownWord, isValidPhrase } from '@/lib/selfCustody';
+import { useApiMutation } from '@/data/hooks';
+import { dropPendingWallet, savePendingWallet } from '@/lib/pendingWallets';
+import { importFromPhrase, isKnownWord, isValidPhrase, removeSelfCustody } from '@/lib/selfCustody';
+import { accountState, parseAddressInput } from '@/lib/xrpl';
+import { useSession } from '@/state/session';
 import { familyFor, useTheme } from '@/theme';
 
-type Method = 'app' | 'addr' | 'phrase';
+type Method = 'scan' | 'addr' | 'phrase';
 type Step = 'choose' | 'wait' | 'done';
-type Via = WalletAppVia | 'phrase';
-
-const WAIT: Record<Via, [string, string]> = {
-  mobile: ['Approve in your wallet', 'We opened your wallet app. Check the request and tap Approve.'],
-  qr: ['Approve in your wallet', 'Scan the code with your wallet app, then approve the request there.'],
-  hw: ['Approve in your wallet', 'Open the companion app for your hardware wallet and confirm on the device.'],
-  phrase: ['Importing your wallet', 'Deriving your XRP Ledger address on this device. Nothing leaves your phone.'],
-};
-
-const OPTIONS: { via: WalletAppVia; icon: IconName; title: string; hint: string }[] = [
-  { via: 'mobile', icon: 'phone', title: 'XRPL wallet on this phone', hint: 'Opens the app to approve' },
-  { via: 'qr', icon: 'qr', title: 'Wallet on another device', hint: 'Scan a QR code to approve' },
-  { via: 'hw', icon: 'hardware', title: 'Hardware wallet', hint: 'Through its companion app' },
-];
 
 /** Where each wallet keeps its phrase. All use the standard XRP path m/44'/144'/0'/0/0 except Xaman. */
 const SOURCES: { value: string; label: string; where: string; supported: boolean }[] = [
@@ -119,20 +108,21 @@ const WordSlot = ({
 
 export const ConnectWalletScreen = () => {
   const router = useRouter();
-  const [method, setMethod] = useState<Method>('app');
+  const signedIn = useSession((x) => x.signedIn);
+  const [method, setMethod] = useState<Method>('scan');
   const [step, setStep] = useState<Step>('choose');
-  const [via, setVia] = useState<Via>('mobile');
   const [addr, setAddr] = useState('');
   const [tried, setTried] = useState(false);
   const [connected, setConnected] = useState<{ address: string; kind: 'watch' | 'import' } | null>(null);
+  const [balance, setBalance] = useState<{ drops: bigint; exists: boolean } | null>(null);
   const [len, setLen] = useState<12 | 24>(12);
   const [words, setWords] = useState<string[]>(() => Array(24).fill(''));
   const [show, setShow] = useState(false);
   const [source, setSource] = useState('trust');
   const [error, setError] = useState('');
+  const [permission, requestPermission] = useCameraPermissions();
+  const scanned = useRef(false);
   const refs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
-  const cancelled = useRef(false);
-  const wallets = useExternalWallets();
   const addWatch = useApiMutation(api.addWatchWallet);
   const addSelf = useApiMutation(api.addSelfCustodyWallet);
   const remove = useApiMutation(api.removeExternalWallet);
@@ -148,47 +138,69 @@ export const ConnectWalletScreen = () => {
   const src = SOURCES.find((x) => x.value === source) ?? SOURCES[SOURCES.length - 1]!;
   const phraseOk = src.supported && isValidPhrase(slots);
 
-  const pickApp = async (v: WalletAppVia) => {
-    setVia(v);
-    setStep('wait');
-    setError('');
-    cancelled.current = false;
-    try {
-      const r = await connectWalletApp(v);
-      if (cancelled.current) return;
-      await addWatch.mutateAsync(r.address);
-      setConnected({ address: r.address, kind: 'watch' });
-      setStep('done');
-    } catch (e) {
-      if (!cancelled.current) {
-        setError(e instanceof Error ? e.message : 'The wallet didn’t approve the connection.');
-        setStep('choose');
-      }
-    }
+  /** Links the wallet to the account, or keeps it on this phone until sign-up, then reads its balance. */
+  const link = async (address: string, kind: 'watch' | 'import') => {
+    const access = kind === 'import' ? 'self_custody' : 'watch';
+    if (signedIn) await (access === 'self_custody' ? addSelf : addWatch).mutateAsync(address);
+    else await savePendingWallet({ address, access });
+    setConnected({ address, kind });
+    setBalance(null);
+    setStep('done');
+    accountState(address)
+      .then((st) => setBalance({ drops: st.balanceDrops, exists: st.exists }))
+      .catch(() => setBalance(null));
   };
 
-  const watch = async () => {
-    if (!addrOk) {
+  const watch = async (address = a) => {
+    if (!isXrplAddress(address)) {
       setTried(true);
       return;
     }
-    await addWatch.mutateAsync(a);
-    setConnected({ address: a, kind: 'watch' });
-    setStep('done');
+    setError('');
+    try {
+      await link(address, 'watch');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'We couldn’t link that wallet.');
+    }
+  };
+
+  const onScan = (data: string) => {
+    if (scanned.current) return;
+    const found = parseAddressInput(data);
+    if (!found || !isXrplAddress(found.address)) {
+      setError('That QR code isn’t an XRP Ledger address. Scan the receive code in your wallet.');
+      return;
+    }
+    scanned.current = true;
+    setAddr(found.address);
+    void watch(found.address);
+  };
+
+  const startScan = async () => {
+    setError('');
+    scanned.current = false;
+    if (Platform.OS !== 'web' && !permission?.granted) {
+      const r = await requestPermission();
+      if (!r.granted) setError('Allow camera access to scan, or paste the address instead.');
+    }
+  };
+
+  const paste = async () => {
+    const { getStringAsync } = await import('expo-clipboard');
+    const found = parseAddressInput(await getStringAsync().catch(() => ''));
+    if (found) setAddr(found.address);
+    else setError('There’s no XRP Ledger address on your clipboard. Copy it from your wallet first.');
   };
 
   const importWallet = async () => {
     if (!phraseOk) return;
-    setVia('phrase');
     setStep('wait');
     setError('');
     try {
       const account = await importFromPhrase(slots);
       setWords(Array(24).fill(''));
       setShow(false);
-      await addSelf.mutateAsync(account.address);
-      setConnected({ address: account.address, kind: 'import' });
-      setStep('done');
+      await link(account.address, 'import');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Import failed.');
       setStep('choose');
@@ -196,7 +208,11 @@ export const ConnectWalletScreen = () => {
   };
 
   const disconnect = async () => {
-    if (connected) await remove.mutateAsync(connected.address);
+    if (connected) {
+      if (signedIn) await remove.mutateAsync(connected.address);
+      await dropPendingWallet(connected.address);
+      if (connected.kind === 'import') await removeSelfCustody(connected.address);
+    }
     setConnected(null);
     setAddr('');
     setTried(false);
@@ -224,7 +240,7 @@ export const ConnectWalletScreen = () => {
               value={method}
               onChange={setMethod}
               options={[
-                { value: 'app', label: 'Wallet app' },
+                { value: 'scan', label: 'Scan QR' },
                 { value: 'addr', label: 'Address' },
                 { value: 'phrase', label: 'Recovery phrase' },
               ]}
@@ -236,21 +252,25 @@ export const ConnectWalletScreen = () => {
               </Banner>
             ) : null}
 
-            {method === 'app' ? (
+            {method === 'scan' ? (
               <>
-                <Card>
-                  {OPTIONS.map((o, i) => (
-                    <Row key={o.via} first={i === 0} minHeight={60} onPress={() => pickApp(o.via)} accessibilityLabel={`${o.title}. ${o.hint}`} chevron>
-                      <OptIcon icon={o.icon} />
-                      <View style={{ flex: 1, gap: 1 }}>
-                        <T weight={500}>{o.title}</T>
-                        <Help>{o.hint}</Help>
-                      </View>
-                    </Row>
-                  ))}
-                </Card>
+                <View style={{ aspectRatio: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
+                  {Platform.OS !== 'web' && permission?.granted ? (
+                    <CameraView
+                      facing="back"
+                      barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                      onBarcodeScanned={({ data }) => onScan(data)}
+                      style={{ position: 'absolute', inset: 0 }}
+                    />
+                  ) : (
+                    <View style={{ alignItems: 'center', gap: 12, padding: 24 }}>
+                      <Icon name="qr" size={32} color="text3" />
+                      <Button label={Platform.OS === 'web' ? 'Scanning works in the phone app' : 'Turn on the camera'} size={48} disabled={Platform.OS === 'web'} onPress={startScan} />
+                    </View>
+                  )}
+                </View>
                 <Help style={{ marginTop: 10, marginHorizontal: 4 }}>
-                  Only your public address is shared. Supported wallets are listed after compatibility testing.
+                  In your other wallet, open Receive for XRP and scan its QR code. Only the public address is read; nothing can be moved from it.
                 </Help>
               </>
             ) : null}
@@ -270,11 +290,18 @@ export const ConnectWalletScreen = () => {
                     autoCorrect={false}
                     autoComplete="off"
                     spellCheck={false}
+                    trailing={
+                      <Pressable accessibilityRole="button" accessibilityLabel="Paste address" onPress={() => void paste()} hitSlop={8}>
+                        <T size={13} weight={600} color="accentText">
+                          Paste
+                        </T>
+                      </Pressable>
+                    }
                   />
                   <ErrorText>{addrErr}</ErrorText>
                   <Help>Starts with “r”, 25–35 characters. Safe to share — it’s the address people send XRP to.</Help>
                 </Field>
-                <Button label="Add as watch-only" onPress={watch} loading={addWatch.isPending} style={{ marginTop: 16 }} />
+                <Button label="Add as watch-only" onPress={() => void watch()} loading={addWatch.isPending} style={{ marginTop: 16 }} />
               </>
             ) : null}
 
@@ -370,42 +397,15 @@ export const ConnectWalletScreen = () => {
         ) : null}
 
         {step === 'wait' ? (
-          <>
-            <View style={{ alignItems: 'center', gap: 14, paddingTop: 72, paddingHorizontal: 8, paddingBottom: 24 }}>
-              <Spinner />
-              <T size={20} weight={600} align="center" accessibilityRole="header">
-                {WAIT[via][0]}
-              </T>
-              <T lh={1.5} color="text2" align="center">
-                {WAIT[via][1]}
-              </T>
-              {via !== 'phrase' ? (
-                <Card style={{ alignSelf: 'stretch', marginTop: 8 }}>
-                  <KV
-                    items={[
-                      { k: 'Requested by', v: 'XRP Ledger app' },
-                      { k: 'Shares', v: 'Public address only' },
-                      { k: 'Can move funds', v: 'No' },
-                    ]}
-                    baseline={false}
-                  />
-                </Card>
-              ) : null}
-            </View>
-            {via !== 'phrase' ? (
-              <View style={{ gap: 10 }}>
-                <Button label="Open wallet app again" onPress={() => pickApp(via)} />
-                <Button
-                  label="Cancel"
-                  variant="secondary"
-                  onPress={() => {
-                    cancelled.current = true;
-                    setStep('choose');
-                  }}
-                />
-              </View>
-            ) : null}
-          </>
+          <View style={{ alignItems: 'center', gap: 14, paddingTop: 72, paddingHorizontal: 8, paddingBottom: 24 }}>
+            <Spinner />
+            <T size={20} weight={600} align="center" accessibilityRole="header">
+              Importing your wallet
+            </T>
+            <T lh={1.5} color="text2" align="center">
+              Deriving your XRP Ledger address on this device. Nothing leaves your phone.
+            </T>
+          </View>
         ) : null}
 
         {step === 'done' && connected ? (
@@ -417,17 +417,19 @@ export const ConnectWalletScreen = () => {
               </T>
               <T color="text2">
                 {imported
-                  ? 'Your wallet is ready on this device. You can view it and sign transactions from here.'
-                  : method === 'addr'
-                    ? 'Added as watch-only. We’ll read its balance from the public ledger.'
-                    : 'Your wallet approved the connection and shared its public address.'}
+                  ? 'Your wallet is ready on this phone. You can see its balance and send XRP from it.'
+                  : 'Added as watch-only. We read its balance from the public XRP Ledger.'}
+                {signedIn ? '' : ' It will be linked to your account when you create one or sign in.'}
               </T>
             </View>
             <Card style={{ marginTop: 18 }}>
               <KV
                 items={[
                   { k: 'Address', v: shortAddress(connected.address), mono: true, valueSize: 12.5 },
-                  { k: 'Balance on ledger', v: formatXrpUnit(wallets.data?.find((x) => x.address === connected.address)?.balanceDrops ?? 0n) },
+                  {
+                    k: 'Balance on ledger',
+                    v: balance ? (balance.exists ? formatXrpUnit(balance.drops) : 'Not activated yet') : 'Reading…',
+                  },
                   ...(imported ? [{ k: 'Imported from', v: src.label }] : []),
                   { k: 'Access', v: imported ? 'Self-custody · keys on this phone' : 'Watch-only' },
                   { k: 'Held in custody', v: 'No' },
@@ -438,26 +440,24 @@ export const ConnectWalletScreen = () => {
             <Banner tone="info" icon="info" style={{ marginTop: 12 }}>
               {imported
                 ? 'You control this wallet. If you lose this phone and your paper backup, we can’t recover it. It’s never counted in your custodial balance.'
-                : 'To deposit, earn or borrow you’ll also need a custodial account. This wallet stays separate and is never counted in your custodial balance.'}
+                : 'This wallet stays separate and is never counted in your custodial balance. To deposit, earn or borrow, use your custodial account.'}
             </Banner>
             <View style={{ gap: 10, marginTop: 20 }}>
-              <Button as="a" label="Continue to custodial account" onPress={() => router.replace('/create-account')} />
-              <Button label={imported ? 'Remove from this device' : 'Disconnect'} variant="secondary" onPress={disconnect} />
+              {signedIn && imported ? (
+                <Button as="a" label="Send XRP from this wallet" onPress={() => router.replace({ pathname: '/wallet-send', params: { address: connected.address } })} />
+              ) : null}
+              <Button
+                as="a"
+                label={signedIn ? 'Done' : 'Continue to custodial account'}
+                variant={signedIn && imported ? 'secondary' : 'primary'}
+                onPress={() => router.replace(signedIn ? '/profile' : '/create-account')}
+              />
+              <Button label={imported ? 'Remove from this phone' : 'Disconnect'} variant="secondary" onPress={() => void disconnect()} />
             </View>
           </>
         ) : null}
       </ScrollBody>
     </Screen>
-  );
-};
-
-/** `.opt-ic` — 38×38, 10 radius, sunken, text-2 icon. */
-const OptIcon = ({ icon }: { icon: IconName }) => {
-  const { c } = useTheme();
-  return (
-    <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: c.sunken, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={icon} color="text2" />
-    </View>
   );
 };
 
