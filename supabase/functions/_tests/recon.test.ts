@@ -30,5 +30,5 @@ Deno.test('suspense deposits and late provider confirmations become exceptions w
     },
     {},
   );
-  assertEquals(out.map((e) => e.note), ['DEP-PROTO-2050 · 500.00 XRP held in suspense', 'YLD-PROTO-0112 · 300.00 XRP pending at [Yield provider] for 41m']);
+  assertEquals(out.map((e) => e.note), ['DEP-PROTO-2050 · 500.00 XRP held in suspense', 'YLD-PROTO-0112 · 300.00 XRP pending in Earn for 41m']);
 });

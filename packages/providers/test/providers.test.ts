@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { chartPeriods, createCoinGecko, createMockProviders, providerNames, sampleSeries } from '../src/index.ts';
 
 describe('provider mocks', () => {
-  it('keep placeholder names until a provider is chosen', () => {
-    for (const name of Object.values(providerNames)) expect(name).toMatch(/^\[.+\]$/);
+  it('name the platform’s own services, with no bracket placeholders left', () => {
+    for (const name of Object.values(providerNames)) expect(name).not.toMatch(/[[\]]/);
   });
   it('return integer amounts (bigint) for balances and prices', async () => {
     const p = createMockProviders({ latencyMs: 0 });

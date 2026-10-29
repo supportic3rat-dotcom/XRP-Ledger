@@ -103,8 +103,8 @@ export const WelcomeScreen = () => {
             By continuing you agree to the{' '}
             <T size={12.5} lh={1.44} color="accentText" underline onPress={() => router.push('/legal')} accessibilityRole="link">
               Privacy Policy
-            </T>{' '}
-            (draft v0.1). Not affiliated with Ripple or the XRP Ledger Foundation.
+            </T>
+            . Built on the XRP Ledger.
           </T>
         </View>
       </View>

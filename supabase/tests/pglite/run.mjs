@@ -903,6 +903,23 @@ await test('staff see the trust on the profile, masked by role', async () => {
   }
 });
 
+console.log('\nDeposits before verification');
+await test('an unverified customer can report a deposit; a frozen one cannot; withdrawals still need verification', async () => {
+  await db.exec('begin');
+  try {
+    await db.exec(`update customers set kyc_status = 'not_started' where id = '${BRENDAN}'`);
+    const t = await one(`select status from report_deposit('${BRENDAN}', 'XRP', 50000000, 'UNVERIFIEDHASH01', null, 'uv-1', 'xrp')`);
+    assert(t.status === 'reported', t.status);
+    await db.exec('savepoint s');
+    await throwsLike(`select request_withdrawal('${BRENDAN}', 20000000, 'rp489nfz7Q6KoHYkB6Uj3Ks4RtSoX4CfCV', null, 'uv-2', false, 'XRP', null, 'xrp')`, /Verify your identity/);
+    await db.exec('rollback to savepoint s');
+    await db.exec(`update customers set frozen_at = now() where id = '${BRENDAN}'`);
+    await throwsLike(`select report_deposit('${BRENDAN}', 'XRP', 50000000, 'UNVERIFIEDHASH02', null, 'uv-3', 'xrp')`, /frozen/);
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
 console.log('\nPassword reset by support');
 await test('only Compliance resets a password; sessions end, withdrawals pause and the customer is told', async () => {
   await as(OPS, 'operations', () => throwsLike(`select customer_password_reset('${BRENDAN}')`, /Only Compliance/));

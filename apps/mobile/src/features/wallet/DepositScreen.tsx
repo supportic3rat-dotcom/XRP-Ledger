@@ -81,7 +81,6 @@ export const DepositScreen = () => {
 
   const spec = assetSpec(assetId);
   const reported = spec.deposit === 'reported';
-  const verified = profile.data?.kycStatus === 'verified';
   const options: PickableAsset[] = (assets.data ?? []).map((a) => ({
     id: a.id,
     name: a.name,
@@ -172,14 +171,7 @@ export const DepositScreen = () => {
         ) : null}
 
         <Sec top={22}>Receive</Sec>
-        {!verified ? (
-          <Card style={{ padding: 16, gap: 12 }}>
-            <Banner tone="info" icon="lock">
-              Verify your identity to deposit. Your deposit address appears here once you’re verified.
-            </Banner>
-            <Button as="a" label="Verify your identity" onPress={() => router.push('/verify')} />
-          </Card>
-        ) : !open || (info.data && !address) ? (
+        {!open || (info.data && !address) ? (
           <Banner tone="info" icon="info">
             {networks.length > 1
               ? `${spec.name} deposits on ${network} aren’t open yet. Choose another network, or check back soon.`

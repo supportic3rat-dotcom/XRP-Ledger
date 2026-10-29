@@ -54,7 +54,7 @@ export const ReconciliationScreen = () => {
                     {` · ${r.when}`}
                   </T>
                   <T size={12.5} lh={1.4} color="text3">
-                    {`Internal ledger vs [Custody provider] vs XRP Ledger (validated ledger ${r.validatedLedger.toLocaleString('en-US')})`}
+                    {`Internal ledger vs platform wallets vs XRP Ledger (validated ledger ${r.validatedLedger.toLocaleString('en-US')})`}
                   </T>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

@@ -265,7 +265,7 @@ export const LoanManageScreen = () => {
                     <Row first minHeight={60} accessibilityState={{ checked: via === 'bank' }} onPress={() => setVia('bank')}>
                       <View style={{ flex: 1, gap: 1 }}>
                         <T weight={500}>Bank transfer</T>
-                        <Help>From [Bank account •••• 0000] · 1–2 business days</Help>
+                        <Help>By bank transfer · usually 1–2 business days</Help>
                       </View>
                       <Radio on={via === 'bank'} />
                     </Row>

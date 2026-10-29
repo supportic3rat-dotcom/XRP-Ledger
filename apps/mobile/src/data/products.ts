@@ -14,7 +14,7 @@ export type FlexibleProduct = {
   termsVersion: string;
 };
 
-/** Flexible yield product for an asset (sample terms from [Yield provider]; labelled variable and sample in the UI). Null if none. */
+/** Flexible yield product for an asset, run by the platform (variable rate). Null if none. */
 export const flexibleProduct = (asset: string, aprBps?: number | null): FlexibleProduct | null => {
   const a = assetSpec(asset);
   const apr = aprBps === undefined ? a.yieldAprBps : aprBps;
@@ -22,7 +22,7 @@ export const flexibleProduct = (asset: string, aprBps?: number | null): Flexible
   return {
     asset,
     name: `${a.id} Flexible`,
-    provider: '[Yield provider]',
+    provider: 'Earn',
     aprBps: apr,
     feeBps: 1000,
     minDrops: assetLimits(asset).minProduct,
@@ -30,7 +30,7 @@ export const flexibleProduct = (asset: string, aprBps?: number | null): Flexible
     withdrawal: '1–2 business days',
     eligibility: 'Verified · agreement signed',
     rateUpdatedAt: '2026-10-19T08:00:00Z',
-    termsVersion: 'v0.1',
+    termsVersion: '1.0',
   };
 };
 
@@ -38,11 +38,11 @@ export const flexibleProduct = (asset: string, aprBps?: number | null): Flexible
 export const xrpFlexible = flexibleProduct('XRP') as FlexibleProduct;
 
 export const lendingTerms = {
-  provider: '[Lending provider]',
+  provider: 'Borrow',
   aprBps: 1000,
   maxStartLtvBps: 5000,
   originationBps: 100,
   minCollateralDrops: xrpToDrops('100'),
   minLoanCents: 10_000n,
-  agreementVersion: 'v0.1',
+  agreementVersion: '1.0',
 } as const;

@@ -21,7 +21,7 @@ import { api } from '@/data';
 import { useApiMutation } from '@/data/hooks';
 import { dropPendingWallet, savePendingWallet } from '@/lib/pendingWallets';
 import { areValidSecretNumbers, isValidRow, ROWS } from '@/lib/secretNumbers';
-import { importFromPhrase, importFromSecretNumbers, isKnownWord, isValidPhrase, removeSelfCustody } from '@/lib/selfCustody';
+import { importFromPhrase, importFromSecretKey, importFromSecretNumbers, isKnownWord, isValidPhrase, isValidSecretKey, removeSelfCustody } from '@/lib/selfCustody';
 import { readWalletAddress } from '@/lib/walletAddress';
 import { useSession } from '@/state/session';
 import { familyFor, useTheme } from '@/theme';
@@ -29,19 +29,33 @@ import { familyFor, useTheme } from '@/theme';
 type Method = 'scan' | 'addr' | 'phrase';
 type Step = 'choose' | 'wait' | 'done';
 
-/** Where each wallet keeps its phrase. All use the standard XRP path m/44'/144'/0'/0/0 except Xaman. */
-const SOURCES: { value: string; label: string; where: string; supported: boolean }[] = [
-  { value: 'trust', label: 'Trust Wallet', where: 'Settings → Wallets → ⋮ next to the wallet → Manual backup.', supported: true },
-  { value: 'exodus', label: 'Exodus', where: 'Settings → Security → Secret Recovery Phrase.', supported: true },
-  { value: 'ledger', label: 'Ledger', where: 'The recovery sheet you wrote down when you set up the device.', supported: true },
-  { value: 'atomic', label: 'Atomic Wallet', where: 'Settings → Private keys → Backup phrase.', supported: true },
-  {
-    value: 'xaman',
-    label: 'Xaman (formerly Xumm)',
-    where: 'In Xaman: Settings → Accounts → your account → Security → reveal Secret Numbers (8 rows, A–H, of 6 digits).',
-    supported: true,
-  },
-  { value: 'other', label: 'Another wallet (12 or 24 words)', where: 'Any wallet that uses a standard BIP39 phrase for XRP.', supported: true },
+type Format = 'phrase' | 'numbers' | 'seed';
+const FORMAT_LABELS: Record<Format, string> = { phrase: 'Recovery phrase (12 or 24 words)', numbers: 'Secret Numbers (8 rows of 6 digits)', seed: 'Secret key (starts with “s”)' };
+
+/**
+ * Wallets that hold XRP, and the backup format each shows. Phrase wallets use the standard XRP path m/44'/144'/0'/0/0.
+ * "Another wallet" lets the customer type the wallet's name and pick its format.
+ */
+const SOURCES: { value: string; label: string; where: string; format: Format }[] = [
+  { value: 'trust', label: 'Trust Wallet', where: 'Settings → Wallets → ⋮ next to the wallet → Manual backup.', format: 'phrase' },
+  { value: 'xaman', label: 'Xaman (formerly Xumm)', where: 'Settings → Accounts → your account → Security → reveal Secret Numbers (rows A–H).', format: 'numbers' },
+  { value: 'coinbase', label: 'Coinbase Wallet', where: 'Settings → Security → Show recovery phrase.', format: 'phrase' },
+  { value: 'exodus', label: 'Exodus', where: 'Settings → Security → Secret Recovery Phrase.', format: 'phrase' },
+  { value: 'ledger', label: 'Ledger', where: 'The recovery sheet you wrote down when you set up the device.', format: 'phrase' },
+  { value: 'trezor', label: 'Trezor', where: 'The wallet backup card you wrote down when you set up the device.', format: 'phrase' },
+  { value: 'atomic', label: 'Atomic Wallet', where: 'Settings → Private keys → Backup phrase.', format: 'phrase' },
+  { value: 'safepal', label: 'SafePal', where: 'Wallet → ⋮ → Manage wallet → Backup mnemonic phrase.', format: 'phrase' },
+  { value: 'bitget', label: 'Bitget Wallet', where: 'Me → Wallet management → your wallet → Back up mnemonic phrase.', format: 'phrase' },
+  { value: 'okx', label: 'OKX Wallet', where: 'Wallet → Manage wallets → your wallet → Back up seed phrase.', format: 'phrase' },
+  { value: 'guarda', label: 'Guarda', where: 'Settings → Wallet → Backup → Show mnemonic.', format: 'phrase' },
+  { value: 'coinomi', label: 'Coinomi', where: 'Settings → Recovery phrase.', format: 'phrase' },
+  { value: 'edge', label: 'Edge', where: 'Your wallet → ⋮ → Get Seed (or your 2FA backup).', format: 'phrase' },
+  { value: 'keystone', label: 'Keystone', where: 'The seed phrase you wrote down when you set up the device.', format: 'phrase' },
+  { value: 'ellipal', label: 'Ellipal', where: 'The mnemonic you backed up when you created the wallet.', format: 'phrase' },
+  { value: 'crossmark', label: 'Crossmark', where: 'Settings → Accounts → your account → Reveal secret key.', format: 'seed' },
+  { value: 'gemwallet', label: 'GemWallet', where: 'Settings → Show secret seed (or your recovery phrase).', format: 'seed' },
+  { value: 'xrptoolkit', label: 'XRP Toolkit', where: 'The secret key you saved when you created the account.', format: 'seed' },
+  { value: 'other', label: 'Another wallet (type its name)', where: 'Type the wallet’s name below, then choose the kind of backup it gave you.', format: 'phrase' },
 ];
 
 const NETWORK_OPTIONS = WALLET_NETWORKS.map((n) => ({ value: n.id, label: `${n.name} · ${n.assets.join(', ')}` }));
@@ -173,6 +187,9 @@ export const ConnectWalletScreen = () => {
   const [words, setWords] = useState<string[]>(() => Array(24).fill(''));
   const [show, setShow] = useState(false);
   const [source, setSource] = useState('trust');
+  const [otherName, setOtherName] = useState('');
+  const [otherFormat, setOtherFormat] = useState<Format>('phrase');
+  const [seed, setSeed] = useState('');
   const [error, setError] = useState('');
   const [permission, requestPermission] = useCameraPermissions();
   const scanned = useRef(false);
@@ -197,9 +214,14 @@ export const ConnectWalletScreen = () => {
   const slots = words.slice(0, len);
   const anyWord = slots.some(Boolean);
   const src = SOURCES.find((x) => x.value === source) ?? SOURCES[SOURCES.length - 1]!;
-  const xaman = source === 'xaman';
-  const phraseOk = xaman ? areValidSecretNumbers(numbers) : src.supported && isValidPhrase(slots);
-  const anySecret = xaman ? numbers.some(Boolean) : anyWord;
+  const other = source === 'other';
+  const format: Format = other ? otherFormat : src.format;
+  const xaman = format === 'numbers';
+  const walletName = other ? otherName.trim() || 'Another wallet' : src.label;
+  const phraseOk =
+    (!other || otherName.trim().length > 0) &&
+    (format === 'numbers' ? areValidSecretNumbers(numbers) : format === 'seed' ? isValidSecretKey(seed) : isValidPhrase(slots));
+  const anySecret = format === 'numbers' ? numbers.some(Boolean) : format === 'seed' ? seed.length > 0 : anyWord;
 
   /** Links the wallet to the account, or keeps it on this phone until sign-up, then reads its balance. */
   const link = async (address: string, kind: 'watch' | 'import') => {
@@ -270,9 +292,11 @@ export const ConnectWalletScreen = () => {
     setStep('wait');
     setError('');
     try {
-      const account = xaman ? await importFromSecretNumbers(numbers) : await importFromPhrase(slots);
+      const account =
+        format === 'numbers' ? await importFromSecretNumbers(numbers) : format === 'seed' ? await importFromSecretKey(seed) : await importFromPhrase(slots);
       setWords(Array(24).fill(''));
       setNumbers(Array(ROWS).fill(''));
+      setSeed('');
       setShow(false);
       await link(account.address, 'import');
     } catch (e) {
@@ -418,6 +442,45 @@ export const ConnectWalletScreen = () => {
                   <Select label="Wallet it’s from" value={source} options={SOURCES} onChange={setSource} height={48} />
                   <Help>{src.where}</Help>
                 </Field>
+                {other ? (
+                  <>
+                    <Field style={{ marginTop: 12 }}>
+                      <Label nativeID="cw-other">Wallet name</Label>
+                      <TextField accessibilityLabelledBy="cw-other" value={otherName} onChangeText={setOtherName} placeholder="e.g. My hardware wallet" height={48} />
+                    </Field>
+                    <Field style={{ marginTop: 12 }}>
+                      <Label nativeID="cw-format">Backup it gave you</Label>
+                      <Select
+                        label="Backup it gave you"
+                        value={otherFormat}
+                        options={(Object.keys(FORMAT_LABELS) as Format[]).map((f) => ({ value: f, label: FORMAT_LABELS[f] }))}
+                        onChange={(v) => setOtherFormat(v as Format)}
+                        height={48}
+                      />
+                    </Field>
+                  </>
+                ) : null}
+                {format === 'seed' ? (
+                  <Field style={{ marginTop: 14 }}>
+                    <Label nativeID="cw-seed">Secret key</Label>
+                    <TextField
+                      accessibilityLabelledBy="cw-seed"
+                      value={seed}
+                      onChangeText={(v) => setSeed(v.trim())}
+                      secureTextEntry={!show}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="off"
+                      importantForAutofill="no"
+                      contextMenuHidden
+                      placeholder="s…"
+                      mono
+                      height={48}
+                      invalid={seed.length > 20 && !isValidSecretKey(seed)}
+                    />
+                    <Help>Starts with “s”, about 29 characters. It stays on this phone.</Help>
+                  </Field>
+                ) : null}
                 {xaman ? (
                   <View accessibilityRole="list" accessibilityLabel="Secret Numbers" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
                     {numbers.map((v, i) => (
@@ -427,7 +490,7 @@ export const ConnectWalletScreen = () => {
                     ))}
                   </View>
                 ) : null}
-                {!xaman ? (
+                {format === 'phrase' ? (
                   <>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, marginBottom: 10 }}>
                       <T size={13} weight={500} nativeID="ph-len">
@@ -483,6 +546,7 @@ export const ConnectWalletScreen = () => {
                     onPress={() => {
                       setWords(Array(24).fill(''));
                       setNumbers(Array(ROWS).fill(''));
+                      setSeed('');
                     }}
                   />
                   <Button
@@ -497,7 +561,7 @@ export const ConnectWalletScreen = () => {
                 </View>
                 {phraseOk ? (
                   <View style={{ marginTop: 12 }}>
-                    <Tick iconColor="pos">{xaman ? 'All 8 rows check out' : 'All words recognised · checksum valid'}</Tick>
+                    <Tick iconColor="pos">{format === 'numbers' ? 'All 8 rows check out' : format === 'seed' ? 'Secret key is valid' : 'All words recognised · checksum valid'}</Tick>
                   </View>
                 ) : null}
                 <Card style={{ marginTop: 14, paddingVertical: 12, paddingHorizontal: 14, gap: 8 }}>
@@ -549,7 +613,7 @@ export const ConnectWalletScreen = () => {
                     k: `${asset} balance`,
                     v: balances ? formatAmount(balances[asset] ?? 0n, asset) : 'Reading…',
                   })),
-                  ...(imported ? [{ k: 'Imported from', v: src.label }] : []),
+                  ...(imported ? [{ k: 'Imported from', v: walletName }] : []),
                   { k: 'Access', v: imported ? 'Self-custody · keys on this phone' : 'Watch-only' },
                   { k: 'Held in custody', v: 'No' },
                 ]}

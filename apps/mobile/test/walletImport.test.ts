@@ -43,3 +43,16 @@ describe('Xaman Secret Numbers', () => {
     expect(() => secretNumbersToWallet([...rows.slice(0, 7), '605431'])).toThrow(/aren’t right/);
   });
 });
+
+describe('XRP secret key (family seed) import', () => {
+  it('accepts a real secret key and rejects a typo', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { generateSeed } = require('ripple-keypairs') as typeof import('ripple-keypairs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { isValidSecretKey } = require('@/lib/secretNumbers') as typeof import('@/lib/secretNumbers');
+    const seed = generateSeed({ entropy: new Uint8Array(16).fill(7) });
+    expect(isValidSecretKey(seed)).toBe(true);
+    expect(isValidSecretKey(`${seed.slice(0, -1)}${seed.endsWith('a') ? 'b' : 'a'}`)).toBe(false);
+    expect(isValidSecretKey('not-a-seed')).toBe(false);
+  });
+});

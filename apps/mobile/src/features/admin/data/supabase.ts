@@ -320,7 +320,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
               ? 'Pending review'
               : kyc.replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()),
         kycTone: kyc === 'verified' ? 'ok' : kyc === 'rejected' ? 'bad' : 'wait',
-        joined: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Africa/Lagos' }).format(
+        joined: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
           new Date(str(c.created_at)),
         ),
         risk: str(c.risk_rating),
@@ -371,7 +371,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
     const liabilities = (result.liabilities as Row | undefined) ?? {};
     return {
       runRef: str(run?.ref),
-      when: run ? `${when(new Date(str(run.created_at)), now())} WAT` : '—',
+      when: run ? when(new Date(str(run.created_at)), now()) : '—',
       validatedLedger: Number(run?.validated_ledger ?? 0),
       wallets: [...ws, total],
       customerLiabilitiesDrops: big(liabilities.customers),
@@ -400,7 +400,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
       rows(db.from('recon_runs').select('result').order('created_at', { ascending: false }).limit(1)),
     ]);
     const result = ((run[0]?.result as Row) ?? {}) as Record<string, Row>;
-    const startOfDay = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' }) + 'T00:00:00+01:00').toISOString();
+    const startOfDay = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
     const out = await rows(
       db
         .from('transactions')
@@ -509,7 +509,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         liabilitiesDrops: liabilities,
         coveragePct: pct,
         exceptionsOpen: open.length,
-        lastRun: r.when.split(' ')[1] ?? '—',
+        lastRun: r.when.replace(/^Today /, ''),
         outflowTodayDrops: c.limits.outflowTodayDrops,
         outflowLimitDrops: c.limits.platformDailyDrops,
         providers: [

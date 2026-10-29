@@ -32,3 +32,12 @@ export const secretNumbersToWallet = (rows: string[]): { classicAddress: string;
   const keys = deriveKeypair(secretNumbersToSeed(rows));
   return { classicAddress: deriveAddress(keys.publicKey), publicKey: keys.publicKey, privateKey: keys.privateKey };
 };
+
+/** An XRP Ledger secret key ("family seed", starting with s…), as Crossmark, GemWallet and XRP Toolkit show it. */
+export const isValidSecretKey = (seed: string): boolean => {
+  try {
+    return /^s[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(seed.trim()) && !!deriveKeypair(seed.trim()).publicKey;
+  } catch {
+    return false;
+  }
+};

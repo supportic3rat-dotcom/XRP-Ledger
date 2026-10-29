@@ -14,7 +14,7 @@ import { T } from '@/components/T';
 import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useBalances, useCustodyStatus } from '@/data/hooks';
-import { hm } from '@/lib/dates';
+import { hm, hmz } from '@/lib/dates';
 import { useTheme } from '@/theme';
 
 const PROVIDER = {
@@ -80,7 +80,7 @@ export const CustodyScreen = () => {
               <Icon name="shield" color="accentText" />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <T weight={600}>Held with [Custody provider]</T>
+              <T weight={600}>Held in platform wallets</T>
               <T size={12} mono color="text3">{`Sub-account ${status.data?.subAccount ?? ''}`}</T>
             </View>
           </View>
@@ -115,7 +115,7 @@ export const CustodyScreen = () => {
           />
         </Card>
         <T size={12} color="text3" style={{ marginTop: 8, marginHorizontal: 4 }}>
-          {`Reconciled with the provider’s records at ${status.data ? hm(status.data.reconciledAt) : ''} WAT. Pending deposits aren’t included until credited.`}
+          {`Reconciled with the provider’s records at ${status.data ? hmz(status.data.reconciledAt) : ''}. Pending deposits aren’t included until credited.`}
         </T>
 
         <Sec>Supported assets</Sec>
@@ -193,9 +193,7 @@ export const CustodyScreen = () => {
               <T weight={500} style={{ flex: 1 }}>
                 {d}
               </T>
-              <T size={12.5} color="text3">
-                Draft v0.1
-              </T>
+              <Icon name="chevronRight" size="sm" color="text3" />
             </Row>
           ))}
         </Card>

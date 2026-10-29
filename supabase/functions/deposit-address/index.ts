@@ -17,7 +17,6 @@ export const handler = defineFunction({
     const { data: customer } = await ctx.db.from('customers').select('destination_tag, kyc_status, frozen_at').eq('id', customerId(ctx)).single();
     const c = customer as { destination_tag: number; kyc_status: string; frozen_at: string | null } | null;
     if (!c) throw new HttpError(404, 'Customer not found', 'not_found');
-    if (c.kyc_status !== 'verified') throw new HttpError(403, 'Verify your identity to continue.', 'kyc_required');
     if (c.frozen_at) throw new HttpError(403, 'Your account is frozen. Contact support.', 'frozen');
     const [{ data: row }, { data: nets }] = await Promise.all([
       ctx.db.from('assets').select('id, deposit_mode, deposit_memo, min_deposit, enabled').eq('id', ctx.input.asset).single(),

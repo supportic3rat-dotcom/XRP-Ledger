@@ -1,3 +1,4 @@
+import { hm as localHm, md as localMd } from '@/lib/dates';
 import { formatXrp } from '@xrp/ledger';
 
 /** "1,250.00" */
@@ -11,11 +12,10 @@ export const xrp0 = (drops: bigint): string => formatXrp(drops, { minDecimals: 0
 /** Signed difference: "0", or "−0.000036" with the typographic minus. */
 export const xrpDiff = (drops: bigint): string => (drops === 0n ? '0' : `${drops < 0n ? '−' : '+'}${xrpAuto(drops < 0n ? -drops : drops)}`);
 
-const WAT = 'Africa/Lagos';
-/** "12:52" in West Africa Time. */
-export const hm = (d: Date): string => new Intl.DateTimeFormat('en-GB', { timeZone: WAT, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+/** "2:52 PM" in the staff member's own time zone. */
+export const hm = (d: Date): string => localHm(d.toISOString());
 /** "Oct 12" */
-export const md = (d: Date): string => new Intl.DateTimeFormat('en-US', { timeZone: WAT, month: 'short', day: 'numeric' }).format(d);
+export const md = (d: Date): string => localMd(d.toISOString());
 const sameDay = (a: Date, b: Date) => md(a) === md(b);
 /** "Today 12:30" / "Oct 12 16:20" */
 export const when = (d: Date, now: Date): string => `${sameDay(d, now) ? 'Today' : md(d)} ${hm(d)}`;

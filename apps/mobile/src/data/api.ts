@@ -146,9 +146,11 @@ export type Api = {
   walletBalance: (network: string, address: string) => Promise<Record<string, bigint>>;
   // KYC
   kycStatus: () => Promise<KycStatus>;
+  /** Starts the identity check and uploads every file (name → local file URI) to private storage. */
   submitKyc: (input: {
     documentType: 'passport' | 'national' | 'licence';
     country: string;
     addressDocument: 'bank' | 'utility';
+    files: Record<string, { uri: string; type: string }>;
   }) => Promise<{ reference: string }>;
 };

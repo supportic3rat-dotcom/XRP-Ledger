@@ -82,7 +82,14 @@ export const UsersScreen = () => {
 const REPORTED_ASSETS = ASSETS.filter((x) => x.deposit === 'reported').map((x) => ({ value: x.id, label: `${x.id} · ${x.name}` }));
 
 /** Record a deposit seen arriving on the network for this customer. Another staff member approves the credit. */
-const DOC_NAMES: Record<string, string> = { 'id-photo': 'Passport photo page', 'id-front': 'ID front', 'id-back': 'ID back', selfie: 'Selfie' };
+const DOC_NAMES: Record<string, string> = {
+  'id-photo': 'Passport photo page',
+  'id-front': 'ID front',
+  'id-back': 'ID back',
+  selfie: 'Face scan · straight',
+  'face-left': 'Face scan · left',
+  'face-right': 'Face scan · right',
+};
 const docName = (file: string) => DOC_NAMES[file] ?? (file.startsWith('address-') ? 'Proof of address' : file);
 const DOC_TYPES: Record<string, string> = { passport: 'Passport', national: 'National ID card', licence: 'Driver’s licence' };
 const IDENTITY_STATUS: Record<IdentityCheck['status'], { label: string; tone: 'ok' | 'wait' | 'bad' | 'off' }> = {
@@ -193,7 +200,7 @@ const IdentityPanel = ({ customerId }: { customerId: string }) => {
               <Button label="Ask for more" variant="secondary" size={48} flex={1} onPress={() => setMode('more_info')} />
               <Button label="Reject" variant="secondary" textColor="neg" size={48} flex={1} onPress={() => setMode('rejected')} />
             </View>
-            <Help>Check the photo matches the selfie, the name and date of birth match the account, and the document is valid.</Help>
+            <Help>Check the ID photo matches the face scan (all three angles), the name and date of birth match the account, and the document is valid.</Help>
           </View>
         )
       ) : null}

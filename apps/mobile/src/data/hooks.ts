@@ -74,13 +74,13 @@ export const useMoney = () => {
     () => ({
       /** ISO code values are shown in (USD until a rate loads). */
       code,
-      /** A USD amount (cents) as the customer's currency: "₦1,234,567.89". */
+      /** A USD amount (cents) as the customer's currency: "£1,234.56". */
       money: (cents: Cents): string => (code === 'USD' ? formatUsd(cents) : formatFiat(centsIn(cents, r), code)),
       /** A coin price (micro-USD per coin). */
       price: (micro: MicroUsd): string => formatFiatPrice(micro, code, r),
-      /** A large USD figure (market cap, volume): "₦2.3T". */
+      /** A large USD figure (market cap, volume): "£2.3T". */
       compact: (usd: number): string => formatFiatCompact(usd * r, code),
-      /** The customer-currency equivalent of a USD amount, for USD-denominated items: "≈ ₦156,000.00", or '' in USD. */
+      /** The customer-currency equivalent of a USD amount, for USD-denominated items: "≈ £1,560.00", or '' in USD. */
       equivalent: (cents: Cents): string => (code === 'USD' ? '' : `≈ ${formatFiat(centsIn(cents, r), code)}`),
     }),
     [code, r],

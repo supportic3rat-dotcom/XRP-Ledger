@@ -270,7 +270,7 @@ export const EarnScreen = () => {
               <View style={{ alignItems: 'flex-end', gap: 2 }}>
                 <T size={20} weight={600} color="accentText" num>{`${(product.aprBps / 100).toFixed(2)}%`}</T>
                 <T size={11.5} color="text3">
-                  APR · variable · sample
+                  APR · variable
                 </T>
               </View>
             </View>
@@ -284,7 +284,7 @@ export const EarnScreen = () => {
                 { k: 'Platform fee', v: `${product.feeBps / 100}% of rewards` },
                 { k: 'Eligibility', v: product.eligibility },
                 { k: 'Your available', v: formatAmount(availableOf(sel), sel) },
-                { k: 'Rate last updated', v: `${mdhm(product.rateUpdatedAt)} WAT` },
+                { k: 'Rate last updated', v: mdhm(product.rateUpdatedAt) },
               ]}
             />
             <View style={{ flexDirection: 'row', gap: 10, paddingTop: 8, paddingHorizontal: 16, paddingBottom: 16 }}>
@@ -372,7 +372,7 @@ export const EarnScreen = () => {
             ]}
           />
           <T size={12} lh={1.5} color="text3">
-            {`Simple interest: amount × ${((calcProduct?.aprBps ?? 0) / 100).toFixed(2)}% × ${days} days ÷ 365. An estimate at today’s sample rate, not a promise of returns.`}
+            {`Simple interest: amount × ${((calcProduct?.aprBps ?? 0) / 100).toFixed(2)}% × ${days} days ÷ 365. An estimate at today’s rate, not a promise of returns.`}
           </T>
         </Card>
       </ScrollBody>
@@ -422,7 +422,7 @@ export const EarnScreen = () => {
         ) : null}
         <View style={{ gap: 12, marginTop: 16 }}>
           <CheckRow checked={terms} onChange={setTerms}>
-            I’ve read the Yield Product Terms (draft v0.1) and Risk Disclosure.
+            I’ve read the Yield Product Terms and Risk Disclosure.
           </CheckRow>
         </View>
         <Banner tone="info" style={{ marginTop: 14 }}>

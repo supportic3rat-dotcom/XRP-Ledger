@@ -23,7 +23,7 @@ import type { TxView } from '@/data/describeTx';
 import { useActivity, useBalances, useMarket, usePriceHistory, useProfile } from '@/data/hooks';
 import { compactNumber } from '@/data/market';
 import { PERIOD_IDS } from '@/data/series';
-import { hm, md } from '@/lib/dates';
+import { hm, hmz, md } from '@/lib/dates';
 import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
 
@@ -97,8 +97,8 @@ export const AssetDetailScreen = () => {
           <PeriodChips label="Chart period" options={PERIOD_IDS} value={period} onChange={setPeriod} />
           <T size={11.5} color="text3" style={{ marginTop: 10 }}>
             {market?.live && history.data?.live
-              ? `Live · updated ${hm(market.updatedAt)} WAT`
-              : 'Sample data · live market data is unavailable right now'}
+              ? `Live · updated ${hmz(market.updatedAt)}`
+              : 'Live market data is unavailable right now; values may be out of date'}
           </T>
         </Card>
 
@@ -108,7 +108,7 @@ export const AssetDetailScreen = () => {
               key={a.label}
               accessibilityRole="link"
               accessibilityLabel={`${a.label} ${id}`}
-              accessibilityState={{ disabled: !verified }}
+              accessibilityState={{ disabled: !verified && a.path !== '/deposit' }}
               onPress={() => router.push({ pathname: a.path, params: { asset: id } })}
               style={({ pressed }) => ({
                 flex: 1,
@@ -120,7 +120,7 @@ export const AssetDetailScreen = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                opacity: verified ? 1 : 0.5,
+                opacity: verified || a.path === '/deposit' ? 1 : 0.5,
               })}
             >
               <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
@@ -232,7 +232,7 @@ export const AssetDetailScreen = () => {
               },
               { k: 'Minimum deposit', v: formatAmount(lim.minDeposit, id, { minDecimals: 0, maxDecimals: 8 }) },
               { k: 'Withdrawal fee', v: formatAmount(lim.withdrawalFee, id, { minDecimals: 0, maxDecimals: 8 }) },
-              { k: 'Yield', v: spec.yieldAprBps !== null ? `${(spec.yieldAprBps / 100).toFixed(2)}% APR · variable · sample` : 'Not offered yet' },
+              { k: 'Yield', v: spec.yieldAprBps !== null ? `${(spec.yieldAprBps / 100).toFixed(2)}% APR · variable` : 'Not offered yet' },
               { k: 'Loan collateral', v: spec.collateral ? 'Accepted' : 'Not accepted yet' },
             ]}
           />

@@ -1,6 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { COUNTRIES as ALL_COUNTRIES } from '@xrp/ledger';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Platform, View } from 'react-native';
@@ -30,12 +32,18 @@ const DOCS: { id: DocId; label: string; hint: string; sides: 1 | 2 }[] = [
   { id: 'national', label: 'National ID card', hint: 'Front and back', sides: 2 },
   { id: 'licence', label: 'Driver’s licence', hint: 'Front and back', sides: 2 },
 ];
-const COUNTRIES = [
-  { value: 'NG', label: 'Nigeria' },
-  { value: 'GH', label: 'Ghana' },
-  { value: 'GB', label: 'United Kingdom' },
-  { value: 'OTHER', label: 'Other' },
+/** Issuing countries: the United States first, then every country A to Z. */
+const COUNTRY_OPTIONS = [
+  { value: 'US', label: 'United States' },
+  ...ALL_COUNTRIES.filter((x) => x.code !== 'US').map((x) => ({ value: x.code, label: x.name })),
 ];
+
+/** The face scan: three poses, so Compliance sees a live person turning, not a held-up photo. */
+const POSES = [
+  { key: 'selfie', prompt: 'Look straight at the camera', done: 'Straight' },
+  { key: 'left', prompt: 'Turn your head slightly to the left', done: 'Left' },
+  { key: 'right', prompt: 'Now turn slightly to the right', done: 'Right' },
+] as const;
 
 const H1 = ({ children }: { children: string }) => (
   <T size={22} weight={600} ls={-0.02} style={{ marginBottom: 6 }} accessibilityRole="header">
@@ -70,10 +78,10 @@ export const IdentityCaptureScreen = () => {
   const camera = useRef<ComponentRef<typeof CameraView>>(null);
   const [i, setI] = useState(0);
   const [doc, setDoc] = useState<DocId>('national');
-  const [country, setCountry] = useState('NG');
-  const [shots, setShots] = useState<{ front?: string; back?: string; selfie?: string }>({});
+  const [country, setCountry] = useState('US');
+  const [shots, setShots] = useState<{ front?: string; back?: string; selfie?: string; left?: string; right?: string }>({});
   const [addrDoc, setAddrDoc] = useState<'bank' | 'utility'>('bank');
-  const [file, setFile] = useState<{ name: string; size: number; type: string } | null>(null);
+  const [file, setFile] = useState<{ name: string; size: number; type: string; uri: string } | null>(null);
   const [fileTried, setFileTried] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentTried, setConsentTried] = useState(false);
@@ -87,7 +95,9 @@ export const IdentityCaptureScreen = () => {
   const total = steps.length - 1;
   const isPhoto = cur === 'front' || cur === 'back';
   const captureStep = isPhoto || cur === 'selfie';
-  const taken = cur === 'front' ? !!shots.front : cur === 'back' ? !!shots.back : cur === 'selfie' ? !!shots.selfie : false;
+  const pose = POSES.findIndex((x) => !shots[x.key]);
+  const faceDone = pose === -1;
+  const taken = cur === 'front' ? !!shots.front : cur === 'back' ? !!shots.back : cur === 'selfie' ? faceDone : false;
   const go = (n: number) => setI(Math.max(0, Math.min(steps.length - 1, n)));
   const useLiveCamera = Platform.OS !== 'web' && !!permission?.granted;
 
@@ -102,16 +112,18 @@ export const IdentityCaptureScreen = () => {
     }
     let uri = 'captured';
     if (useLiveCamera && camera.current) {
-      // Kept in memory only (never written to the camera roll) and uploaded straight to the private kyc bucket.
-      const photo = await camera.current.takePictureAsync({ quality: 0.8, skipProcessing: false });
+      // Kept in the app's cache only (never the camera roll) and uploaded straight to the private kyc bucket.
+      const photo = await camera.current.takePictureAsync({ quality: 0.7, skipProcessing: false });
       uri = photo?.uri ?? uri;
     }
-    setShots((s) => ({ ...s, [cur === 'back' ? 'back' : cur]: uri }));
+    const key = cur === 'selfie' ? POSES[pose === -1 ? 0 : pose]!.key : cur === 'back' ? 'back' : 'front';
+    setShots((s) => ({ ...s, [key]: uri }));
   };
-  const retake = () => setShots((s) => ({ ...s, [cur === 'back' ? 'back' : cur]: undefined }));
+  const retake = () =>
+    setShots((s) => (cur === 'selfie' ? { ...s, selfie: undefined, left: undefined, right: undefined } : { ...s, [cur === 'back' ? 'back' : 'front']: undefined }));
 
   const chooseFile = async () => {
-    const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/jpeg', 'image/png'], copyToCacheDirectory: false, multiple: false });
+    const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/jpeg', 'image/png'], copyToCacheDirectory: true, multiple: false });
     const asset = r.assets?.[0];
     if (r.canceled || !asset) return;
     if ((asset.size ?? 0) > 10 * 1024 * 1024) {
@@ -119,7 +131,7 @@ export const IdentityCaptureScreen = () => {
       return;
     }
     setError('');
-    setFile({ name: asset.name, size: asset.size ?? 0, type: asset.mimeType ?? 'application/pdf' });
+    setFile({ name: asset.name, size: asset.size ?? 0, type: asset.mimeType ?? 'application/pdf', uri: asset.uri });
   };
 
   const next = async () => {
@@ -134,7 +146,25 @@ export const IdentityCaptureScreen = () => {
       }
       setBusy(true);
       try {
-        const r = await api.submitKyc({ documentType: doc, country, addressDocument: addrDoc });
+        // Face ID / fingerprint: the phone's owner confirms it's them submitting.
+        if (Platform.OS !== 'web' && (await LocalAuthentication.getEnrolledLevelAsync()) !== LocalAuthentication.SecurityLevel.NONE) {
+          const auth = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm it’s you to submit your ID', disableDeviceFallback: false });
+          if (!auth.success) throw new Error('Confirm it’s you with Face ID, fingerprint or your passcode to submit.');
+        }
+        const jpg = (uri?: string) => ({ uri: uri ?? '', type: 'image/jpeg' });
+        const r = await api.submitKyc({
+          documentType: doc,
+          country,
+          addressDocument: addrDoc,
+          files: {
+            [d.id === 'passport' ? 'id-photo' : 'id-front']: jpg(shots.front),
+            ...(d.sides === 2 ? { 'id-back': jpg(shots.back) } : {}),
+            selfie: jpg(shots.selfie),
+            'face-left': jpg(shots.left),
+            'face-right': jpg(shots.right),
+            ...(file ? { [`address-${addrDoc}`]: { uri: file.uri, type: file.type } } : {}),
+          },
+        });
         setReference(r.reference);
         await qc.invalidateQueries();
         go(i + 1);
@@ -195,7 +225,7 @@ export const IdentityCaptureScreen = () => {
             </Card>
             <View style={{ gap: 6, marginTop: 18 }}>
               <Label>Issuing country</Label>
-              <Select label="Issuing country" value={country} onChange={setCountry} options={COUNTRIES} />
+              <Select label="Issuing country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
             </View>
             <Banner tone="info" icon="shield" style={{ marginTop: 18 }}>
               Photos are uploaded over an encrypted connection to private storage that only our compliance team can open. They aren’t saved to your camera roll.
@@ -215,7 +245,7 @@ export const IdentityCaptureScreen = () => {
             <Lead>
               {cur === 'back'
                 ? 'Turn it over and fit the back inside the frame.'
-                : 'Fit the document inside the frame. We’ll capture automatically when it’s sharp.'}
+                : 'Fit the document inside the frame, then take the photo.'}
             </Lead>
             <View
               accessible
@@ -277,16 +307,16 @@ export const IdentityCaptureScreen = () => {
 
         {cur === 'selfie' ? (
           <>
-            <H1>Take a selfie</H1>
-            <Lead>We compare it with the photo on your ID. Look straight at the camera and follow the on-screen prompt.</Lead>
+            <H1>Face scan</H1>
+            <Lead>We compare your face with the photo on your ID. Keep your face inside the oval and follow each prompt.</Lead>
             <View style={{ alignItems: 'center', paddingVertical: 8 }}>
               <View
                 accessible
                 accessibilityRole="image"
-                accessibilityLabel={shots.selfie ? 'Selfie captured' : 'Camera preview with face guide'}
+                accessibilityLabel={faceDone ? 'Face scan complete' : `Camera preview. ${POSES[pose]!.prompt}`}
                 style={{ width: 190, height: 240, alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden', borderRadius: 95 }}
               >
-                {useLiveCamera && !shots.selfie ? <CameraView ref={camera} facing="front" style={{ position: 'absolute', inset: 0 }} /> : null}
+                {useLiveCamera && !faceDone ? <CameraView ref={camera} facing="front" style={{ position: 'absolute', inset: 0 }} /> : null}
                 <Svg width={190} height={240} style={{ position: 'absolute' }}>
                   <Ellipse
                     cx={95}
@@ -294,15 +324,15 @@ export const IdentityCaptureScreen = () => {
                     rx={93.5}
                     ry={118.5}
                     fill="none"
-                    stroke={shots.selfie ? c.pos : c.borderStrong}
+                    stroke={faceDone ? c.pos : c.accent}
                     strokeWidth={3}
-                    strokeDasharray={shots.selfie ? undefined : '9 6'}
+                    strokeDasharray={faceDone ? undefined : '9 6'}
                   />
                 </Svg>
-                {shots.selfie ? (
+                {faceDone ? (
                   <>
                     <Icon name="check" size={32} color="pos" />
-                    <T weight={500}>Liveness passed</T>
+                    <T weight={500}>Face scan complete</T>
                   </>
                 ) : !useLiveCamera ? (
                   <>
@@ -314,8 +344,21 @@ export const IdentityCaptureScreen = () => {
                 ) : null}
               </View>
             </View>
+            <T size={16} weight={600} align="center" style={{ marginTop: 12 }} accessibilityLiveRegion="polite">
+              {faceDone ? 'All three angles captured' : POSES[pose]!.prompt}
+            </T>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 12 }}>
+              {POSES.map((x) => (
+                <View key={x.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon name={shots[x.key] ? 'checkCircle' : 'clock'} size="sm" color={shots[x.key] ? 'pos' : 'text3'} />
+                  <T size={12.5} color={shots[x.key] ? 'text' : 'text3'}>
+                    {x.done}
+                  </T>
+                </View>
+              ))}
+            </View>
             <Help align="center" style={{ marginTop: 12 }}>
-              {shots.selfie ? 'Looks good. Continue when you’re ready.' : 'Remove glasses and hats. Make sure your face is well lit.'}
+              {faceDone ? 'Looks good. Continue when you’re ready.' : 'Remove glasses and hats, and make sure your face is well lit.'}
             </Help>
           </>
         ) : null}
@@ -384,20 +427,20 @@ export const IdentityCaptureScreen = () => {
               <KV
                 items={[
                   { k: 'ID document', v: d.label },
-                  { k: 'Issuing country', v: COUNTRIES.find((x) => x.value === country)?.label ?? '' },
+                  { k: 'Issuing country', v: COUNTRY_OPTIONS.find((x) => x.value === country)?.label ?? '' },
                   { k: 'Photos', v: d.sides === 2 ? 'Front and back' : 'Photo page' },
-                  { k: 'Selfie', v: 'Captured' },
+                  { k: 'Face scan', v: 'Straight, left and right' },
                   { k: 'Proof of address', v: addrDoc === 'bank' ? 'Bank statement' : 'Utility bill' },
                 ]}
               />
             </Card>
             <CheckRow checked={consent} onChange={setConsent} style={{ marginTop: 18 }}>
               <T size={13.5} lh={1.45}>
-                I agree that the compliance team may review my ID and selfie to verify my identity, as described in the{' '}
+                I agree that the compliance team may review my ID and face scan to verify my identity, as described in the{' '}
                 <T size={13.5} lh={1.45} color="accentText" accessibilityRole="link" onPress={() => router.push('/legal')}>
                   Privacy Policy
-                </T>{' '}
-                (draft v0.1).
+                </T>
+                .
               </T>
             </CheckRow>
             {consentTried && !consent ? (
@@ -420,7 +463,7 @@ export const IdentityCaptureScreen = () => {
             <Card style={{ marginTop: 20 }}>
               <KV
                 items={[
-                  { k: 'Reference', v: reference || 'KYC-PROTO-0042', mono: true, valueSize: 12.5 },
+                  { k: 'Reference', v: reference, mono: true, valueSize: 12.5 },
                   { k: 'Status', v: 'In review' },
                   { k: 'Meanwhile you can', v: 'Explore the app' },
                 ]}
@@ -431,7 +474,7 @@ export const IdentityCaptureScreen = () => {
       </ScrollBody>
 
       <Footer>
-        {captureStep && !taken ? <Button label={cur === 'selfie' ? 'Start selfie' : 'Take photo'} onPress={capture} flex={1} /> : null}
+        {captureStep && !taken ? <Button label={cur === 'selfie' ? (pose === 0 ? 'Start face scan' : 'Capture') : 'Take photo'} onPress={capture} flex={1} /> : null}
         {captureStep && taken ? (
           <>
             <Button label="Retake" variant="secondary" onPress={retake} flex={1} />

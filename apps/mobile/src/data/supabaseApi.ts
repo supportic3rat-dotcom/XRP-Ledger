@@ -414,7 +414,7 @@ export const createSupabaseApi = (): Api => ({
     await call('exchange-cancel', { transactionId: txId });
   },
   allocateYield: async (input) =>
-    callTx('yield-allocate', { asset: input.asset, amountDrops: input.amountDrops.toString(), termsVersion: 'v0.1' }, input.idempotencyKey),
+    callTx('yield-allocate', { asset: input.asset, amountDrops: input.amountDrops.toString(), termsVersion: '1.0' }, input.idempotencyKey),
   redeemYield: async (input) => callTx('yield-redeem', { asset: input.asset, amountDrops: input.amountDrops.toString() }, input.idempotencyKey),
   applyLoan: async (input) =>
     callTx(
@@ -423,7 +423,7 @@ export const createSupabaseApi = (): Api => ({
         asset: input.asset,
         collateralDrops: input.collateralDrops.toString(),
         principalCents: input.principalCents.toString(),
-        agreementVersion: 'v0.1',
+        agreementVersion: '1.0',
         payout: input.payout,
       },
       input.idempotencyKey,
@@ -482,5 +482,16 @@ export const createSupabaseApi = (): Api => ({
   },
 
   kycStatus: async () => (await supabase().from('customers').select('kyc_status').single()).data?.kyc_status as KycStatus,
-  submitKyc: async (input) => call('kyc-session', input),
+  submitKyc: async ({ files, ...input }) => {
+    const session = await call<{ reference: string; uploads: Record<string, { path: string; token: string }> }>('kyc-session', input);
+    // Each photo goes straight from the phone to the private kyc bucket; nothing is kept on the device.
+    for (const [name, target] of Object.entries(session.uploads)) {
+      const file = files[name];
+      if (!file) throw new Error('A photo is missing. Go back and retake it.');
+      const body = await (await fetch(file.uri)).blob();
+      const { error } = await supabase().storage.from('kyc').uploadToSignedUrl(target.path, target.token, body, { contentType: file.type, upsert: true });
+      if (error) throw new Error('A photo didn’t upload. Check your connection and submit again.');
+    }
+    return { reference: session.reference };
+  },
 });

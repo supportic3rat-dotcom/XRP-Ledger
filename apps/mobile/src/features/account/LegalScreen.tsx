@@ -88,7 +88,7 @@ export const LegalScreen = () => {
                           first={i === 0}
                           minHeight={60}
                           chevron
-                          accessibilityLabel={`${d.name}, ${d.version} draft, ${s.label}`}
+                          accessibilityLabel={`${d.name}, version ${d.version}, ${s.label}`}
                           onPress={() => {
                             setOpen(d.id);
                             setAgree(false);
@@ -97,7 +97,7 @@ export const LegalScreen = () => {
                         >
                           <View style={{ flex: 1, gap: 2 }}>
                             <T weight={500}>{d.name}</T>
-                            <T size={12} color="text3">{`${d.version} draft`}</T>
+                            <T size={12} color="text3">{`Version ${d.version}`}</T>
                           </View>
                           <Status tone={s.tone} label={s.label} base="text" />
                         </Row>
@@ -106,22 +106,13 @@ export const LegalScreen = () => {
                 </Card>
               </View>
             ))}
-            <T size={12} lh={1.5} color="text3" style={{ marginTop: 16, marginHorizontal: 4 }}>
-              All documents are drafts. Final wording depends on the operating company, jurisdictions and providers, and needs legal review before launch. No
-              licences or approvals are claimed.
-            </T>
           </>
         ) : (
           <>
             <View style={{ gap: 4, marginBottom: 14 }}>
-              <T size={13} color="text3">{`${doc.version} draft · effective [Effective date]`}</T>
+              <T size={13} color="text3">{`Version ${doc.version}`}</T>
               {st ? <Status tone={st.tone} label={st.label} base="text" /> : null}
             </View>
-            <Banner tone="info" icon="doc">
-              {doc.id === 'tos'
-                ? 'Full draft. Bracketed details are completed once the operating company is confirmed, and the text needs legal review before launch.'
-                : 'Draft outline. Each section lists what the final text will cover.'}
-            </Banner>
             {st?.pending && doc.changeSummary ? (
               <Banner tone="warn" style={{ marginTop: 10 }}>
                 <T size={13} lh={1.45} color="warn">

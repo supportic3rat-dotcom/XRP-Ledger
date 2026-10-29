@@ -20,7 +20,7 @@ type Exception = { kind: 'unbooked_fee' | 'deposit_no_tag' | 'provider_delay' | 
 const xrp = (drops: bigint) => `${formatXrp(drops)} XRP`;
 
 /**
- * Three-way reconciliation: internal ledger vs custody provider vs XRP Ledger. Daily from the upkeep function (00:00 WAT)
+ * Three-way reconciliation: internal ledger vs custody provider vs XRP Ledger. Daily from the upkeep function (about midnight US Eastern)
  * and on demand from the console. Differences become exceptions; nothing is corrected automatically.
  *
  * The ledger keeps one omnibus account. Warm and cold balances only move by provider-run sweeps, so their
@@ -97,7 +97,7 @@ export const findExceptions = (inputs: Inputs, result: Record<string, { internal
     out.push({
       kind: 'provider_delay',
       title: 'Provider confirmation delayed',
-      note: `${d.ref} · ${xrp(BigInt(d.amount_drops))} pending at ${provider} for ${d.minutes}m`,
+      note: `${d.ref} · ${xrp(BigInt(d.amount_drops))} pending in ${provider} for ${d.minutes}m`,
       transaction_id: d.id,
     });
   }

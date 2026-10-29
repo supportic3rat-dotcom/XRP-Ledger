@@ -4,14 +4,14 @@ export type ProviderHealth = { status: 'operational' | 'degraded' | 'outage'; no
 
 /** Display names stay as placeholders until a provider is chosen. */
 export const providerNames = {
-  custody: '[Custody provider]',
-  kyc: '[KYC provider]',
-  screening: '[Screening provider]',
-  liquidity: '[Liquidity provider]',
-  payout: '[Bank / payout provider]',
-  yield: '[Yield provider]',
-  lending: '[Lending provider]',
-  prices: '[Market data provider]',
+  custody: 'Platform wallets',
+  kyc: 'Compliance team',
+  screening: 'Address checks',
+  liquidity: 'Trading desk',
+  payout: 'Bank transfer',
+  yield: 'Earn',
+  lending: 'Borrow',
+  prices: 'Market data',
 } as const;
 
 export type CustodyWallet = { id: string; tier: 'hot' | 'warm' | 'cold'; address: string; balanceDrops: Drops };

@@ -14,7 +14,7 @@ import { Screen, ScrollBody } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { T } from '@/components/T';
 import { useHoldings, useMarkets } from '@/data/hooks';
-import { hm } from '@/lib/dates';
+import { hm, hmz } from '@/lib/dates';
 import { useMoney } from '@/lib/money';
 import { familyFor, useTheme } from '@/theme';
 
@@ -55,14 +55,14 @@ export const MarketsScreen = () => {
         </T>
         <T size={13} color="text3" style={{ marginHorizontal: 4, marginBottom: 14 }}>
           {live
-            ? `Live USD prices · ${rows.length} assets · updated ${rows[0] ? hm(rows[0].updatedAt) : ''} WAT`
+            ? `Live USD prices · ${rows.length} assets · updated ${rows[0] ? hmz(rows[0].updatedAt) : ''}`
             : markets.isLoading
               ? 'Loading live prices…'
-              : 'Sample prices'}
+              : 'Prices may be out of date'}
         </T>
         {!live && !markets.isLoading ? (
           <Banner tone="warn" icon="alert" style={{ marginBottom: 12 }}>
-            Live market data is unavailable right now, so these are sample prices. Pull down later to retry.
+            Live market data is unavailable right now, so these prices may be out of date. Pull down later to retry.
           </Banner>
         ) : null}
 

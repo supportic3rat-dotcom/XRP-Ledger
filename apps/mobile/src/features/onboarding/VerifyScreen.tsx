@@ -40,7 +40,7 @@ const STATES: Record<KycStatus, StateCopy> = {
     tone: 'off',
     icon: I_ID,
     title: 'Verify your identity',
-    body: 'It takes about 5 minutes. You’ll need a government-issued photo ID and a well-lit place to take a selfie.',
+    body: 'It takes about 5 minutes. You’ll need a government-issued photo ID and a well-lit place for a quick face scan.',
     cta: 'Start verification',
     target: 'identity',
     secondary: 'Do this later',
@@ -122,10 +122,10 @@ const CHECKS: Partial<Record<KycStatus, [string, Tone][]>> = {
 };
 const CHECK_ROWS: [string, string][] = [
   ['Photo ID', 'Passport, national ID or driver’s licence'],
-  ['Selfie', 'Matched against your ID photo'],
+  ['Face scan', 'Three angles, matched against your ID photo'],
   ['Proof of address', 'Dated within the last 3 months'],
 ];
-const UNLOCKS = ['Deposits', 'Withdrawals', 'Exchange requests', 'Yield products', 'Borrowing'];
+const UNLOCKS = ['Withdrawals', 'Exchange requests', 'Yield products', 'Borrowing'];
 
 /** Verification status (six states). Our Compliance team decides it in the console; this screen only displays it. */
 export const VerifyScreen = () => {

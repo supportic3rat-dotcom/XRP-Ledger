@@ -270,7 +270,7 @@ export const ProfileScreen = () => {
           {DOC_ORDER.map((id, i) => {
             const doc = docs.data?.find((d) => d.id === id);
             const accepted = consents.data?.find((x) => x.document === id);
-            return doc ? <LinkRow key={id} first={i === 0} title={doc.name} val={`Draft ${accepted?.version ?? doc.version}`} href="/legal" /> : null;
+            return doc ? <LinkRow key={id} first={i === 0} title={doc.name} val={accepted ? 'Accepted' : undefined} href="/legal" /> : null;
           })}
         </Card>
 
@@ -282,7 +282,7 @@ export const ProfileScreen = () => {
         </Card>
         <Button as="a" label="Sign out" variant="secondary" textColor="neg" onPress={() => setSignOutSheet(true)} style={{ marginTop: 24 }} />
         <T size={11.5} color="text3" align="center" style={{ marginTop: 16 }}>
-          App v0.1 · Not affiliated with Ripple or the XRP Ledger Foundation
+          Built on the XRP Ledger
         </T>
       </ScrollBody>
 

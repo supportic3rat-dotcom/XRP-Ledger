@@ -294,3 +294,19 @@ Everything here differs from the design files or the brief on purpose, or still 
   (`staff_customer_profile`), masked like the rest of the record: Compliance in full, Operations partly, Auditors least.
 - The Terms of Service are still taken down, so the form's "Terms and Conditions" link opens the legal documents
   that are live; the Terms need restoring before launch.
+
+## 2026-10-29 · US platform, deposits before verification, face scan, production wording
+
+- US by default: the trust form preselects the United States (US first, then A–Z), phone example is US, labels say
+  State and ZIP code; identity issuing country lists the US first, then A–Z. All times show in the phone's own time
+  zone, US style ("2:42 PM EDT"), in the app and the console (no more WAT). Daily jobs run at about midnight US Eastern.
+- Deposits don't need identity verification (`report_deposit`, `deposit-address`); withdrawals, swaps, Earn and
+  Borrow still do. Staff still confirm every deposit. "What verification unlocks" no longer lists deposits.
+- Identity: a three-pose face scan (straight, left, right) and a Face ID / fingerprint / passcode confirmation
+  before submitting. Fixed: the ID photos, face scan and proof of address were never uploaded (the app ignored the
+  signed upload URLs); they now go to the private `kyc` bucket and Compliance sees them in the console.
+- Connect a wallet: 18 named wallets with where to find each backup, plus "Another wallet" with a typed name and a
+  choice of recovery phrase, Secret Numbers or secret key (family seed, new).
+- Production wording: no "v0.1", "draft", "sample" or bracket placeholders; legal documents are version 1.0;
+  "Built on the XRP Ledger" replaces the affiliation disclaimer (no claim of endorsement by Ripple or the XRP Ledger
+  Foundation).

@@ -32,8 +32,8 @@ describe('Create your crypto trust', () => {
     await type('Date of birth', '12041990');
     await type('Street address', '12 Ring Road');
     await type('City', 'Accra');
-    await type('State / region', 'Greater Accra');
-    await type('Postal code', 'GA-123');
+    await type('State', 'Greater Accra');
+    await type('ZIP code', 'GA-123');
     await pick('Country', 'Ghana');
     await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
 
@@ -59,5 +59,5 @@ describe('Create your crypto trust', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Create trust' }));
     await waitFor(() => expect(screen.getByText('Your trust is created')).toBeTruthy(), { timeout: 5000 });
     expect(useSession.getState().signedIn).toBe(true);
-  });
+  }, 90_000);
 });

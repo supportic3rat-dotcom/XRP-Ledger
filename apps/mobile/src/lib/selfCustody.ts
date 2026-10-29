@@ -4,8 +4,10 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { deriveAddress } from 'ripple-keypairs';
-import { areValidSecretNumbers, secretNumbersToWallet } from './secretNumbers';
+import { deriveAddress, deriveKeypair } from 'ripple-keypairs';
+import { areValidSecretNumbers, isValidSecretKey, secretNumbersToWallet } from './secretNumbers';
+
+export { isValidSecretKey };
 
 /**
  * On-device recovery-phrase import. The phrase exists only in component state while typed: it is never logged,
@@ -73,6 +75,13 @@ export const importFromPhrase = async (words: string[]): Promise<SelfCustodyAcco
   if (!isValidPhrase(words)) throw new Error('That phrase isn’t valid. Check each word and its order.');
   await confirmOwner('Confirm to import your wallet');
   return storeWallet(deriveWallet(words.map((w) => w.trim().toLowerCase()).join(' ')));
+};
+
+export const importFromSecretKey = async (seed: string): Promise<SelfCustodyAccount> => {
+  if (!isValidSecretKey(seed)) throw new Error('That secret key isn’t valid. It starts with “s” and is about 29 characters.');
+  await confirmOwner('Confirm to import your wallet');
+  const keys = deriveKeypair(seed.trim());
+  return storeWallet({ classicAddress: deriveAddress(keys.publicKey), publicKey: keys.publicKey, privateKey: keys.privateKey });
 };
 
 /** Xaman's Secret Numbers (8 rows of 6 digits). */

@@ -44,7 +44,8 @@ const RELATIONSHIPS: { value: Exclude<BeneficiaryRelationship, 'self'>; label: s
   { value: 'charity', label: 'Charity' },
   { value: 'other', label: 'Other' },
 ];
-const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c.code, label: c.name }));
+/** The United States first, then every country A to Z. */
+const COUNTRY_OPTIONS = [{ value: 'US', label: 'United States' }, ...COUNTRIES.filter((c) => c.code !== 'US').map((c) => ({ value: c.code, label: c.name }))];
 
 type Beneficiary = { name: string; relationship: string; email: string; allocation: string; wallet: string };
 const blank = (): Beneficiary => ({ name: '', relationship: '', email: '', allocation: '', wallet: '' });
@@ -83,7 +84,7 @@ export const TrustScreen = () => {
   const [error, setError] = useState('');
 
   const [type, setType] = useState<TrustType | null>(null);
-  const [p, setP] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', dob: '', address: '', city: '', region: '', zip: '', country: '' });
+  const [p, setP] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', dob: '', address: '', city: '', region: '', zip: '', country: 'US' });
   const [self, setSelf] = useState({ on: false, allocation: '', wallet: '' });
   const [list, setList] = useState<Beneficiary[]>([blank()]);
   const [agree, setAgree] = useState(false);
@@ -93,7 +94,7 @@ export const TrustScreen = () => {
   useEffect(() => {
     if (!accountMade || !profile.data) return;
     const [first = '', ...rest] = profile.data.fullName.split(' ');
-    setP((x) => ({ ...x, firstName: x.firstName || first, lastName: x.lastName || rest.join(' '), country: x.country || (countryByCode(profile.data.country) ? profile.data.country : '') }));
+    setP((x) => ({ ...x, firstName: x.firstName || first, lastName: x.lastName || rest.join(' '), country: countryByCode(profile.data.country) ? profile.data.country : x.country }));
   }, [accountMade, profile.data]);
 
   const set = (k: keyof typeof p) => (v: string) => setP((x) => ({ ...x, [k]: v }));
@@ -109,8 +110,8 @@ export const TrustScreen = () => {
     dob: !dobIso ? 'Enter your date of birth as DD/MM/YYYY.' : ageOf(dobIso) < 18 ? 'You must be 18 or older.' : '',
     address: p.address.trim() ? '' : 'Enter your street address.',
     city: p.city.trim() ? '' : 'Enter your city.',
-    region: p.region.trim() ? '' : 'Enter your state or region.',
-    zip: p.zip.trim() ? '' : 'Enter your postal code.',
+    region: p.region.trim() ? '' : 'Enter your state.',
+    zip: p.zip.trim() ? '' : 'Enter your ZIP code.',
     country: p.country ? '' : 'Choose your country.',
   };
   const benError = (b: Beneficiary) =>
@@ -340,7 +341,7 @@ export const TrustScreen = () => {
             ) : null}
             <Field>
               <Label nativeID="t-phone">Phone</Label>
-              <TextField accessibilityLabelledBy="t-phone" value={p.phone} onChangeText={set('phone')} invalid={!!err('phone')} keyboardType="phone-pad" autoComplete="tel" placeholder="+234 803 123 4567" height={48} />
+              <TextField accessibilityLabelledBy="t-phone" value={p.phone} onChangeText={set('phone')} invalid={!!err('phone')} keyboardType="phone-pad" autoComplete="tel" placeholder="+1 (555) 123-4567" height={48} />
               <ErrorText>{err('phone')}</ErrorText>
             </Field>
             <Field>
@@ -371,14 +372,14 @@ export const TrustScreen = () => {
                 <ErrorText>{err('city')}</ErrorText>
               </Field>
               <Field style={{ flex: 1 }}>
-                <Label nativeID="t-region">State / region</Label>
+                <Label nativeID="t-region">State</Label>
                 <TextField accessibilityLabelledBy="t-region" value={p.region} onChangeText={set('region')} invalid={!!err('region')} height={48} />
                 <ErrorText>{err('region')}</ErrorText>
               </Field>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <Field style={{ flex: 1 }}>
-                <Label nativeID="t-zip">Postal code</Label>
+                <Label nativeID="t-zip">ZIP code</Label>
                 <TextField accessibilityLabelledBy="t-zip" value={p.zip} onChangeText={set('zip')} invalid={!!err('zip')} autoComplete="postal-code" height={48} />
                 <ErrorText>{err('zip')}</ErrorText>
               </Field>

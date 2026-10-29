@@ -26,10 +26,10 @@ export const JOBS: Job[] = [
   { name: 'balances-snapshot', everySec: 10 * MIN, run: job('balances-snapshot') },
   { name: 'chain', everySec: 10 * MIN, run: (ctx) => readLedger(ctx) },
   { name: 'yield-accrual', everySec: 60 * MIN, run: job('yield-accrual') },
-  { name: 'yield-rewards', everySec: 0, dailyAtUtcMin: 0, run: job('yield-rewards') }, // Earn payouts
-  { name: 'loan-interest', everySec: 0, dailyAtUtcMin: 0, run: job('loan-interest') },
-  { name: 'recon', everySec: 0, dailyAtUtcMin: 23 * 60, run: (ctx) => reconcile(ctx) }, // 00:00 WAT
-  { name: 'audit-verify', everySec: 0, dailyAtUtcMin: 23 * 60 + 30, run: job('audit-verify') },
+  { name: 'yield-rewards', everySec: 0, dailyAtUtcMin: 5 * 60, run: job('yield-rewards') }, // Earn payouts, ~midnight US Eastern
+  { name: 'loan-interest', everySec: 0, dailyAtUtcMin: 5 * 60, run: job('loan-interest') },
+  { name: 'recon', everySec: 0, dailyAtUtcMin: 5 * 60, run: (ctx) => reconcile(ctx) }, // ~midnight US Eastern
+  { name: 'audit-verify', everySec: 0, dailyAtUtcMin: 5 * 60 + 30, run: job('audit-verify') },
 ];
 
 export const handler = defineFunction({

@@ -49,7 +49,7 @@ export const CustodyScreen = () => {
           return (
             <>
               <Panel style={{ gap: 0 }}>
-                <SecT>Wallets · [Custody provider]</SecT>
+                <SecT>Platform wallets</SecT>
                 {c.wallets.map((w, i) => (
                   <Line key={w.name} first={i === 0} style={{ alignItems: 'flex-start' }}>
                     <View style={{ flex: 1, gap: 2 }}>

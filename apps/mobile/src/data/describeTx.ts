@@ -330,7 +330,7 @@ const describeYieldReward = (tx: Transaction, ctx: DescribeContext): Omit<TxView
     rows: [
       { k: 'Type', v: 'Yield payout' },
       { k: 'Product', v: tx.meta.product ?? `${a} Flexible` },
-      { k: 'Provider', v: '[Yield provider]' },
+      { k: 'Provider', v: 'Earn' },
       ...(tx.meta.period ? [{ k: 'Period', v: tx.meta.period }] : []),
       { k: 'Gross reward', v: formatAmount(gross, a) },
       { k: 'Platform fee (10%)', v: formatAmount(fee, a) },
@@ -357,7 +357,7 @@ const describeLoan = (tx: Transaction): Omit<TxView, 'status' | 'tone' | 'aria' 
     fiat: `Loan ${tx.ref}`,
     rows: [
       { k: 'Type', v: 'Loan disbursement' },
-      { k: 'Provider', v: '[Lending provider]' },
+      { k: 'Provider', v: 'Borrow' },
       { k: 'Collateral locked', v: formatAmount(tx.amountDrops ?? 0n, tx.asset) },
       ...(tx.meta.starting_ltv ? [{ k: 'Starting LTV', v: tx.meta.starting_ltv }] : []),
       { k: 'Interest', v: tx.meta.interest ?? '10.00% APR · fixed' },
@@ -393,7 +393,7 @@ const describeOther = (tx: Transaction, ctx: DescribeContext): Omit<TxView, 'sta
     fiat: isUsd ? `Loan ${tx.meta.loan_ref ?? ''}` : `≈ ${usdOf(amount, a, ctx)} at ${atPrice(a, ctx)}`,
     rows: [
       { k: 'Type', v: titles[tx.kind] ?? tx.kind },
-      { k: 'Provider', v: tx.kind.startsWith('yield') ? '[Yield provider]' : '[Lending provider]' },
+      { k: 'Provider', v: tx.kind.startsWith('yield') ? 'Earn' : 'Borrow' },
       { k: 'Reference', v: tx.ref, mono: true },
     ],
     steps: tx.events.map((e) => ({ label: e.note ?? String(e.toStatus), at: stepTime(e.at, tx.createdAt), state: 'done' as StepState })),

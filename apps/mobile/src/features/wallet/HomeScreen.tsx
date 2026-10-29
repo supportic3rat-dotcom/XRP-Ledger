@@ -23,7 +23,7 @@ import { TxRow } from '@/components/TxRow';
 import type { TxView } from '@/data/describeTx';
 import { useActivity, useHoldings, useLoan, useMarkets, useNotifications, usePortfolioHistory, usePriceMap, useProfile, useYieldPositions } from '@/data/hooks';
 import { PERIOD_IDS } from '@/data/series';
-import { hm } from '@/lib/dates';
+import { hm, hmz } from '@/lib/dates';
 import { MASK, useHideAmounts } from '@/state/ui';
 import { useMoney } from '@/lib/money';
 import { useTheme } from '@/theme';
@@ -45,7 +45,7 @@ const HISTORY_KINDS: Record<Exclude<HistoryFilter, 'all'>, string[]> = {
 };
 
 const ACTIONS: Action[] = [
-  { key: 'deposit', label: 'Deposit', icon: 'deposit', href: '/deposit', needsVerified: true, element: 'a' },
+  { key: 'deposit', label: 'Deposit', icon: 'deposit', href: '/deposit', needsVerified: false, element: 'a' },
   { key: 'withdraw', label: 'Withdraw', icon: 'withdraw', href: '/withdraw', needsVerified: true, element: 'a' },
   { key: 'exchange', label: 'Exchange', icon: 'exchange', href: '/exchange', needsVerified: true, element: 'a' },
   { key: 'earn', label: 'Earn', icon: 'sprout', href: '/earn', needsVerified: true, element: 'a' },
@@ -152,7 +152,7 @@ const SecLink = ({ label, onPress, element }: { label: string; onPress: () => vo
   </Pressable>
 );
 
-/** Splits "₦15,279.84" into ["₦15,279", ".84"] for the balance hero (no split for whole-unit currencies). */
+/** Splits "$15,279.84" into ["$15,279", ".84"] for the balance hero (no split for whole-unit currencies). */
 const splitMoney = (text: string): [string, string] => {
   const dot = text.lastIndexOf('.');
   return dot < 0 ? [text, ''] : [text.slice(0, dot), text.slice(dot)];
@@ -217,7 +217,7 @@ export const HomeScreen = () => {
   const kindOf = new Map(activity.raw.map((t) => [t.id, t.kind]));
   const historyRows = activity.views.filter((t) => historyFilter === 'all' || HISTORY_KINDS[historyFilter].includes(kindOf.get(t.id) ?? ''));
   const empty = activity.views.length === 0 && totalCents === 0n && !activity.isLoading;
-  const priceAt = at ? hm(at) : '';
+  const priceAt = at ? hmz(at) : '';
 
   const onAction = (a: Action) => {
     if (a.key === 'history') {
@@ -300,14 +300,14 @@ export const HomeScreen = () => {
           <PeriodChips label="Chart period" options={PERIOD_IDS} value={period} onChange={setPeriod} />
           <T size={11.5} color="text3" style={{ marginTop: 10 }}>
             {live
-              ? `Live prices · updated ${priceAt} WAT. Change reflects price only, not deposits or withdrawals.`
-              : 'Sample prices: live market data is unavailable. Your balances are unaffected.'}
+              ? `Live prices · updated ${priceAt}. Change reflects price only, not deposits or withdrawals.`
+              : 'Live prices are unavailable right now; values may be out of date. Your balances are unaffected.'}
           </T>
         </Card>
 
         {!live && !holdings.isLoading ? (
           <Banner tone="warn" icon="alert" alert style={{ marginTop: 10 }}>
-            Live prices aren’t available right now. USD values use sample prices; your coin balances are unaffected.
+            Live prices aren’t available right now, so values may be out of date. Your coin balances are unaffected.
           </Banner>
         ) : null}
 

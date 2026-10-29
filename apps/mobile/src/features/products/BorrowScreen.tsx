@@ -356,7 +356,7 @@ export const BorrowScreen = () => {
         </View>
         <View style={{ gap: 12 }}>
           <CheckRow checked={terms} onChange={setTerms}>
-            I accept the Lending and Collateral Agreement (draft v0.1).
+            I accept the Lending and Collateral Agreement.
           </CheckRow>
           <CheckRow checked={lock} onChange={setLock}>
             {`Lock ${coll} ${collAsset} as collateral. It can be sold if LTV reaches 80%.`}
