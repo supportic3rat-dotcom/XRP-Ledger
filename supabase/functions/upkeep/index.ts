@@ -5,7 +5,7 @@ import { liveMarketData } from '../_shared/providers.ts';
 import { reconcile } from '../recon-run/index.ts';
 
 /**
- * Scheduled upkeep on Supabase, with no server and no pg_cron: the app calls this while it's open, and each job runs
+ * Scheduled upkeep on Supabase (prices, Earn rewards, loan interest and LTV checks, reconciliation), with no server and no pg_cron: the app calls this while it's open, and each job runs
  * only when it's due (public.upkeep_claim stops two callers running the same job). Daily jobs run on the first call
  * after their time, so a quiet night is caught up by the next morning's first visit.
  *
@@ -23,6 +23,8 @@ export const JOBS: Job[] = [
   { name: 'balances-snapshot', everySec: 10 * MIN, run: job('balances-snapshot') },
   { name: 'chain', everySec: 10 * MIN, run: (ctx) => readLedger(ctx) },
   { name: 'yield-accrual', everySec: 60 * MIN, run: job('yield-accrual') },
+  { name: 'yield-rewards', everySec: 0, dailyAtUtcMin: 0, run: job('yield-rewards') }, // Earn payouts
+  { name: 'loan-interest', everySec: 0, dailyAtUtcMin: 0, run: job('loan-interest') },
   { name: 'recon', everySec: 0, dailyAtUtcMin: 23 * 60, run: (ctx) => reconcile(ctx) }, // 00:00 WAT
   { name: 'audit-verify', everySec: 0, dailyAtUtcMin: 23 * 60 + 30, run: job('audit-verify') },
 ];

@@ -69,11 +69,11 @@ const summaryOf = (tx: Row): string => {
         ? `Reported by ${str(meta.reported_by)} · hash ${shortAddr(str(meta.tx_hash), 10, 6)} · confirm on ${network} before approving`
         : `Validated on ledger · no destination tag · sender ${shortAddr(str(tx.counterparty), 6, 3)}`;
     case 'exchange':
-      return `${tx.counter_asset ? `Swap into ${str(tx.counter_asset)}` : 'Sale for USD'} · needs firm quote from ${providerNames.liquidity}`;
+      return `${tx.counter_asset ? `Swap into ${str(tx.counter_asset)}` : 'Sale for USD'} · needs a firm quote at the live price`;
     case 'loan':
-      return `${formatAmount(big(tx.amount_drops), asset)} collateral · starting LTV ${str(meta.starting_ltv)} · ${providerNames.lending}`;
+      return `${formatAmount(big(tx.amount_drops), asset)} collateral · starting LTV ${str(meta.starting_ltv)}`;
     default:
-      return `${str(meta.product) || `${asset} Flexible`} · ${providerNames.yield}`;
+      return `${str(meta.product) || `${asset} Flexible`}`;
   }
 };
 
@@ -220,7 +220,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         rowsKv.push({ k: 'Destination tag', v: t.destination_tag ? str(t.destination_tag) : 'Missing', mono: Boolean(t.destination_tag) });
         if (meta.claimed_by) rowsKv.push({ k: 'Claimed by', v: refs.get(str(meta.claimed_by)) ?? str(meta.claimed_by) });
         if (t.ledger_index) rowsKv.push({ k: 'Ledger index', v: Number(t.ledger_index).toLocaleString('en-US'), mono: true });
-      } else if (t.kind === 'exchange') {
+      } else if (t.kind === 'exchange' || t.kind === 'loan') {
         const payout = meta.payout as Row | undefined;
         if (payout) {
           rowsKv.push({ k: 'Pay to', v: str(payout.bank) });
@@ -252,7 +252,16 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         queueId: pending ? str(pending.id) : null,
         asset: str(t.asset) || 'XRP',
         manualSend: t.kind === 'withdrawal' && t.status === 'approved' && isAssetId(str(t.asset)) && assetSpec(str(t.asset)).deposit !== 'automatic',
-        settle: t.kind === 'exchange' && t.status === 'accepted' ? (t.counter_asset ? 'swap' : 'usd') : null,
+        settle:
+          t.kind === 'exchange' && t.status === 'accepted'
+            ? t.counter_asset
+              ? 'swap'
+              : 'usd'
+            : t.kind === 'loan' && t.status === 'collateral_locked'
+              ? 'loan'
+              : t.kind === 'loan_repay' && t.status === 'awaiting_payment'
+                ? 'repayment'
+                : null,
       };
     });
   };
@@ -420,7 +429,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         ['Over 1,000 XRP', '2 approvals, different people, one Compliance'],
         ['Warm → hot top-up', '2 of 3 signers'],
         ['Cold vault release', '3 of 5 signers · 24-hour time lock'],
-        ['Destination screening', `Required · ${providerNames.screening}`],
+        ['Destination check', 'Manual · the approver checks every address'],
         ['New customer address', '24-hour activation hold'],
       ],
       signers: signers.map((s) => ({ name: str(s.name), meta: str(s.meta), status: s.status === 'active' ? 'Active' : 'Standby' })),
@@ -504,7 +513,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         outflowTodayDrops: c.limits.outflowTodayDrops,
         outflowLimitDrops: c.limits.platformDailyDrops,
         providers: [
-          { name: providerNames.custody, note: 'Balances from the latest reconciliation', status: 'Operational', tone: 'ok' },
+          { name: 'Platform wallets', note: 'Balances from the latest reconciliation', status: 'Operational', tone: 'ok' },
           {
             name: 'XRP Ledger nodes',
             note: hb
@@ -513,16 +522,11 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
             status: stale ? 'Outage' : Number(hb?.nodes_in_sync) < 2 ? 'Degraded' : 'Operational',
             tone: stale ? 'bad' : Number(hb?.nodes_in_sync) < 2 ? 'wait' : 'ok',
           },
-          { name: providerNames.kyc, note: `${kyc.length} checks in progress`, status: 'Operational', tone: 'ok' },
-          { name: providerNames.screening, note: 'Screening every destination', status: 'Operational', tone: 'ok' },
+          { name: 'Identity checks', note: `${kyc.length} waiting for Compliance`, status: 'Operational', tone: kyc.length ? 'wait' : 'ok' },
+          { name: 'Address checks', note: 'Manual · checked by the approver', status: 'Operational', tone: 'ok' },
+          { name: 'Earn', note: 'Run by the platform · rewards paid daily', status: 'Operational', tone: 'ok' },
           {
-            name: providerNames.yield,
-            note: open.some((e) => e.kind === 'provider_delay') ? 'Confirmations delayed' : 'Confirmations on time',
-            status: open.some((e) => e.kind === 'provider_delay') ? 'Degraded' : 'Operational',
-            tone: open.some((e) => e.kind === 'provider_delay') ? 'wait' : 'ok',
-          },
-          {
-            name: providerNames.lending,
+            name: 'Borrow',
             note: `${q.filter((i) => i.kind === 'loan' && !i.decided).length} credit decision pending`,
             status: 'Operational',
             tone: 'ok',
@@ -611,8 +615,8 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
       const r = await call('customer-freeze', { customerId: id, frozen });
       return r.ok ? { ok: true, message: frozen ? 'Frozen. Withdrawals and new requests are blocked.' : 'Unfrozen.' } : r;
     },
-    completeExchange: async (txId, reference) => {
-      const r = await call('exchange-complete', { transactionId: txId, reference });
+    settle: async (txId, kind, reference) => {
+      const r = await call(kind === 'usd' || kind === 'swap' ? 'exchange-complete' : 'loan-settle', { transactionId: txId, reference });
       return r.ok ? { ok: true, message: 'Completed. The customer has been told.' } : r;
     },
     resetPassword: async (id) => {

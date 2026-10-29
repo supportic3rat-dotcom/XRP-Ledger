@@ -221,10 +221,6 @@ export const CreateAccountScreen = () => {
                     <T size={13.5} lh={1.45}>
                       I accept the{' '}
                       <T size={13.5} lh={1.45} color="accentText" underline accessibilityRole="link" onPress={() => router.push('/legal')}>
-                        Terms of Service
-                      </T>{' '}
-                      and{' '}
-                      <T size={13.5} lh={1.45} color="accentText" underline accessibilityRole="link" onPress={() => router.push('/legal')}>
                         Privacy Policy
                       </T>{' '}
                       (draft v0.1), and understand this is a{' '}

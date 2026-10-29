@@ -371,7 +371,13 @@ export const createSupabaseApi = (): Api => ({
   applyLoan: async (input) =>
     callTx(
       'loan-apply',
-      { asset: input.asset, collateralDrops: input.collateralDrops.toString(), principalCents: input.principalCents.toString(), agreementVersion: 'v0.1' },
+      {
+        asset: input.asset,
+        collateralDrops: input.collateralDrops.toString(),
+        principalCents: input.principalCents.toString(),
+        agreementVersion: 'v0.1',
+        payout: input.payout,
+      },
       input.idempotencyKey,
     ),
   repayLoan: async (input) => callTx('loan-repay', { loanId: input.loanId, amountCents: input.amountCents.toString(), via: input.via }, input.idempotencyKey),

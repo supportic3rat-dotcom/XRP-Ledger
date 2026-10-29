@@ -16,7 +16,7 @@ import {
   thresholdPrice,
   unitsToCents,
 } from '@xrp/ledger';
-import { loanEstimateError } from '@xrp/schemas';
+import { bankPayout, loanEstimateError } from '@xrp/schemas';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { View } from 'react-native';
@@ -84,6 +84,7 @@ export const BorrowScreen = () => {
   const [sheet, setSheet] = useState(false);
   const [terms, setTerms] = useState(false);
   const [lock, setLock] = useState(false);
+  const [bank, setBank] = useState({ bank: '', accountNumber: '', accountName: '' });
   const [tried, setTried] = useState(false);
 
   const l = loan.data;
@@ -100,7 +101,7 @@ export const BorrowScreen = () => {
     level === 'call'
       ? 'LTV is above 65%. Add collateral or repay to bring it down before it reaches 80%.'
       : level === 'liq'
-        ? 'At 80% LTV the provider can sell collateral to repay the loan. Act now to avoid liquidation.'
+        ? 'At 80% LTV we sell collateral at the live price to repay the loan. Act now to avoid liquidation.'
         : '';
 
   const livePrice = prices[collAsset] ?? 0n;
@@ -115,17 +116,18 @@ export const BorrowScreen = () => {
   const collateralOptions = (assets.data ?? []).filter((x) => x.collateral).map((x) => ({ id: x.id, name: x.name, network: x.network }));
   const verified = profile.data?.kycStatus === 'verified';
 
+  const payout = bankPayout.safeParse(bank);
   const submit = async () => {
-    if (!(terms && lock)) {
+    if (!(terms && lock) || !payout.success) {
       setTried(true);
       return;
     }
-    await apply.mutateAsync({ idempotencyKey: idem.current, asset: collAsset, collateralDrops: cDrops, principalCents: aCents });
+    await apply.mutateAsync({ idempotencyKey: idem.current, asset: collAsset, collateralDrops: cDrops, principalCents: aCents, payout: payout.data });
     idem.current = newIdempotencyKey();
     setSheet(false);
     setTerms(false);
     setLock(false);
-    showToast('Application submitted · awaiting provider review. Nothing is funded until the provider settles.', { durationMs: 3000 });
+    showToast('Application submitted · our team reviews it, usually within one business day.', { durationMs: 3000 });
   };
 
   return (
@@ -135,7 +137,7 @@ export const BorrowScreen = () => {
           Borrow
         </T>
         <T size={13} color="text3" style={{ marginHorizontal: 4, marginBottom: 16 }}>
-          {`USD loans against your crypto — ${collateralOptions.map((x) => x.id).join(', ')} — through ${lendingTerms.provider}. Sample terms.`}
+          {`USD loans against your crypto — ${collateralOptions.map((x) => x.id).join(', ')} — paid to your bank account.`}
         </T>
 
         {l ? (
@@ -313,7 +315,7 @@ export const BorrowScreen = () => {
             }}
           />
           <T size={12} lh={1.5} color="text3">
-            Final terms come from the lending provider after review. Repay any time; collateral is released once the loan is closed.
+            Our team reviews each application. Repay any time; collateral is released once the loan is closed.
           </T>
         </Card>
       </ScrollBody>
@@ -325,8 +327,31 @@ export const BorrowScreen = () => {
         <Card style={{ paddingVertical: 2, paddingHorizontal: 14, marginBottom: 14 }}>
           <Req first done={verified} label="Identity verified" />
           <Req done={cDrops <= available} label="Collateral available" />
-          <Req done={false} label="Provider credit review" note="After you apply" />
+          <Req done={false} label="Credit review by our team" note="After you apply" />
         </Card>
+        <T size={13} weight={600} color="text2" style={{ marginBottom: 8, marginHorizontal: 4 }}>
+          Pay the loan to
+        </T>
+        <View style={{ gap: 10, marginBottom: 14 }}>
+          <TextField accessibilityLabel="Bank" placeholder="Bank" value={bank.bank} onChangeText={(v) => setBank((b) => ({ ...b, bank: v }))} height={48} />
+          <TextField
+            accessibilityLabel="Account number"
+            placeholder="Account number"
+            value={bank.accountNumber}
+            onChangeText={(v) => setBank((b) => ({ ...b, accountNumber: v }))}
+            keyboardType="number-pad"
+            autoCorrect={false}
+            height={48}
+          />
+          <TextField
+            accessibilityLabel="Account name"
+            placeholder="Account name (must be yours)"
+            value={bank.accountName}
+            onChangeText={(v) => setBank((b) => ({ ...b, accountName: v }))}
+            autoComplete="name"
+            height={48}
+          />
+        </View>
         <View style={{ gap: 12 }}>
           <CheckRow checked={terms} onChange={setTerms}>
             I accept the Lending and Collateral Agreement (draft v0.1).
@@ -335,9 +360,9 @@ export const BorrowScreen = () => {
             {`Lock ${coll} ${collAsset} as collateral. It can be sold if LTV reaches 80%.`}
           </CheckRow>
         </View>
-        {tried && !(terms && lock) ? (
+        {tried && !(terms && lock && payout.success) ? (
           <T size={12.5} color="neg" accessibilityRole="alert" style={{ marginTop: 10 }}>
-            Accept the agreement and authorise the collateral lock to continue.
+            {!payout.success ? (payout.error.issues[0]?.message ?? 'Enter your bank details.') : 'Accept the agreement and authorise the collateral lock to continue.'}
           </T>
         ) : null}
         <Button label="Submit application" size={48} loading={apply.isPending} onPress={submit} style={{ marginTop: 16 }} />

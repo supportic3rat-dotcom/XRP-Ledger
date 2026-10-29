@@ -93,7 +93,7 @@ await test('an unbalanced entry is rejected at commit', () =>
 await test('posted lines are immutable', () => throwsLike(`update journal_lines set amount_drops = 1 where id = (select min(id) from journal_lines)`, /append-only/));
 await test('posted entries cannot be deleted', () => throwsLike(`delete from journal_entries where reference = 'DEP-PROTO-1650'`, /append-only/));
 await test('available balance can never go negative', () =>
-  throwsLike(`select create_tx('${BRENDAN}', 'withdrawal', 'WD-TEST-NEG', 'requested', 999999000000, 'test')`, /Insufficient balance/));
+  throwsLike(`select create_tx('${BRENDAN}', 'withdrawal', 'WD-TEST-NEG', 'requested', 999999000000, 'test')`, /more than your available balance/));
 await test('transition_tx refuses transitions outside the state machine', () =>
   throwsLike(`select transition_tx('10000000-0000-4000-8000-000000002041', 'credited', 'test')`, /not allowed/));
 await test('deposit credit posts Dr omnibus / Cr available and notifies', async () => {
@@ -277,11 +277,12 @@ await test('exchange reserves only when a live quote is accepted; expired quotes
   assert(/expired/.test(expired), expired);
   assert(after === 500000000n, `reserved after ${after}`);
 });
-await test('collateral top-up reserves, then locks on provider confirmation', async () => {
+await test('a collateral top-up locks at once', async () => {
   await db.exec('begin');
-  const t = await rpc(`select id from loan_add_collateral('${BRENDAN}', '20000000-0000-4000-8000-000000000007', 250000000, 'key-7')`);
-  const reserved = await balance(BRENDAN, 'reserved');
-  await db.exec(`select transition_tx('${t.id}', 'sent', 'sys'); select transition_tx('${t.id}', 'lock_confirmed', 'provider');`);
+  const before = await balance(BRENDAN, 'reserved');
+  const t = await rpc(`select id, status from loan_add_collateral('${BRENDAN}', '20000000-0000-4000-8000-000000000007', 250000000, 'key-7')`);
+  const reserved = (await balance(BRENDAN, 'reserved')) - before + 250000000n;
+  assert(t.status === 'ltv_updated', t.status);
   const coll = await balance(BRENDAN, 'collateral');
   const loanColl = await one(`select collateral_drops::text c from loans where ref = 'LN-PROTO-0007'`);
   await db.exec('rollback');
@@ -555,18 +556,19 @@ await test('a BTC → XRP swap moves BTC out and credits XRP when paid out', asy
   await db.exec('rollback');
   assert(btc === 9000000n && xrp === 4170100000n + 608000000n, `${btc} ${xrp}`);
 });
+const LOAN_BANK = `'{"bank": "Access Bank", "account_number": "0123456789", "account_name": "Brendan Ebson"}'::jsonb`;
 await test('ETH collateral: LTV is checked at the ETH price and precision', async () => {
   await db.exec('begin');
   await credit('ETH', 100000000);
   let high = '';
-  try { await db.exec(`savepoint s; select loan_apply('${BRENDAN}', 100000000, 150100, 3000000000, 'v0.1', 'ln-1', 'ETH')`); } catch (e) { high = e.message; }
+  try { await db.exec(`savepoint s; select loan_apply('${BRENDAN}', 100000000, 150100, 3000000000, 'v0.1', 'ln-1', 'ETH', ${LOAN_BANK})`); } catch (e) { high = e.message; }
   await db.exec('rollback to savepoint s');
-  const t = await rpc(`select id, asset from loan_apply('${BRENDAN}', 100000000, 150000, 3000000000, 'v0.1', 'ln-2', 'ETH')`);
+  const t = await rpc(`select id, asset from loan_apply('${BRENDAN}', 100000000, 150000, 3000000000, 'v0.1', 'ln-2', 'ETH', ${LOAN_BANK})`);
   let doge = '';
-  try { await db.exec(`savepoint s2; select loan_apply('${BRENDAN}', 100000000, 10000, 3000000000, 'v0.1', 'ln-3', 'DOGE')`); } catch (e) { doge = e.message; }
+  try { await db.exec(`savepoint s2; select loan_apply('${BRENDAN}', 100000000, 10000, 3000000000, 'v0.1', 'ln-3', 'DOGE', ${LOAN_BANK})`); } catch (e) { doge = e.message; }
   await db.exec('rollback to savepoint s2');
-  await db.exec(`select transition_tx('${t.id}', 'approved', 't'); select transition_tx('${t.id}', 'collateral_locked', 't');
-                 select transition_tx('${t.id}', 'funded', 't'); select transition_tx('${t.id}', 'active', 't');`);
+  // Approval locks the collateral by itself.
+  await db.exec(`select transition_tx('${t.id}', 'approved', 't'); select transition_tx('${t.id}', 'funded', 't'); select transition_tx('${t.id}', 'active', 't');`);
   const loan = await one(`select collateral_asset, collateral_drops::text c, principal_usd_cents::text p from loans where ref = (select ref from transactions where id = '${t.id}')`);
   const coll = await balanceIn(BRENDAN, 'collateral', 'ETH');
   await db.exec('rollback');
@@ -577,8 +579,8 @@ await test('ETH collateral: LTV is checked at the ETH price and precision', asyn
 await test('per-asset yield: SOL allocation confirms into a SOL position', async () => {
   await db.exec('begin');
   await credit('SOL', 500000000);
-  const t = await rpc(`select id from yield_allocate('${BRENDAN}', 200000000, 'v0.1', 'y-sol', 'SOL')`);
-  await db.exec(`select transition_tx('${t.id}', 'sent', 't'); select transition_tx('${t.id}', 'confirmed', 't');`);
+  const t = await rpc(`select status from yield_allocate('${BRENDAN}', 200000000, 'v0.1', 'y-sol', 'SOL')`);
+  assert(t.status === 'confirmed', t.status);
   const pos = await one(`select asset, allocated_drops::text a, apr_bps from yield_positions where customer_id = '${BRENDAN}' and product = 'sol_flexible'`);
   await db.exec('rollback');
   assert(pos?.asset === 'SOL' && pos.a === '200000000' && pos.apr_bps === 500, JSON.stringify(pos));
@@ -740,6 +742,82 @@ await test('completing a swap credits the bought coin', async () => {
     const r = await one(`select status from transactions where id = '${id}'`);
     const usdt = await one(`select balance_drops::text b from balances where customer_id = '${BRENDAN}' and kind = 'available' and asset = 'USDT'`);
     assert(r.status === 'paid_out' && BigInt(usdt?.b ?? '0') >= 1163730000n, JSON.stringify({ r, usdt }));
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
+console.log('\nEarn and Borrow on the platform');
+const LOAN7 = '20000000-0000-4000-8000-000000000007';
+await test('Earn is instant and the platform pays rewards net of its fee', async () => {
+  await db.exec('begin');
+  try {
+    await credit('SOL', 500000000);
+    await db.exec(`select yield_allocate('${BRENDAN}', 200000000, 'v0.1', 'y-r', 'SOL')`);
+    await db.exec(`update yield_positions set rate_updated_at = now() - interval '365 days' where customer_id = '${BRENDAN}' and product = 'sol_flexible'`);
+    const before = await balanceIn(BRENDAN, 'available', 'SOL');
+    await db.exec('select yield_pay_all()');
+    const after = await balanceIn(BRENDAN, 'available', 'SOL');
+    const pos = await one(`select credited_drops::text c, rate_updated_at > now() - interval '1 minute' reset from yield_positions where customer_id = '${BRENDAN}' and product = 'sol_flexible'`);
+    // 0.2 SOL × 5% for a year = 0.01 SOL; less the 10% fee = 0.009 SOL.
+    assert(after - before === 9000000n && pos.c === '9000000' && pos.reset, JSON.stringify({ gained: String(after - before), pos }));
+    const r = await rpc(`select status from yield_redeem('${BRENDAN}', 200000000, 'y-out', 'SOL')`);
+    assert(r.status === 'confirmed' && (await balanceIn(BRENDAN, 'available', 'SOL')) === after + 200000000n, 'redeem not instant');
+  } finally {
+    await db.exec('rollback');
+  }
+});
+await test('repaying by selling collateral is instant at the live price', async () => {
+  await db.exec('begin');
+  try {
+    const coll = await balanceIn(BRENDAN, 'collateral', 'XRP');
+    const t = await rpc(`select status, amount_drops::text u from loan_repay('${BRENDAN}', '${LOAN7}', 10000, 'sell', 'r-sell', 1320000)`);
+    const l = await one(`select collateral_drops::text c, repaid_usd_cents::text r from loans where id = '${LOAN7}'`);
+    // $100 at $1.32 = 75.757576 XRP (rounded up).
+    assert(t.status === 'applied' && t.u === '75757576' && l.c === String(750000000 - 75757576), JSON.stringify({ t, l }));
+    assert((await balanceIn(BRENDAN, 'collateral', 'XRP')) === coll - 75757576n, 'collateral not reduced');
+  } finally {
+    await db.exec('rollback');
+  }
+});
+await test('at 80% LTV the platform sells collateral, repays the loan and releases the rest', async () => {
+  await db.exec('begin');
+  try {
+    const avail = await balanceIn(BRENDAN, 'available', 'XRP');
+    const owed = BigInt((await one(`select (principal_usd_cents + interest_usd_cents - repaid_usd_cents)::text o from loans where id = '${LOAN7}'`)).o);
+    await db.exec(`insert into prices (asset, usd_micro, change_bps, source) values ('XRP', 900000, 0, 'test')`);
+    await db.exec('select ltv_check()');
+    const sold = (owed * 10000000000n + 899999n) / 900000n;
+    const l = await one(`select status from loans where id = '${LOAN7}'`);
+    const note = await one(`select title from notifications where customer_id = '${BRENDAN}' and title = 'Collateral sold'`);
+    const gained = (await balanceIn(BRENDAN, 'available', 'XRP')) - avail;
+    assert(l.status === 'repaid' && note && gained === 750000000n - sold && (await balanceIn(BRENDAN, 'collateral', 'XRP')) === 0n,
+      JSON.stringify({ l, note, gained: String(gained), sold: String(sold) }));
+  } finally {
+    await db.exec('rollback');
+  }
+});
+await test('approval locks collateral; staff pay the loan and confirm bank repayments', async () => {
+  await db.exec('begin');
+  try {
+    const t = await rpc(`select id from loan_apply('${BRENDAN}', 200000000, 10000, 1320000, 'v0.1', 'ln-x', 'XRP', ${LOAN_BANK})`);
+    await db.exec(`select transition_tx('${t.id}', 'approved', 'Compliance')`);
+    assert((await one(`select status from transactions where id = '${t.id}'`)).status === 'collateral_locked', 'not locked');
+    await actAs(OPS, 'operations');
+    await db.exec('savepoint s');
+    await throwsLike(`select loan_settle('${t.id}', '')`, /bank transfer reference/);
+    await db.exec('rollback to savepoint s');
+    await db.exec(`select loan_settle('${t.id}', 'FT2610280009')`);
+    await db.exec('reset role');
+    const loan = await one(`select id, status, principal_usd_cents::text p from loans where ref = (select ref from transactions where id = '${t.id}')`);
+    assert(loan?.status === 'active' && loan.p === '10000', JSON.stringify(loan));
+    const r = await rpc(`select id, status from loan_repay('${BRENDAN}', '${loan.id}', 4000, 'bank', 'ln-x-r1')`);
+    assert(r.status === 'awaiting_payment', r.status);
+    await actAs(OPS, 'operations');
+    await db.exec(`select loan_settle('${r.id}', 'FT2610280010')`);
+    await db.exec('reset role');
+    const after = await one(`select repaid_usd_cents::text r from loans where id = '${loan.id}'`);
+    assert(after.r === '4000', JSON.stringify(after));
   } finally {
     await db.exec('rollback');
   }

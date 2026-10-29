@@ -1,3 +1,4 @@
+set search_path to public, extensions; -- pgcrypto (crypt, gen_salt) lives in extensions on Supabase
 -- Seed data matching the designs. Test credentials (local/staging only):
 --   customer  brendan@example.com      / Prototype-Pass-2026   (mobile sample customer, ACC-PROTO-0042)
 --   customer  tobi.adeyemi@example.com / Customer-Pass-2026    (admin sample customer, CUS-0042)

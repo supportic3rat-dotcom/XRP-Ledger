@@ -34,6 +34,7 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useActivity, useApiMutation, useBalances, useLoan, usePriceMap } from '@/data/hooks';
 import { newIdempotencyKey } from '@/lib/idempotency';
+import { SUPPORT_EMAIL } from '@/lib/support';
 
 type Mode = 'repay' | 'collateral';
 type Via = 'bank' | 'sell';
@@ -41,19 +42,19 @@ const STEPS: Record<'bank' | 'sell' | 'coll', [string, string][]> = {
   bank: [
     ['Request recorded', 'We’re expecting your transfer'],
     ['Awaiting payment', 'Send with the reference below'],
-    ['Payment received', 'Confirmed by [Lending provider]'],
+    ['Payment received', 'Confirmed by our team'],
     ['Applied to loan', 'Balance and LTV updated'],
   ],
   sell: [
-    ['Request recorded', 'Firm quote requested'],
-    ['Selling collateral', 'Reserved at the accepted quote'],
-    ['Payment received', 'Confirmed by [Lending provider]'],
+    ['Request recorded', 'At the live price'],
+    ['Selling collateral', 'Sold on the platform'],
+    ['Payment received', 'Proceeds applied at once'],
     ['Applied to loan', 'Balance and LTV updated'],
   ],
   coll: [
-    ['Request recorded', 'Reserved from available'],
-    ['Sent to provider', 'Collateral transfer submitted'],
-    ['Lock confirmed', 'Confirmed by [Lending provider]'],
+    ['Request recorded', 'Taken from available'],
+    ['Locked', 'Locked on the platform'],
+    ['Lock confirmed', 'Counts as collateral now'],
     ['LTV updated', 'New liquidation price applies'],
   ],
 };
@@ -112,7 +113,7 @@ export const LoanManageScreen = () => {
     ? {
         kicker: 'You’re repaying',
         amount: rOk && a !== null ? formatUsd(a) : '—',
-        cta: via === 'bank' ? 'Confirm and get payment details' : 'Confirm and request quote',
+        cta: via === 'bank' ? 'Confirm and get payment details' : 'Confirm and sell at the live price',
         rows: [
           { k: 'Loan', v: l?.ref ?? '' },
           { k: 'Pay with', v: via === 'bank' ? 'Bank transfer' : `Sell ≈ ${fmt(sellDrops)}` },
@@ -122,8 +123,8 @@ export const LoanManageScreen = () => {
         ] satisfies KVItem[],
         note:
           via === 'bank'
-            ? 'Your loan balance only drops once [Lending provider] confirms your payment.'
-            : `You’ll get a firm ${la} price to accept before anything is sold. Selling may have tax consequences.`,
+            ? 'Your loan balance drops once our team confirms your payment has arrived.'
+            : `We sell the ${la} at once at the live price and apply it to your loan. Selling may have tax consequences.`,
       }
     : {
         kicker: 'You’re adding',
@@ -135,7 +136,7 @@ export const LoanManageScreen = () => {
           { k: 'LTV after', v: formatBps(ltvBps(owed, newColl, p, ld)) },
           { k: 'Liquidation price after', v: formatAssetPrice(thresholdPrice(owed, newColl, LIQUIDATION_BPS, ld)) },
         ] satisfies KVItem[],
-        note: 'Collateral only counts once the provider confirms the lock. Until then, your current LTV applies.',
+        note: 'The collateral is locked at once and lowers your LTV straight away.',
       };
 
   const tx = activity.raw.find((t) => t.id === txId);
@@ -350,7 +351,7 @@ export const LoanManageScreen = () => {
             {!isRepay ? (
               <>
                 <CheckRow checked={ack} onChange={setAck} style={{ marginTop: 16 }}>
-                  {`I understand this ${la} will be locked and can be sold by [Lending provider] if my LTV reaches 80%.`}
+                  {`I understand this ${la} will be locked and will be sold at the live price if my LTV reaches 80%.`}
                 </CheckRow>
                 {ackTried && !ack ? <ErrorText style={{ marginTop: 6, marginLeft: 30 }}>Confirm you understand to continue.</ErrorText> : null}
               </>
@@ -378,7 +379,7 @@ export const LoanManageScreen = () => {
                   num
                   fixedKeys
                   items={[
-                    { k: 'Send to', v: '[Lending provider bank details]' },
+                    { k: 'Send to', v: `Email ${SUPPORT_EMAIL} for our bank details` },
                     { k: 'Amount', v: review.amount },
                     {
                       k: 'Payment reference',
@@ -397,8 +398,10 @@ export const LoanManageScreen = () => {
             </Card>
             <Banner tone="info" icon="info" style={{ marginTop: 12 }}>
               {isRepay
-                ? 'Nothing is charged until you pay or accept a quote. Your loan balance changes only when [Lending provider] confirms.'
-                : `No ${la} moves into collateral until the provider confirms the lock. Your current LTV applies until then.`}
+                ? via === 'bank'
+                  ? 'Nothing is charged until you pay. Your loan balance changes when our team confirms the transfer.'
+                  : 'Sold at the live price and applied to your loan.'
+                : `Your ${la} is locked as collateral and your LTV is updated.`}
             </Banner>
             {isRepay && left === 0n && stage >= 4 ? (
               <Banner tone="info" icon="check" style={{ marginTop: 12 }}>

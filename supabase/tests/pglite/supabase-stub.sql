@@ -3,6 +3,9 @@ create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin bypassrls;
 create role supabase_auth_admin nologin;
+-- Supabase installs pgcrypto in `extensions`, not `public`; mirror that so functions must find it the same way.
+create schema extensions;
+create extension pgcrypto schema extensions;
 create schema auth;
 create table auth.users (
   instance_id uuid, id uuid primary key, aud text, role text, email text, encrypted_password text, email_confirmed_at timestamptz,

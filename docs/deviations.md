@@ -226,3 +226,23 @@ Everything here differs from the design files or the brief on purpose, or still 
   and it's audited. Swaps get "Mark as completed", which credits the bought coin. The provider webhooks remain.
 - Legal documents: "[KYC provider]", "[Custody provider]" and "[Support email]" replaced (compliance team, platform
   wallets we control, support.xrpledger@gmail.com). The Terms still need the company's legal details.
+
+## 2026-10-28 · Earn and Borrow run on the platform; manual address checks; Terms taken down
+
+- No yield or lending provider is contracted, so nothing waits for one (`20261028000300_platform_earn_borrow.sql`):
+  - Earn: allocating and withdrawing are instant (no approval). The platform pays rewards daily (`yield-rewards` in
+    `upkeep`, 00:00 UTC) at the asset's APR less the 10% platform fee, out of platform revenue (`fee_revenue`); rewards
+    earned so far are paid before an allocation changes.
+  - Borrow: the application carries the bank account to pay. Compliance approves; the collateral locks at once.
+    Staff pay the loan by bank transfer and "Mark as funded" with the reference (`loan-settle`); interest accrues
+    daily (`loan-interest`). Bank repayments are confirmed by staff ("Mark as received"); repaying by selling
+    collateral is instant at the live price. Top-ups lock at once. At 80% LTV the platform sells enough collateral at
+    the live price (never older than 15 minutes) to repay the loan, releases the rest, and notifies the customer; a
+    shortfall stays owed.
+  - The platform's bank details for repayments aren't set yet: the app asks customers to email support for them.
+  - Provider webhooks (`provider-webhook-yield`, `provider-webhook-lending`) remain for when providers are contracted.
+- Withdrawal address screening is manual: the approval carries "Check the destination address" for the approver
+  (block explorer, sanctions and stolen-funds lists). No screening service is called.
+- Terms of Service taken down until the company details exist: removed from the live legal documents and the sign-up
+  wording; the draft is in `supabase/legal-drafts-terms-of-service.sql` to restore later.
+- Prices for money actions fall back to the live feed when the stored price is older than 15 minutes.

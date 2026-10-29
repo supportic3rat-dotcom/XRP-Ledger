@@ -1,0 +1,35 @@
+# What `eas build` uploads (gitignore syntax; replaces .gitignore for EAS uploads).
+# Same as .gitignore, except the mobile app's public env file goes up so the APK talks to the live project.
+# Server env files hold the service-role key and must never be uploaded.
+node_modules
+.DS_Store
+.expo
+.next
+dist
+*.log
+.turbo
+coverage
+apps/mobile/ios
+apps/mobile/android
+supabase/.temp
+supabase/.branches
+.next/
+.next-build/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/
+*.local.sql
+Wallets/
+
+# Env files: only apps/mobile/.env (public URL and anon key) is uploaded.
+**/.env
+**/.env.local
+!apps/mobile/.env
+
+# Not part of the app build (workspace packages stay, so the dependency install matches the lockfile).
+old/
+reference/
+docs/
+supabase/.env*
+services/*/.env*

@@ -71,7 +71,7 @@ const Suffix = ({ asset }: { asset: string }) => (
 
 /**
  * Earn: a Flexible yield product per asset, live accrual on each position, and a rewards calculator.
- * Rates are the provider's (variable, sample); only provider-confirmed rewards are credited.
+ * Run by the platform: allocations and withdrawals are instant, and rewards are paid daily at the variable rate.
  */
 export const EarnScreen = () => {
   const showToast = useToast((s) => s.show);
@@ -157,7 +157,7 @@ export const EarnScreen = () => {
     await allocate.mutateAsync({ idempotencyKey: idem.current, asset: sheetAsset, amountDrops: a });
     idem.current = newIdempotencyKey();
     setSheet(null);
-    showToast('Allocation request submitted · pending provider confirmation.', { durationMs: 3200 });
+    showToast('Allocated · earning from now.', { durationMs: 3200 });
   };
   const submitRedeem = async () => {
     if (r === null || r === 0n || r > sheetAllocated) {
@@ -167,7 +167,7 @@ export const EarnScreen = () => {
     await redeem.mutateAsync({ idempotencyKey: idem.current, asset: sheetAsset, amountDrops: r });
     idem.current = newIdempotencyKey();
     setSheet(null);
-    showToast('Withdrawal request sent to the provider · pending confirmation.', { durationMs: 3200 });
+    showToast('Back in your available balance.', { durationMs: 3200 });
   };
 
   return (
@@ -179,7 +179,7 @@ export const EarnScreen = () => {
         <T size={13} color="text3" style={{ marginHorizontal: 4, marginBottom: 16 }}>
           {active.length
             ? `${formatUsd(totalEarningCents)} earning across ${active.length} ${active.length === 1 ? 'asset' : 'assets'}. Rates can change; rewards aren’t guaranteed.`
-            : 'Rates come from the provider and can change. Rewards aren’t guaranteed.'}
+            : 'Rates are variable and can change. Rewards aren’t guaranteed.'}
         </T>
 
         {active.map((pos) => {
@@ -204,7 +204,7 @@ export const EarnScreen = () => {
                 rowPad={10}
                 items={[
                   { k: 'Credited to your balance', sub: 'Paid out after fee, spendable', v: formatAmount(pos.creditedDrops, pos.asset) },
-                  { k: 'Confirmed by provider', sub: 'Awaiting next payout', v: formatAmount(pos.confirmedUnpaidDrops, pos.asset) },
+                  { k: 'Earned today', sub: 'Paid out daily', v: formatAmount(pos.estimatedAccruedDrops, pos.asset) },
                 ]}
               />
               <LiveAccrual pos={pos} asOf={positions.dataUpdatedAt} priceMicro={prices[pos.asset]} />
@@ -262,7 +262,7 @@ export const EarnScreen = () => {
                   <T size={15} weight={600} accessibilityRole="header">
                     {product.name}
                   </T>
-                  <T size={12.5} color="text3">{`Provided by ${product.provider}`}</T>
+                  <T size={12.5} color="text3">Paid daily by the platform</T>
                 </View>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 2 }}>
@@ -382,9 +382,9 @@ export const EarnScreen = () => {
         </T>
         <Bullets
           items={[
-            'The rate is variable and set by the provider. It can fall to zero.',
-            `Allocated ${sheetAsset} is held by [Yield provider]. If the provider fails, you could lose some or all of it.`,
-            'Withdrawals depend on the provider and may be delayed in stressed markets.',
+            'The rate is variable and set by us. It can fall to zero.',
+            `Allocated ${sheetAsset} stays with us in your account. Rewards are paid from our revenue and aren’t guaranteed.`,
+            'You can withdraw any time; it’s back in your available balance at once.',
             `Rewards are paid in ${sheetAsset}, so their USD value moves with the ${sheetAsset} price.`,
           ]}
         />
@@ -424,7 +424,7 @@ export const EarnScreen = () => {
           </CheckRow>
         </View>
         <Banner tone="info" style={{ marginTop: 14 }}>
-          {`Your request goes to the provider. ${sheetAsset} moves from Available to Allocated only after the provider confirms.`}
+          {`${sheetAsset} moves from Available to Allocated at once and starts earning.`}
         </Banner>
         <Button label="Submit allocation request" size={48} loading={allocate.isPending} onPress={submitAlloc} style={{ marginTop: 16 }} />
       </Sheet>
@@ -470,7 +470,7 @@ export const EarnScreen = () => {
           ]}
         />
         <Banner tone="info" style={{ marginTop: 12 }}>
-          {`The request goes to [Yield provider]. ${sheetAsset} moves back to Available only after the provider confirms.`}
+          {`${sheetAsset} moves back to Available at once. Rewards earned so far are paid first.`}
         </Banner>
         <Button label="Request withdrawal" size={48} loading={redeem.isPending} onPress={submitRedeem} style={{ marginTop: 16 }} />
       </Sheet>

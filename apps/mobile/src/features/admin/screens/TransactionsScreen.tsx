@@ -131,31 +131,47 @@ const ManualSendPanel = ({ t, disabled }: { t: TxItem; disabled: boolean }) => {
   );
 };
 
-/**
- * An accepted exchange staff settle: for a USD sale, pay the bank account above and record the transfer reference;
- * for a swap, mark it completed to credit the bought coin. The customer is notified.
- */
+const SETTLE: Record<NonNullable<TxItem['settle']>, { title: string; body: string; button: string }> = {
+  usd: {
+    title: 'Pay this sale',
+    body: 'The customer accepted the quote. Send the USD amount by bank transfer to the account above (the name must match the customer), then record the transfer reference.',
+    button: 'Mark as paid',
+  },
+  swap: { title: 'Complete this swap', body: 'The customer accepted the quote. Completing it credits the coin they bought to their balance.', button: 'Mark as completed' },
+  loan: {
+    title: 'Pay out this loan',
+    body: 'Compliance approved it and the collateral is locked. Send the loan by bank transfer to the account above (the name must match the customer), then record the reference. Interest starts today.',
+    button: 'Mark as funded',
+  },
+  repayment: {
+    title: 'Confirm this repayment',
+    body: 'Check the customer’s transfer has arrived in the platform bank account with the payment reference, then record the bank reference. It’s applied to the loan at once.',
+    button: 'Mark as received',
+  },
+};
+
+/** Something staff complete by hand: a USD sale or swap, a loan payout, or a bank repayment. The customer is notified. */
 const SettlePanel = ({ t, disabled }: { t: TxItem; disabled: boolean }) => {
   const { data } = useStaffSession();
   const { pending, run } = useOpsAction();
   const [reference, setReference] = useState('');
-  const usd = t.settle === 'usd';
+  if (!t.settle) return null;
+  const kind = t.settle;
+  const copy = SETTLE[kind];
   return (
     <Card style={{ padding: 14, gap: 12 }}>
-      <SecT>{usd ? 'Pay this sale' : 'Complete this swap'}</SecT>
+      <SecT>{copy.title}</SecT>
       <T size={12.5} lh={1.45} color="text3" style={{ marginTop: -8 }}>
-        {usd
-          ? 'The customer accepted the quote. Send the USD amount by bank transfer to the account above (the name must match the customer), then record the transfer reference.'
-          : 'The customer accepted the quote. Completing it credits the coin they bought to their balance.'}
+        {copy.body}
       </T>
-      {usd ? (
+      {kind !== 'swap' ? (
         <Field>
           <Label nativeID="settle-ref">Bank transfer reference</Label>
           <TextField
             accessibilityLabelledBy="settle-ref"
             value={reference}
             onChangeText={setReference}
-            placeholder="From your bank’s confirmation"
+            placeholder="From the bank’s confirmation"
             mono
             autoCapitalize="characters"
             autoCorrect={false}
@@ -164,11 +180,11 @@ const SettlePanel = ({ t, disabled }: { t: TxItem; disabled: boolean }) => {
         </Field>
       ) : null}
       <Button
-        label={usd ? 'Mark as paid' : 'Mark as completed'}
+        label={copy.button}
         size={48}
         disabled={disabled}
         loading={pending}
-        onPress={() => void run(() => data.completeExchange(t.id, reference.trim()), () => setReference(''))}
+        onPress={() => void run(() => data.settle(t.id, kind, reference.trim()), () => setReference(''))}
       />
       <BlockNote>{disabled ? 'Read-only role: you can view but not act.' : ''}</BlockNote>
     </Card>

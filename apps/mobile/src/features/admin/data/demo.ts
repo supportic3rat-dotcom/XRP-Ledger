@@ -1087,11 +1087,11 @@ export const createDemoData = (role: Role): AdminData => {
       log(`Recorded deposit of ${amount} for approval`, customerId);
       return { ok: true, message: 'Deposit recorded. A second staff member approves the credit in the queue.' };
     },
-    completeExchange: async (txId, reference) => {
+    settle: async (txId, kind, reference) => {
       if (role === 'auditor') return { ok: false, error: 'Read-only role: you can view but not act.' };
       const tx = TXS.find((x) => x.id === txId);
-      if (!tx || !tx.settle || state().sent[txId]) return { ok: false, error: 'Only exchanges the customer has accepted can be completed.' };
-      if (tx.settle === 'usd' && reference.trim().length < 4) return { ok: false, error: 'Enter the bank transfer reference.' };
+      if (!tx || !tx.settle || state().sent[txId]) return { ok: false, error: 'There’s nothing to complete on this transaction.' };
+      if (kind !== 'swap' && reference.trim().length < 4) return { ok: false, error: 'Enter the bank transfer reference.' };
       state().sent[txId] = { hash: reference.trim() || '—' };
       log(tx.settle === 'usd' ? 'Paid USD sale by bank transfer' : 'Completed swap', tx.ref);
       return { ok: true, message: 'Completed. The customer has been told.' };

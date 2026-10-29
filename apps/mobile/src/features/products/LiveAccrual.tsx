@@ -87,7 +87,7 @@ export const LiveAccrual = ({ pos, asOf, priceMicro }: { pos: YieldPosition; asO
         }))}
       />
       <T size={11.5} lh={1.5} color="text3">
-        Estimates at today’s variable rate. Only rewards the provider confirms are credited to your balance.
+        Estimates at today’s variable rate. Rewards are paid to your available balance daily.
       </T>
     </View>
   );

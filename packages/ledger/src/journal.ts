@@ -6,7 +6,13 @@ export type JournalLine = { account: LedgerAccountKind; owner: 'customer' | 'pla
  * Journal lines posted at each step (signed: + debit, − credit). Mirrors `transition_tx()`.
  * Every returned set sums to zero.
  */
-export const journalFor = (kind: TxKind, toStatus: string, amount: Drops, fee: Drops = 0n): JournalLine[] => {
+export const journalFor = (
+  kind: TxKind,
+  toStatus: string,
+  amount: Drops,
+  fee: Drops = 0n,
+  meta: { source?: string; via?: string } = {},
+): JournalLine[] => {
   const c = (account: LedgerAccountKind, value: Drops): JournalLine => ({ account, owner: 'customer', amount: value });
   const p = (account: LedgerAccountKind, value: Drops): JournalLine => ({ account, owner: 'platform', amount: value });
   switch (`${kind}:${toStatus}`) {
@@ -34,7 +40,10 @@ export const journalFor = (kind: TxKind, toStatus: string, amount: Drops, fee: D
     case 'yield_allocate:provider_failed':
       return [c('pending_yield', amount), c('available', -amount)];
     case 'yield_reward:credited':
-      return [p('provider_receivable', amount), c('available', -(amount - fee)), p('fee_revenue', -fee)];
+      // Platform-paid rewards come out of revenue; provider statements are owed by the provider.
+      return meta.source === 'platform'
+        ? [p('fee_revenue', amount - fee), c('available', -(amount - fee))]
+        : [p('provider_receivable', amount), c('available', -(amount - fee)), p('fee_revenue', -fee)];
     case 'loan:collateral_locked':
       return [c('available', amount), c('collateral', -amount)];
     case 'loan_collateral:recorded':
@@ -45,8 +54,11 @@ export const journalFor = (kind: TxKind, toStatus: string, amount: Drops, fee: D
       return [c('reserved', amount), c('available', -amount)];
     case 'yield_redeem:requested':
       return [];
+    case 'loan_repay:received':
+      // Collateral sold on the platform (customer's choice, or liquidation) moves to the platform wallet.
+      return meta.via === 'sell' || meta.via === 'liquidation' ? [c('collateral', amount), p('omnibus', -amount)] : [];
     case 'loan:repaid':
-      return [c('collateral', amount), c('available', -amount)];
+      return amount === 0n ? [] : [c('collateral', amount), c('available', -amount)];
     default:
       return [];
   }

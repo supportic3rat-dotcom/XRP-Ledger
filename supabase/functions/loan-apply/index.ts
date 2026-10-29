@@ -3,8 +3,8 @@ import { currentPriceMicro, customerId, type TxRow } from '../_shared/customer.t
 import { defineFunction, serve } from '../_shared/handler.ts';
 
 /**
- * Loan application. LTV is checked in SQL against the current price (≤ 50% to start); Compliance reviews it,
- * then the lending provider funds it.
+ * Loan application. LTV is checked in SQL against the current price (≤ 50% to start). Compliance approves it (the
+ * collateral locks at once), then staff pay it by bank transfer to the account given.
  */
 export const handler = defineFunction({
   name: 'loan-apply',
@@ -20,6 +20,7 @@ export const handler = defineFunction({
       p_agreement_version: ctx.input.agreementVersion,
       p_idempotency_key: ctx.idempotencyKey,
       p_asset: ctx.input.asset,
+      p_payout: { bank: ctx.input.payout.bank, account_number: ctx.input.payout.accountNumber, account_name: ctx.input.payout.accountName },
     }),
   }),
 });

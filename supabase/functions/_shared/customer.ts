@@ -37,10 +37,11 @@ export const touchDevice = async (ctx: Ctx<unknown>): Promise<{ paused: boolean 
 export const currentPriceMicro = async (ctx: Ctx<unknown>, asset = 'XRP'): Promise<bigint> => {
   const { data } = await ctx.db.from('prices').select('usd_micro, at').eq('asset', asset).order('at', { ascending: false }).limit(1).maybeSingle();
   const row = data as { usd_micro: number | string; at: string } | null;
-  if (!row || ctx.now().getTime() - Date.parse(row.at) > 15 * 60_000) {
-    throw new HttpError(503, 'Prices are temporarily unavailable. Try again in a few minutes.', 'stale_price');
-  }
-  return BigInt(String(row.usd_micro));
+  if (row && ctx.now().getTime() - Date.parse(row.at) <= 15 * 60_000) return BigInt(String(row.usd_micro));
+  // The stored price is refreshed while the app is open; if it's old, ask the live feed directly.
+  const live = await ctx.providers.prices.getPrice(asset).catch(() => null);
+  if (!live || live.priceMicro <= 0n) throw new HttpError(503, 'Prices are temporarily unavailable. Try again in a few minutes.', 'stale_price');
+  return live.priceMicro;
 };
 
 export type TxRow = {

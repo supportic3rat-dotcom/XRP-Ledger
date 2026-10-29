@@ -80,9 +80,12 @@ export const fnSchemas = {
   'exchange-cancel': z.object({ transactionId: z.string().uuid() }),
   'yield-allocate': z.object({ asset, amountDrops: drops, termsVersion: z.string() }),
   'yield-redeem': z.object({ asset, amountDrops: drops }),
-  'loan-apply': z.object({ asset, collateralDrops: drops, principalCents: cents, agreementVersion: z.string() }),
+  /** The loan is paid by bank transfer to `payout`. */
+  'loan-apply': z.object({ asset, collateralDrops: drops, principalCents: cents, agreementVersion: z.string(), payout: bankPayout }),
   'loan-repay': z.object({ loanId: z.string().uuid(), amountCents: cents, via: z.enum(['bank', 'sell']) }),
   'loan-add-collateral': z.object({ loanId: z.string().uuid(), amountDrops: drops, acknowledged: z.literal(true) }),
+  /** Staff pay out an approved loan, or confirm a bank repayment arrived, with the bank transfer reference. */
+  'loan-settle': z.object({ transactionId: uuid, reference: z.string().trim().min(4).max(80) }),
   'kyc-session': z.object({ documentType: z.enum(['passport', 'national', 'licence']), country: z.string(), addressDocument: z.enum(['bank', 'utility']) }),
   'ticket-create': z.object({ topic: z.string().min(1), transactionRef: z.string().nullable(), message: z.string().min(20) }),
   'ticket-reply': z.object({ ticketRef: z.string(), message: z.string().min(1) }),

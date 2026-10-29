@@ -117,7 +117,8 @@ export type Api = {
   currentQuote: (txId: string) => Promise<FirmQuote | null>;
   allocateYield: (input: { idempotencyKey: string; asset: string; amountDrops: bigint }) => Promise<Transaction>;
   redeemYield: (input: { idempotencyKey: string; asset: string; amountDrops: bigint }) => Promise<Transaction>;
-  applyLoan: (input: { idempotencyKey: string; asset: string; collateralDrops: bigint; principalCents: bigint }) => Promise<Transaction>;
+  /** The loan is paid by bank transfer to `payout` once Compliance approves it. */
+  applyLoan: (input: { idempotencyKey: string; asset: string; collateralDrops: bigint; principalCents: bigint; payout: BankPayout }) => Promise<Transaction>;
   repayLoan: (input: { idempotencyKey: string; loanId: string; amountCents: bigint; via: 'bank' | 'sell' }) => Promise<Transaction>;
   addCollateral: (input: { idempotencyKey: string; loanId: string; amountDrops: bigint }) => Promise<Transaction>;
   setAllowlist: (enabled: boolean) => Promise<void>;

@@ -102,10 +102,6 @@ export const WelcomeScreen = () => {
           <T size={12} lh={1.5} color="text3" align="center" style={{ marginTop: 6 }}>
             By continuing you agree to the{' '}
             <T size={12.5} lh={1.44} color="accentText" underline onPress={() => router.push('/legal')} accessibilityRole="link">
-              Terms of Service
-            </T>{' '}
-            and{' '}
-            <T size={12.5} lh={1.44} color="accentText" underline onPress={() => router.push('/legal')} accessibilityRole="link">
               Privacy Policy
             </T>{' '}
             (draft v0.1). Not affiliated with Ripple or the XRP Ledger Foundation.
