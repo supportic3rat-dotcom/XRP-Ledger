@@ -6,7 +6,7 @@ module.exports = {
   setupFiles: ['./test/setup.ts'],
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
   transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@gorhom/.*|@xrp/.*|@react-native/.*|@react-native\\+.*|react-native\\+.*|expo.*|@expo.*))',
+    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@gorhom/.*|@xrp/.*|@noble/.*|@scure/.*|ripple-.*|@xrplf/.*|@react-native/.*|@react-native\\+.*|react-native\\+.*|expo.*|@expo.*))',
   ],
   testMatch: ['<rootDir>/test/**/*.test.ts?(x)'],
 };

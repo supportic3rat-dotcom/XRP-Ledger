@@ -1,4 +1,4 @@
-import { CURRENCY_NAMES, formatXrpUnit, shortAddress } from '@xrp/ledger';
+import { CURRENCY_NAMES, formatAmount, shortAddress, walletNetwork } from '@xrp/ledger';
 import type { ThemePreference } from '@xrp/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, type Href } from 'expo-router';
@@ -62,7 +62,7 @@ export const ProfileScreen = () => {
   const setSignedIn = useSession((s) => s.setSignedIn);
   const allow = useApiMutation(api.setAllowlist);
   const currency = useApiMutation(api.setDisplayCurrency);
-  const remove = useApiMutation(api.removeExternalWallet);
+  const remove = useApiMutation(({ address, network }: { address: string; network: string }) => api.removeExternalWallet(address, network));
   const prefs = useNotificationPrefs();
   const setPrefs = useApiMutation(api.setNotificationPrefs);
   const [connectSheet, setConnectSheet] = useState(false);
@@ -79,9 +79,9 @@ export const ProfileScreen = () => {
     );
   }, [wallets.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const disconnect = async (wallet: { address: string; access: string }) => {
+  const disconnect = async (wallet: { address: string; access: string; network: string }) => {
     if (wallet.access === 'self_custody') await removeSelfCustody(wallet.address);
-    await remove.mutateAsync(wallet.address);
+    await remove.mutateAsync({ address: wallet.address, network: wallet.network });
     showToast('Wallet disconnected. Nothing in custody was affected.', { durationMs: 2600 });
   };
   const signOut = async () => {
@@ -147,7 +147,7 @@ export const ProfileScreen = () => {
         <Sec>External wallets</Sec>
         <Card>
           {linked.map((wallet, i) => (
-            <View key={wallet.address} style={{ padding: 14, gap: 10, borderTopWidth: i === 0 ? 0 : 1, borderColor: c.border }}>
+            <View key={`${wallet.network}:${wallet.address}`} style={{ padding: 14, gap: 10, borderTopWidth: i === 0 ? 0 : 1, borderColor: c.border }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View
                   style={{
@@ -164,14 +164,23 @@ export const ProfileScreen = () => {
                   <Icon name="link" size="sm" color="text2" />
                 </View>
                 <View style={{ flex: 1, gap: 1, minWidth: 0 }}>
-                  <T weight={500}>{wallet.access === 'watch' ? 'Watch-only wallet' : 'Self-custody wallet'}</T>
+                  <T weight={500}>{`${walletNetwork(wallet.network)?.name ?? 'XRP Ledger'} · ${wallet.access === 'watch' ? 'watch-only' : 'self-custody'}`}</T>
                   <T size={12} mono color="text3">
                     {shortAddress(wallet.address, 4, 6)}
                   </T>
                 </View>
-                <T weight={500} num>
-                  {formatXrpUnit(wallet.balanceDrops)}
-                </T>
+              </View>
+              <View style={{ gap: 4 }}>
+                {(walletNetwork(wallet.network)?.assets ?? ['XRP']).map((asset) => (
+                  <View key={asset} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <T size={13} color="text2">
+                      {asset}
+                    </T>
+                    <T size={13} weight={500} num>
+                      {formatAmount(wallet.balances[asset] ?? (asset === 'XRP' ? wallet.balanceDrops : 0n), asset)}
+                    </T>
+                  </View>
+                ))}
               </View>
               <Banner tone="info" size={12.5} padding={{ v: 10, h: 12 }}>
                 {wallet.access === 'watch'

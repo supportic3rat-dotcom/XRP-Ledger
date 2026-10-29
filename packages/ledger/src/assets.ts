@@ -114,3 +114,24 @@ export const isAssetAddress = (id: string, value: string, networkId?: string | n
 /** Decimals shown by default in balances and lists (full precision is shown where it matters, e.g. withdrawal receive). */
 const DISPLAY: Partial<Record<AssetId, number>> = { BTC: 6, ETH: 5, BNB: 4, LTC: 4, DASH: 4, SOL: 3 };
 export const displayDecimals = (id: string): number => DISPLAY[id as AssetId] ?? 2;
+
+/** A network a customer's own wallet can be on, with every supported asset it carries (for linking outside wallets). */
+export type WalletNetwork = { id: string; name: string; address: RegExp; addressHint: string; assets: AssetId[] };
+
+export const WALLET_NETWORKS: readonly WalletNetwork[] = (() => {
+  const byId = new Map<string, WalletNetwork>();
+  for (const a of ASSETS) {
+    for (const n of a.networks) {
+      const name = n.name.replace(/\s*\((?:ERC|BEP|TRC)-20\)|\s*\(SPL\)/, '');
+      const existing = byId.get(n.id);
+      if (existing) {
+        if (!existing.assets.includes(a.id)) existing.assets.push(a.id);
+        if (name.length < existing.name.length) existing.name = name;
+      } else byId.set(n.id, { id: n.id, name, address: n.address, addressHint: n.addressHint, assets: [a.id] });
+    }
+  }
+  return [...byId.values()].sort((x, y) => (x.id === 'xrp' ? -1 : y.id === 'xrp' ? 1 : x.name.localeCompare(y.name)));
+})();
+
+export const walletNetwork = (id: string): WalletNetwork | undefined => WALLET_NETWORKS.find((n) => n.id === id);
+export const isNetworkAddress = (networkId: string, value: string): boolean => walletNetwork(networkId)?.address.test(value.trim()) ?? false;

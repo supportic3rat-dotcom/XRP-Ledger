@@ -397,7 +397,9 @@ export const seedTickets: SupportTicket[] = [
   },
 ];
 
-export const seedExternalWallets: ExternalWallet[] = [{ address: EXTERNAL_WALLET, access: 'watch', balanceDrops: xrpToDrops('312.40') }];
+export const seedExternalWallets: ExternalWallet[] = [
+  { address: EXTERNAL_WALLET, access: 'watch', network: 'xrp', balanceDrops: xrpToDrops('312.40'), balances: { XRP: xrpToDrops('312.40') } },
+];
 
 export const legalDocs: LegalDoc[] = [
   {

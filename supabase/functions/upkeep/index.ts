@@ -3,6 +3,7 @@ import { fnSchemas } from '@xrp/schemas';
 import { type Ctx, defineFunction, serve } from '../_shared/handler.ts';
 import { liveMarketData } from '../_shared/providers.ts';
 import { reconcile } from '../recon-run/index.ts';
+import { chainBalances } from '../_shared/chains.ts';
 import { ledgerNodes, xrpl } from '../_shared/xrpl.ts';
 
 /**
@@ -80,7 +81,7 @@ const recordFxRates = async (ctx: Ctx<unknown>) => {
 
 /**
  * Reads the XRP Ledger over HTTP: the platform wallets' balances (for reconciliation), customers' linked outside
- * wallets, and a heartbeat with the latest validated ledger and how many of the two nodes answered.
+ * wallets on every network, and a heartbeat with the latest validated ledger and how many of the two nodes answered.
  */
 const readLedger = async (ctx: Ctx<unknown>) => {
   const nodes = ledgerNodes();
@@ -101,10 +102,18 @@ const readLedger = async (ctx: Ctx<unknown>) => {
   for (const w of (wallets ?? []) as { address: string }[]) {
     await ctx.db.from('chain_balances').upsert({ address: w.address, balance_drops: await balance(w.address), ledger_index: ledger, at });
   }
-  const { data: linked } = await ctx.db.from('external_wallets').select('id, address').is('removed_at', null);
-  for (const w of (linked ?? []) as { id: string; address: string }[]) {
-    const drops = await balance(w.address).catch(() => null);
-    if (drops !== null) await ctx.db.from('external_wallets').update({ balance_drops: drops, balance_at: at }).eq('id', w.id);
+  const { data: linked } = await ctx.db.from('external_wallets').select('id, address, network').is('removed_at', null);
+  for (const w of (linked ?? []) as { id: string; address: string; network: string }[]) {
+    const balances = await chainBalances(w.network, w.address).catch(() => null);
+    if (!balances) continue;
+    await ctx.db
+      .from('external_wallets')
+      .update({
+        balances: Object.fromEntries(Object.entries(balances).map(([k, v]) => [k, v.toString()])),
+        ...(w.network === 'xrp' ? { balance_drops: (balances.XRP ?? 0n).toString() } : {}),
+        balance_at: at,
+      })
+      .eq('id', w.id);
   }
   await ctx.db.from('worker_heartbeat').upsert({ worker: 'supabase-upkeep', validated_ledger: ledger, nodes_in_sync: live.length, at });
 };

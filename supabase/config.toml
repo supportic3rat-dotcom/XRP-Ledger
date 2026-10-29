@@ -88,3 +88,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.upkeep]
 verify_jwt = false
+[functions.wallet-balance]
+verify_jwt = false

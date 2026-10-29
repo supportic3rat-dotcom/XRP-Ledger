@@ -11,6 +11,7 @@ import {
   networkFeeEstimate,
   swapEstimate,
   unitsToCents,
+  walletNetwork,
 } from '@xrp/ledger';
 import type { Balances, Consent, KycStatus, LedgerAccountKind, SupportTicket, Transaction, TxEvent, TxKind } from '@xrp/types';
 import type { Api, AssetInfo, FirmQuote, Holding } from '../api';
@@ -22,6 +23,10 @@ const ZERO: Balances = { available: 0n, reserved: 0n, pendingYield: 0n, yield: 0
 type Listener = () => void;
 
 /** In-memory backend for local development and tests. Same rules as the database: state machines + balanced journals. */
+/** Demo balances for a linked wallet: a sample amount of each asset the network carries. */
+const demoBalances = (network: string): Record<string, bigint> =>
+  Object.fromEntries((walletNetwork(network)?.assets ?? []).map((a) => [a, 10n ** BigInt(assetSpec(a).decimals)]));
+
 export const createDemoApi = (): Api => {
   const bootedAt = Date.now();
   const now = () => new Date(seed.DEMO_EPOCH + (Date.now() - bootedAt));
@@ -587,18 +592,25 @@ export const createDemoApi = (): Api => {
       notificationPrefs = { ...notificationPrefs, ...change };
       emit();
     },
-    addWatchWallet: async (address) => {
-      db.externalWallets = [{ address, access: 'watch', balanceDrops: 312_400_000n }];
+    addWatchWallet: async (address, network = 'xrp') => {
+      db.externalWallets = [
+        ...db.externalWallets.filter((x) => x.address !== address),
+        { address, access: 'watch', network, balanceDrops: network === 'xrp' ? 312_400_000n : 0n, balances: demoBalances(network) },
+      ];
       emit();
     },
     addSelfCustodyWallet: async (address) => {
-      db.externalWallets = [{ address, access: 'self_custody', balanceDrops: 312_400_000n }];
+      db.externalWallets = [
+        ...db.externalWallets.filter((x) => x.address !== address),
+        { address, access: 'self_custody', network: 'xrp', balanceDrops: 312_400_000n, balances: { XRP: 312_400_000n } },
+      ];
       emit();
     },
     removeExternalWallet: async (address) => {
       db.externalWallets = db.externalWallets.filter((x) => x.address !== address);
       emit();
     },
+    walletBalance: async (network) => demoBalances(network),
 
     kycStatus: async () => db.kyc,
     submitKyc: async () => {

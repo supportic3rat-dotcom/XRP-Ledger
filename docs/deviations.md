@@ -264,3 +264,16 @@ Everything here differs from the design files or the brief on purpose, or still 
   (`src/lib/xrpl.ts`, ripple-binary-codec + ripple-keypairs) after fingerprint/face/passcode, submitted to the public
   XRP Ledger and reported sent only when validated. Keys are stored per wallet; phones without biometrics fall back
   to the passcode. Tested with a real payment on the XRP testnet.
+
+## 2026-10-29 · Outside wallets on every network; Xaman Secret Numbers
+
+- Watch-only wallets can be on any of the 16 supported networks (`WALLET_NETWORKS` in `@xrp/ledger`): the customer
+  picks the network, or scanning/pasting fills it (EVM `0x…` addresses ask which chain). Balances of every asset the
+  network carries (e.g. ETH, USDT, USDC, POL on Ethereum) are read from free public endpoints
+  (`supabase/functions/_shared/chains.ts`, with fallbacks) when linked and every 10 minutes by `upkeep`; a public
+  `wallet-balance` function serves the screen before an account exists. `external_wallets` gains `network` and
+  `balances` (`20261029000400_multichain_wallets.sql`). Self-custody (sending) stays XRP-only.
+- Xaman wallets import with their Secret Numbers (8 rows A–H of 6 digits, each with a check digit), derived exactly as
+  the XRPL Foundation's `xrpl-secret-numbers` (`src/lib/secretNumbers.ts`); the screen asks the customer to check the
+  address matches Xaman's.
+- Fixed: the XRP address reader found an `r…` fragment inside other networks' addresses (a Tron address read as XRP).

@@ -5,6 +5,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { deriveAddress } from 'ripple-keypairs';
+import { areValidSecretNumbers, secretNumbersToWallet } from './secretNumbers';
 
 /**
  * On-device recovery-phrase import. The phrase exists only in component state while typed: it is never logged,
@@ -52,22 +53,33 @@ const storeOptions = async (): Promise<SecureStore.SecureStoreOptions> => {
   };
 };
 
-export const importFromPhrase = async (words: string[]): Promise<SelfCustodyAccount> => {
-  if (!isValidPhrase(words)) throw new Error('That phrase isn’t valid. Check each word and its order.');
-  await confirmOwner('Confirm to import your wallet');
-  const wallet = deriveWallet(words.map((w) => w.trim().toLowerCase()).join(' '));
+/** Stores a wallet's key on this phone, behind the owner's fingerprint, face or passcode. */
+const storeWallet = async (wallet: { classicAddress: string; publicKey: string; privateKey: string }): Promise<SelfCustodyAccount> => {
   if (Platform.OS !== 'web') {
     const value = JSON.stringify({ address: wallet.classicAddress, privateKey: wallet.privateKey, publicKey: wallet.publicKey } satisfies StoredKey);
     const options = await storeOptions();
     try {
       await SecureStore.setItemAsync(keyFor(wallet.classicAddress), value, options);
     } catch {
-      // Some phones refuse biometric-bound keys; the passcode check above still guards every use.
+      // Some phones refuse biometric-bound keys; the passcode check still guards every use.
       await SecureStore.setItemAsync(keyFor(wallet.classicAddress), value, { keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY });
     }
     await writeIndex([...(await readIndex()), wallet.classicAddress]);
   }
   return { address: wallet.classicAddress };
+};
+
+export const importFromPhrase = async (words: string[]): Promise<SelfCustodyAccount> => {
+  if (!isValidPhrase(words)) throw new Error('That phrase isn’t valid. Check each word and its order.');
+  await confirmOwner('Confirm to import your wallet');
+  return storeWallet(deriveWallet(words.map((w) => w.trim().toLowerCase()).join(' ')));
+};
+
+/** Xaman's Secret Numbers (8 rows of 6 digits). */
+export const importFromSecretNumbers = async (rows: string[]): Promise<SelfCustodyAccount> => {
+  if (!areValidSecretNumbers(rows)) throw new Error('Those numbers aren’t right. Check each row of 6 digits.');
+  await confirmOwner('Confirm to import your wallet');
+  return storeWallet(secretNumbersToWallet(rows));
 };
 
 /** Addresses whose keys are on this phone (public data only), so the app knows which wallets can send. */

@@ -1,4 +1,4 @@
-import { isXrplAddress, formatXrpUnit, shortAddress } from '@xrp/ledger';
+import { WALLET_NETWORKS, formatAmount, isNetworkAddress, shortAddress, walletNetwork } from '@xrp/ledger';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { IconName } from '@xrp/tokens';
 import { useRouter } from 'expo-router';
@@ -20,8 +20,9 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useApiMutation } from '@/data/hooks';
 import { dropPendingWallet, savePendingWallet } from '@/lib/pendingWallets';
-import { importFromPhrase, isKnownWord, isValidPhrase, removeSelfCustody } from '@/lib/selfCustody';
-import { accountState, parseAddressInput } from '@/lib/xrpl';
+import { areValidSecretNumbers, isValidRow, ROWS } from '@/lib/secretNumbers';
+import { importFromPhrase, importFromSecretNumbers, isKnownWord, isValidPhrase, removeSelfCustody } from '@/lib/selfCustody';
+import { readWalletAddress } from '@/lib/walletAddress';
 import { useSession } from '@/state/session';
 import { familyFor, useTheme } from '@/theme';
 
@@ -34,9 +35,59 @@ const SOURCES: { value: string; label: string; where: string; supported: boolean
   { value: 'exodus', label: 'Exodus', where: 'Settings → Security → Secret Recovery Phrase.', supported: true },
   { value: 'ledger', label: 'Ledger', where: 'The recovery sheet you wrote down when you set up the device.', supported: true },
   { value: 'atomic', label: 'Atomic Wallet', where: 'Settings → Private keys → Backup phrase.', supported: true },
-  { value: 'xaman', label: 'Xaman (formerly Xumm)', where: 'Xaman uses Secret Numbers, not a word phrase. Connect it with Wallet app or Address instead.', supported: false },
+  {
+    value: 'xaman',
+    label: 'Xaman (formerly Xumm)',
+    where: 'In Xaman: Settings → Accounts → your account → Security → reveal Secret Numbers (8 rows, A–H, of 6 digits).',
+    supported: true,
+  },
   { value: 'other', label: 'Another wallet (12 or 24 words)', where: 'Any wallet that uses a standard BIP39 phrase for XRP.', supported: true },
 ];
+
+const NETWORK_OPTIONS = WALLET_NETWORKS.map((n) => ({ value: n.id, label: `${n.name} · ${n.assets.join(', ')}` }));
+
+/** One row of Xaman Secret Numbers (A–H): 6 digits, the last a check digit, so a typo shows at once. */
+const SecretRow = ({ i, value, show, onChange }: { i: number; value: string; show: boolean; onChange: (v: string) => void }) => {
+  const { c } = useTheme();
+  const bad = value.length === 6 && !isValidRow(i, value);
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        height: 44,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: bad ? c.neg : c.border,
+        borderRadius: 10,
+        backgroundColor: c.surface,
+      }}
+    >
+      <T size={12} weight={600} color="text3" style={{ width: 14 }}>
+        {String.fromCharCode(65 + i)}
+      </T>
+      <TextInput
+        accessibilityLabel={`Row ${String.fromCharCode(65 + i)}`}
+        value={value}
+        onChangeText={(v) => onChange(v.replace(/[^0-9]/g, '').slice(0, 6))}
+        keyboardType="number-pad"
+        maxLength={6}
+        secureTextEntry={!show}
+        autoComplete="off"
+        importantForAutofill="no"
+        contextMenuHidden
+        placeholder="000000"
+        placeholderTextColor={c.text3}
+        style={[
+          { flex: 1, minWidth: 0, padding: 0, fontSize: 15, letterSpacing: 2, fontFamily: familyFor(400, true), color: c.text },
+          { outlineStyle: 'none' } as object,
+        ]}
+      />
+      {value.length === 6 ? <Icon name={bad ? 'close' : 'check'} size="sm" color={bad ? 'neg' : 'pos'} /> : null}
+    </View>
+  );
+};
 
 const Tick = ({ children, color = 'text2' as const, iconColor }: { children: string; color?: 'text2'; iconColor?: 'pos' | 'text2' }) => (
   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -113,8 +164,11 @@ export const ConnectWalletScreen = () => {
   const [step, setStep] = useState<Step>('choose');
   const [addr, setAddr] = useState('');
   const [tried, setTried] = useState(false);
-  const [connected, setConnected] = useState<{ address: string; kind: 'watch' | 'import' } | null>(null);
-  const [balance, setBalance] = useState<{ drops: bigint; exists: boolean } | null>(null);
+  const [connected, setConnected] = useState<{ address: string; kind: 'watch' | 'import'; network: string } | null>(null);
+  const [balances, setBalances] = useState<Record<string, bigint> | null>(null);
+  const [network, setNetwork] = useState('xrp');
+  const [several, setSeveral] = useState(false);
+  const [numbers, setNumbers] = useState<string[]>(() => Array(ROWS).fill(''));
   const [len, setLen] = useState<12 | 24>(12);
   const [words, setWords] = useState<string[]>(() => Array(24).fill(''));
   const [show, setShow] = useState(false);
@@ -123,36 +177,47 @@ export const ConnectWalletScreen = () => {
   const [permission, requestPermission] = useCameraPermissions();
   const scanned = useRef(false);
   const refs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
-  const addWatch = useApiMutation(api.addWatchWallet);
+  const addWatch = useApiMutation(({ address, network: n }: { address: string; network: string }) => api.addWatchWallet(address, n));
   const addSelf = useApiMutation(api.addSelfCustodyWallet);
-  const remove = useApiMutation(api.removeExternalWallet);
+  const remove = useApiMutation(({ address, network: n }: { address: string; network: string }) => api.removeExternalWallet(address, n));
 
   // Wipe the phrase from memory when leaving the screen.
-  useEffect(() => () => setWords(Array(24).fill('')), []);
+  useEffect(
+    () => () => {
+      setWords(Array(24).fill(''));
+      setNumbers(Array(ROWS).fill(''));
+    },
+    [],
+  );
 
   const a = addr.trim();
-  const addrOk = isXrplAddress(a);
-  const addrErr = tried && !addrOk ? (a ? 'That isn’t a valid XRP Ledger address.' : 'Enter a public address.') : '';
+  const net = walletNetwork(network) ?? WALLET_NETWORKS[0]!;
+  const addrOk = isNetworkAddress(network, a);
+  const addrErr = tried && !addrOk ? (a ? `That isn’t a valid ${net.name} address.` : 'Enter a public address.') : '';
   const slots = words.slice(0, len);
   const anyWord = slots.some(Boolean);
   const src = SOURCES.find((x) => x.value === source) ?? SOURCES[SOURCES.length - 1]!;
-  const phraseOk = src.supported && isValidPhrase(slots);
+  const xaman = source === 'xaman';
+  const phraseOk = xaman ? areValidSecretNumbers(numbers) : src.supported && isValidPhrase(slots);
+  const anySecret = xaman ? numbers.some(Boolean) : anyWord;
 
   /** Links the wallet to the account, or keeps it on this phone until sign-up, then reads its balance. */
   const link = async (address: string, kind: 'watch' | 'import') => {
     const access = kind === 'import' ? 'self_custody' : 'watch';
-    if (signedIn) await (access === 'self_custody' ? addSelf : addWatch).mutateAsync(address);
-    else await savePendingWallet({ address, access });
-    setConnected({ address, kind });
-    setBalance(null);
+    const on = kind === 'import' ? 'xrp' : network;
+    if (signedIn) await (access === 'self_custody' ? addSelf.mutateAsync(address) : addWatch.mutateAsync({ address, network: on }));
+    else await savePendingWallet({ address, access, network: on });
+    setConnected({ address, kind, network: on });
+    setBalances(null);
     setStep('done');
-    accountState(address)
-      .then((st) => setBalance({ drops: st.balanceDrops, exists: st.exists }))
-      .catch(() => setBalance(null));
+    api
+      .walletBalance(on, address)
+      .then(setBalances)
+      .catch(() => setBalances(null));
   };
 
   const watch = async (address = a) => {
-    if (!isXrplAddress(address)) {
+    if (!isNetworkAddress(network, address)) {
       setTried(true);
       return;
     }
@@ -164,16 +229,26 @@ export const ConnectWalletScreen = () => {
     }
   };
 
+  /** Fills the address and network from a scan or paste; the customer checks them and taps Add. */
+  const fill = (text: string): boolean => {
+    const found = readWalletAddress(text);
+    if (!found) return false;
+    setAddr(found.address);
+    if (!found.networks.includes(network)) setNetwork(found.networks.includes('ethereum') ? 'ethereum' : found.networks[0]!);
+    setSeveral(found.networks.length > 1);
+    setTried(false);
+    setError('');
+    setMethod('addr');
+    return true;
+  };
+
   const onScan = (data: string) => {
     if (scanned.current) return;
-    const found = parseAddressInput(data);
-    if (!found || !isXrplAddress(found.address)) {
-      setError('That QR code isn’t an XRP Ledger address. Scan the receive code in your wallet.');
+    if (!fill(data)) {
+      setError('That QR code isn’t a wallet address we support. Scan the Receive code in your wallet.');
       return;
     }
     scanned.current = true;
-    setAddr(found.address);
-    void watch(found.address);
   };
 
   const startScan = async () => {
@@ -187,9 +262,7 @@ export const ConnectWalletScreen = () => {
 
   const paste = async () => {
     const { getStringAsync } = await import('expo-clipboard');
-    const found = parseAddressInput(await getStringAsync().catch(() => ''));
-    if (found) setAddr(found.address);
-    else setError('There’s no XRP Ledger address on your clipboard. Copy it from your wallet first.');
+    if (!fill(await getStringAsync().catch(() => ''))) setError('There’s no wallet address on your clipboard. Copy it from your wallet first.');
   };
 
   const importWallet = async () => {
@@ -197,8 +270,9 @@ export const ConnectWalletScreen = () => {
     setStep('wait');
     setError('');
     try {
-      const account = await importFromPhrase(slots);
+      const account = xaman ? await importFromSecretNumbers(numbers) : await importFromPhrase(slots);
       setWords(Array(24).fill(''));
+      setNumbers(Array(ROWS).fill(''));
       setShow(false);
       await link(account.address, 'import');
     } catch (e) {
@@ -209,7 +283,7 @@ export const ConnectWalletScreen = () => {
 
   const disconnect = async () => {
     if (connected) {
-      if (signedIn) await remove.mutateAsync(connected.address);
+      if (signedIn) await remove.mutateAsync({ address: connected.address, network: connected.network });
       await dropPendingWallet(connected.address);
       if (connected.kind === 'import') await removeSelfCustody(connected.address);
     }
@@ -252,6 +326,22 @@ export const ConnectWalletScreen = () => {
               </Banner>
             ) : null}
 
+            {method !== 'phrase' ? (
+              <Field style={{ marginBottom: 14 }}>
+                <Label nativeID="cw-net">Network</Label>
+                <Select
+                  label="Network"
+                  value={network}
+                  options={NETWORK_OPTIONS}
+                  onChange={(v) => {
+                    setNetwork(v);
+                    setSeveral(false);
+                  }}
+                  height={48}
+                />
+              </Field>
+            ) : null}
+
             {method === 'scan' ? (
               <>
                 <View style={{ aspectRatio: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
@@ -265,12 +355,18 @@ export const ConnectWalletScreen = () => {
                   ) : (
                     <View style={{ alignItems: 'center', gap: 12, padding: 24 }}>
                       <Icon name="qr" size={32} color="text3" />
-                      <Button label={Platform.OS === 'web' ? 'Scanning works in the phone app' : 'Turn on the camera'} size={48} disabled={Platform.OS === 'web'} onPress={startScan} />
+                      <Button
+                        label={Platform.OS === 'web' ? 'Scanning works in the phone app' : 'Turn on the camera'}
+                        size={48}
+                        disabled={Platform.OS === 'web'}
+                        onPress={startScan}
+                      />
                     </View>
                   )}
                 </View>
                 <Help style={{ marginTop: 10, marginHorizontal: 4 }}>
-                  In your other wallet, open Receive for XRP and scan its QR code. Only the public address is read; nothing can be moved from it.
+                  In your other wallet, open Receive and scan its QR code. We fill in the address and network for you to check. Only the public address is read;
+                  nothing can be moved from it.
                 </Help>
               </>
             ) : null}
@@ -278,14 +374,14 @@ export const ConnectWalletScreen = () => {
             {method === 'addr' ? (
               <>
                 <Field>
-                  <Label nativeID="cw-addr">Public XRP Ledger address</Label>
+                  <Label nativeID="cw-addr">{`Public ${net.name} address`}</Label>
                   <TextField
                     accessibilityLabelledBy="cw-addr"
                     value={addr}
                     onChangeText={setAddr}
                     invalid={!!addrErr}
                     size={14}
-                    placeholder="r…"
+                    placeholder={net.id === 'xrp' ? 'r…' : 'Wallet address'}
                     autoCapitalize="none"
                     autoCorrect={false}
                     autoComplete="off"
@@ -299,7 +395,13 @@ export const ConnectWalletScreen = () => {
                     }
                   />
                   <ErrorText>{addrErr}</ErrorText>
-                  <Help>Starts with “r”, 25–35 characters. Safe to share — it’s the address people send XRP to.</Help>
+                  <Help>{`${net.addressHint} Safe to share — it’s the address people send ${net.assets.join(' or ')} to.`}</Help>
+                  {several ? (
+                    <Banner tone="warn" icon="info" size={12.5} style={{ marginTop: 8 }}>
+                      This address works on several networks (Ethereum, BNB Smart Chain, Polygon, Cronos, Flare). Check the network above is the one your wallet
+                      uses.
+                    </Banner>
+                  ) : null}
                 </Field>
                 <Button label="Add as watch-only" onPress={() => void watch()} loading={addWatch.isPending} style={{ marginTop: 16 }} />
               </>
@@ -316,70 +418,86 @@ export const ConnectWalletScreen = () => {
                   <Select label="Wallet it’s from" value={source} options={SOURCES} onChange={setSource} height={48} />
                   <Help>{src.where}</Help>
                 </Field>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, marginBottom: 10 }}>
-                  <T size={13} weight={500} nativeID="ph-len">
-                    Phrase length
-                  </T>
-                  <Segmented
-                    label="Phrase length"
-                    height={32}
-                    value={String(len)}
-                    onChange={(v) => setLen(v === '24' ? 24 : 12)}
-                    options={[
-                      { value: '12', label: '12 words' },
-                      { value: '24', label: '24 words' },
-                    ]}
-                    style={{ width: 150 }}
-                  />
-                </View>
-                <View accessibilityRole="list" accessibilityLabel="Recovery phrase words" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {slots.map((w, i) => (
-                    <View key={i} style={{ width: '31.5%', flexGrow: 1 }}>
-                      <WordSlot
-                        n={i + 1}
-                        value={w}
-                        show={show}
-                        inputRef={(r) => {
-                          refs.current[i] = r;
-                        }}
-                        onSubmit={() => refs.current[i + 1]?.focus()}
-                        onChange={(v) => {
-                          // A pasted full phrase fills every slot.
-                          const parts = v.split(/\s+/).filter(Boolean);
-                          setWords((prev) => {
-                            const next = [...prev];
-                            if (parts.length > 1) parts.slice(0, len - i).forEach((p, k) => (next[i + k] = p.toLowerCase()));
-                            else next[i] = v;
-                            return next;
-                          });
-                        }}
+                {xaman ? (
+                  <View accessibilityRole="list" accessibilityLabel="Secret Numbers" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                    {numbers.map((v, i) => (
+                      <View key={i} style={{ width: '48%', flexGrow: 1 }}>
+                        <SecretRow i={i} value={v} show={show} onChange={(x) => setNumbers((prev) => prev.map((p, k) => (k === i ? x : p)))} />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {!xaman ? (
+                  <>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, marginBottom: 10 }}>
+                      <T size={13} weight={500} nativeID="ph-len">
+                        Phrase length
+                      </T>
+                      <Segmented
+                        label="Phrase length"
+                        height={32}
+                        value={String(len)}
+                        onChange={(v) => setLen(v === '24' ? 24 : 12)}
+                        options={[
+                          { value: '12', label: '12 words' },
+                          { value: '24', label: '24 words' },
+                        ]}
+                        style={{ width: 150 }}
                       />
                     </View>
-                  ))}
-                </View>
+                    <View accessibilityRole="list" accessibilityLabel="Recovery phrase words" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {slots.map((w, i) => (
+                        <View key={i} style={{ width: '31.5%', flexGrow: 1 }}>
+                          <WordSlot
+                            n={i + 1}
+                            value={w}
+                            show={show}
+                            inputRef={(r) => {
+                              refs.current[i] = r;
+                            }}
+                            onSubmit={() => refs.current[i + 1]?.focus()}
+                            onChange={(v) => {
+                              // A pasted full phrase fills every slot.
+                              const parts = v.split(/\s+/).filter(Boolean);
+                              setWords((prev) => {
+                                const next = [...prev];
+                                if (parts.length > 1) parts.slice(0, len - i).forEach((p, k) => (next[i + k] = p.toLowerCase()));
+                                else next[i] = v;
+                                return next;
+                              });
+                            }}
+                          />
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                   <Button
                     label="Clear"
                     variant="secondary"
                     size={40}
                     flex={1}
-                    disabled={!anyWord}
+                    disabled={!anySecret}
                     icon={<Icon name="close" size="sm" />}
-                    onPress={() => setWords(Array(24).fill(''))}
+                    onPress={() => {
+                      setWords(Array(24).fill(''));
+                      setNumbers(Array(ROWS).fill(''));
+                    }}
                   />
                   <Button
                     label={show ? 'Hide' : 'Show'}
                     variant="secondary"
                     size={40}
                     flex={1}
-                    disabled={!anyWord}
+                    disabled={!anySecret}
                     icon={<Icon name="eye" size="sm" />}
                     onPress={() => setShow((s) => !s)}
                   />
                 </View>
                 {phraseOk ? (
                   <View style={{ marginTop: 12 }}>
-                    <Tick iconColor="pos">All words recognised · checksum valid</Tick>
+                    <Tick iconColor="pos">{xaman ? 'All 8 rows check out' : 'All words recognised · checksum valid'}</Tick>
                   </View>
                 ) : null}
                 <Card style={{ marginTop: 14, paddingVertical: 12, paddingHorizontal: 14, gap: 8 }}>
@@ -418,7 +536,7 @@ export const ConnectWalletScreen = () => {
               <T color="text2">
                 {imported
                   ? 'Your wallet is ready on this phone. You can see its balance and send XRP from it.'
-                  : 'Added as watch-only. We read its balance from the public XRP Ledger.'}
+                  : `Added as watch-only. We read its balance from the public ${walletNetwork(connected.network)?.name ?? ''} network.`}
                 {signedIn ? '' : ' It will be linked to your account when you create one or sign in.'}
               </T>
             </View>
@@ -426,10 +544,11 @@ export const ConnectWalletScreen = () => {
               <KV
                 items={[
                   { k: 'Address', v: shortAddress(connected.address), mono: true, valueSize: 12.5 },
-                  {
-                    k: 'Balance on ledger',
-                    v: balance ? (balance.exists ? formatXrpUnit(balance.drops) : 'Not activated yet') : 'Reading…',
-                  },
+                  { k: 'Network', v: walletNetwork(connected.network)?.name ?? connected.network },
+                  ...(walletNetwork(connected.network)?.assets ?? []).map((asset) => ({
+                    k: `${asset} balance`,
+                    v: balances ? formatAmount(balances[asset] ?? 0n, asset) : 'Reading…',
+                  })),
                   ...(imported ? [{ k: 'Imported from', v: src.label }] : []),
                   { k: 'Access', v: imported ? 'Self-custody · keys on this phone' : 'Watch-only' },
                   { k: 'Held in custody', v: 'No' },
@@ -437,6 +556,11 @@ export const ConnectWalletScreen = () => {
                 baseline={false}
               />
             </Card>
+            {imported && xaman ? (
+              <Banner tone="warn" icon="shield" style={{ marginTop: 12 }}>
+                Check this address matches the one Xaman shows for this account. If it doesn’t, remove it and check the numbers.
+              </Banner>
+            ) : null}
             <Banner tone="info" icon="info" style={{ marginTop: 12 }}>
               {imported
                 ? 'You control this wallet. If you lose this phone and your paper backup, we can’t recover it. It’s never counted in your custodial balance.'
@@ -444,7 +568,11 @@ export const ConnectWalletScreen = () => {
             </Banner>
             <View style={{ gap: 10, marginTop: 20 }}>
               {signedIn && imported ? (
-                <Button as="a" label="Send XRP from this wallet" onPress={() => router.replace({ pathname: '/wallet-send', params: { address: connected.address } })} />
+                <Button
+                  as="a"
+                  label="Send XRP from this wallet"
+                  onPress={() => router.replace({ pathname: '/wallet-send', params: { address: connected.address } })}
+                />
               ) : null}
               <Button
                 as="a"

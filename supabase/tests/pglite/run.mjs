@@ -823,6 +823,31 @@ await test('approval locks collateral; staff pay the loan and confirm bank repay
   }
 });
 
+console.log('\nWallets on every network');
+await test('a watch-only wallet can be on any supported network; self-custody is XRP only', async () => {
+  await db.exec('begin');
+  try {
+    const ETH = '0xc33B5D681Fdf4986921123f34156D6957Ab60656';
+    await db.exec(`select external_wallet_set('${BRENDAN}', '${ETH}', 'watch', true, 'ethereum')`);
+    await db.exec(`select external_wallet_set('${BRENDAN}', 'bc1qp5t249wzm3jzdtgadrzed6j2vqsxcuayv67ycc', 'watch', true, 'bitcoin')`);
+    await db.exec(`select external_wallet_set('${BRENDAN}', '0.0.10930863', 'watch', true, 'hedera')`);
+    const rows = await db.query(`select network from external_wallets where customer_id = '${BRENDAN}' and removed_at is null and network <> 'xrp' order by network`);
+    assert(rows.rows.map((r) => r.network).join(',') === 'bitcoin,ethereum,hedera', JSON.stringify(rows.rows));
+    await db.exec('savepoint s');
+    await throwsLike(`select external_wallet_set('${BRENDAN}', '${ETH}', 'self_custody', true, 'ethereum')`, /Only XRP Ledger wallets/);
+    await db.exec('rollback to savepoint s');
+    await throwsLike(`select external_wallet_set('${BRENDAN}', 'rp489nfz7Q6KoHYkB6Uj3Ks4RtSoX4CfCV', 'watch', true, 'bitcoin')`, /valid address on this network/);
+    await db.exec('rollback to savepoint s');
+    await throwsLike(`select external_wallet_set('${BRENDAN}', '${ETH}', 'watch', true, 'monero')`, /isn’t supported/);
+    await db.exec('rollback to savepoint s');
+    await db.exec(`select external_wallet_set('${BRENDAN}', '${ETH}', 'watch', false, 'ethereum')`);
+    const left = await one(`select count(*)::int n from external_wallets where customer_id = '${BRENDAN}' and network = 'ethereum' and removed_at is null`);
+    assert(left.n === 0, 'not removed');
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
 console.log('\nPassword reset by support');
 await test('only Compliance resets a password; sessions end, withdrawals pause and the customer is told', async () => {
   await as(OPS, 'operations', () => throwsLike(`select customer_password_reset('${BRENDAN}')`, /Only Compliance/));

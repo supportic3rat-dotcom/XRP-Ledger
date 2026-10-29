@@ -134,9 +134,11 @@ export type Api = {
   /** Email receipts for deposits and withdrawals, and alerts when a held asset moves more than 5% in a day. */
   notificationPrefs: () => Promise<NotificationPrefs>;
   setNotificationPrefs: (change: Partial<NotificationPrefs>) => Promise<void>;
-  addWatchWallet: (address: string) => Promise<void>;
+  addWatchWallet: (address: string, network?: string) => Promise<void>;
   addSelfCustodyWallet: (address: string) => Promise<void>;
-  removeExternalWallet: (address: string) => Promise<void>;
+  removeExternalWallet: (address: string, network?: string) => Promise<void>;
+  /** Public balances of any address on a supported network (works before sign-in). */
+  walletBalance: (network: string, address: string) => Promise<Record<string, bigint>>;
   // KYC
   kycStatus: () => Promise<KycStatus>;
   submitKyc: (input: {

@@ -127,7 +127,9 @@ export const submitAndWait = async (blob: string, lastLedger: number, nodes: Nod
 
 /** The XRP address in a scanned QR code or pasted text: a bare address, or an xrpl:/ripple: link (with ?dt= tag). */
 export const parseAddressInput = (text: string): { address: string; tag: number | null } | null => {
-  const m = text.trim().match(/(?:^|[:/?=\s])?(r[1-9A-HJ-NP-Za-km-z]{24,34})(?:\?(?:.*&)?(?:dt|tag)=(\d+))?/);
+  // A whole address only: an `r…` fragment inside another network's address (e.g. Tron's `TLriwt…`) isn't one.
+  const m = text.trim().match(/^(?:(?:xrpl|ripple|xrp):(?:\/\/)?)?(r[1-9A-HJ-NP-Za-km-z]{24,34})(?:\?(.*))?$/i);
   if (!m?.[1]) return null;
-  return { address: m[1], tag: m[2] ? Number(m[2]) : null };
+  const tag = m[2]?.match(/(?:^|&)(?:dt|tag)=(\d+)/)?.[1];
+  return { address: m[1], tag: tag ? Number(tag) : null };
 };

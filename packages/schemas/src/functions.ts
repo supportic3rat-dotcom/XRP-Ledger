@@ -33,6 +33,8 @@ export const bankPayout = z.object({
 });
 export type BankPayout = z.infer<typeof bankPayout>;
 
+const walletNetworkId = z.string().regex(/^[a-z0-9-]{2,24}$/).default('xrp');
+
 const legalDocument = z.enum(['tos', 'privacy', 'risk', 'custody', 'deposits', 'fees', 'yield', 'lending', 'complaints']);
 
 export const fnSchemas = {
@@ -71,10 +73,13 @@ export const fnSchemas = {
     z.object({ action: z.literal('allowlist-toggle'), enabled: z.boolean() }),
     z.object({ action: z.literal('password-change'), current: z.string().min(1), next: z.string().refine(isStrongPassword, 'Password is too weak') }),
   ]),
+  /** Link or unlink a wallet the customer owns, on any supported network (XRP when `network` is omitted). */
   'external-wallet': z.discriminatedUnion('action', [
-    z.object({ action: z.literal('add'), address, access: z.enum(['watch', 'self_custody']) }),
-    z.object({ action: z.literal('remove'), address }),
+    z.object({ action: z.literal('add'), address: anyAddress, access: z.enum(['watch', 'self_custody']), network: walletNetworkId }),
+    z.object({ action: z.literal('remove'), address: anyAddress, network: walletNetworkId }),
   ]),
+  /** Public balances of any address on a supported network (public data; used before an account exists). */
+  'wallet-balance': z.object({ address: anyAddress, network: z.string().regex(/^[a-z0-9-]{2,24}$/) }),
   'ticket-create-public': z.object({ topic: z.string().min(1), message: z.string().trim().min(20).max(4000), email: z.string().trim().regex(EMAIL) }),
   'exchange-accept': z.object({ transactionId: z.string().uuid(), quoteId: z.string().uuid() }),
   'exchange-cancel': z.object({ transactionId: z.string().uuid() }),

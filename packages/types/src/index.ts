@@ -184,5 +184,10 @@ export type CustomerProfile = {
 export type ExternalWallet = {
   address: string;
   access: 'watch' | 'self_custody';
+  /** Network id (`xrp`, `bitcoin`, `ethereum`, …). */
+  network: string;
+  /** XRP balance (XRP Ledger wallets); kept for the XRP-only screens. */
   balanceDrops: Drops;
+  /** Every supported asset's balance on this network, in base units. */
+  balances: Record<string, bigint>;
 };

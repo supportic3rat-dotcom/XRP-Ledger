@@ -10,7 +10,7 @@ import { qk } from '@/data/keys';
  * kept, on this phone, until sign-up or sign-in, then linked to the account. Self-custody keys stay in their own
  * secure entries either way.
  */
-type Pending = { address: string; access: 'watch' | 'self_custody' };
+type Pending = { address: string; access: 'watch' | 'self_custody'; network?: string };
 const KEY = 'xrp.pending.wallets';
 
 const read = async (): Promise<Pending[]> => {
@@ -21,7 +21,7 @@ const write = async (list: Pending[]) => {
   if (Platform.OS !== 'web') await SecureStore.setItemAsync(KEY, JSON.stringify(list));
 };
 
-export const savePendingWallet = async (w: Pending) => write([...(await read()).filter((x) => x.address !== w.address), w]);
+export const savePendingWallet = async (w: Pending) => write([...(await read()).filter((x) => !(x.address === w.address && (x.network ?? 'xrp') === (w.network ?? 'xrp'))), w]);
 export const dropPendingWallet = async (address: string) => write((await read()).filter((x) => x.address !== address));
 
 /** Links wallets connected before sign-in, once signed in. Each that fails stays pending for the next sign-in. */
@@ -34,7 +34,7 @@ export const useAttachPendingWallets = (signedIn: boolean) => {
       const left: Pending[] = [];
       for (const w of list) {
         try {
-          await (w.access === 'self_custody' ? api.addSelfCustodyWallet(w.address) : api.addWatchWallet(w.address));
+          await (w.access === 'self_custody' ? api.addSelfCustodyWallet(w.address) : api.addWatchWallet(w.address, w.network ?? 'xrp'));
         } catch {
           left.push(w);
         }

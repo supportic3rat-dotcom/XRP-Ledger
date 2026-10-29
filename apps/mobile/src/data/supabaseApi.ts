@@ -303,7 +303,13 @@ export const createSupabaseApi = (): Api => ({
   },
   externalWallets: async () => {
     const { data } = await supabase().from('external_wallets').select('*').is('removed_at', null);
-    return (data ?? []).map((r: Row) => ({ address: str(r.address), access: r.access as never, balanceDrops: big(r.balance_drops) }));
+    return (data ?? []).map((r: Row) => ({
+      address: str(r.address),
+      access: r.access as never,
+      network: str(r.network) || 'xrp',
+      balanceDrops: big(r.balance_drops),
+      balances: Object.fromEntries(Object.entries((r.balances as Record<string, string> | null) ?? {}).map(([k, v]) => [k, big(v)])),
+    }));
   },
   custodyStatus: async () => {
     const r = await call<{ provider: { status: ProviderStatus }; reconciledAt: string | null; subAccount: string }>('security-update', {
@@ -419,15 +425,20 @@ export const createSupabaseApi = (): Api => ({
     const { error } = await supabase().rpc('set_notification_prefs', { p_receipts: change.receipts ?? null, p_alerts: change.alerts ?? null });
     if (error) throw new Error(error.message);
   },
-  addWatchWallet: async (address) => {
-    await call('external-wallet', { action: 'add', address, access: 'watch' });
+  addWatchWallet: async (address, network = 'xrp') => {
+    await call('external-wallet', { action: 'add', address, access: 'watch', network });
   },
   addSelfCustodyWallet: async (address) => {
-    await call('external-wallet', { action: 'add', address, access: 'self_custody' });
+    await call('external-wallet', { action: 'add', address, access: 'self_custody', network: 'xrp' });
   },
-  removeExternalWallet: async (address) => {
-    await call('external-wallet', { action: 'remove', address });
+  removeExternalWallet: async (address, network) => {
+    await call('external-wallet', { action: 'remove', address, ...(network ? { network } : {}) });
   },
+  walletBalance: async (network, address) => {
+    const r = await call<{ balances: Record<string, string> }>('wallet-balance', { network, address });
+    return Object.fromEntries(Object.entries(r.balances).map(([k, v]) => [k, big(v)]));
+  },
+
   kycStatus: async () => (await supabase().from('customers').select('kyc_status').single()).data?.kyc_status as KycStatus,
   submitKyc: async (input) => call('kyc-session', input),
 });
