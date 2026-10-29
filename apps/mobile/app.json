@@ -9,7 +9,7 @@
     "backgroundColor": "#000000",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "com.example.xrpledger",
+      "bundleIdentifier": "com.xrpledger.xrpledgerwallet",
       "supportsTablet": false,
       "infoPlist": {
         "NSFaceIDUsageDescription": "Unlock the app and confirm withdrawals with Face ID.",
@@ -17,7 +17,7 @@
       }
     },
     "android": {
-      "package": "com.example.xrpledger",
+      "package": "com.xrpledger.xrpledgerwallet",
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -63,6 +63,12 @@
       "output": "single",
       "favicon": "./assets/favicon.png"
     },
-    "icon": "./assets/icon.png"
+    "icon": "./assets/icon.png",
+    "owner": "xrpledger",
+    "extra": {
+      "eas": {
+        "projectId": "d192d262-ad87-4264-a0ad-0575ffad04af"
+      }
+    }
   }
 }
