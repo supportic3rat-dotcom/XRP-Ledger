@@ -18,7 +18,6 @@
     },
     "android": {
       "package": "com.xrpledger.xrpledgerwallet",
-      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
