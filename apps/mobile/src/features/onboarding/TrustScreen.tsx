@@ -223,17 +223,15 @@ export const TrustScreen = () => {
           <View style={{ gap: 14, paddingTop: 12 }}>
             <HeroIcon icon="shieldCheck" tone="ok" size={52} />
             <T size={24} weight={600} ls={-0.02} accessibilityRole="header">
-              Create your crypto trust first
+              Create Your Crypto Trust First
             </T>
             <T lh={1.5} color="text2">
-              {from === 'connect'
-                ? 'Before you connect a wallet, set up your crypto trust. It says who your crypto goes to, and in what shares. It takes about 3 minutes.'
-                : from === 'existing'
-                  ? 'Your account needs a crypto trust before you continue. It says who your crypto goes to, and in what shares. It takes about 2 minutes.'
-                  : 'Every account starts with a crypto trust. It says who your crypto goes to, and in what shares, and your account is created with it. It takes about 3 minutes.'}
+              {`${
+                from === 'connect' ? 'Before connecting a wallet' : from === 'existing' ? 'Before continuing' : 'Before creating your account'
+              }, create your crypto trust. Define who will receive your digital assets and how they will be distributed. The process takes about 3 minutes.`}
             </T>
             <Card style={{ padding: 14, gap: 10 }}>
-              {['Choose your trust type', 'Your personal information', 'Your beneficiaries and their shares', 'Review and create'].map((x, i) => (
+              {['Choose a Trust Type', 'Enter Your Personal Information', 'Add Beneficiaries and Allocate Shares', 'Review and Create Your Trust'].map((x, i) => (
                 <View key={x} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: c.sunken, alignItems: 'center', justifyContent: 'center' }}>
                     <T size={12} weight={600} color="text2">
@@ -245,9 +243,9 @@ export const TrustScreen = () => {
               ))}
             </Card>
             <Banner tone="info" icon="info">
-              Trust creation is free. All three trust types are 100% free.
+              Creating a trust is free. All three trust types are available at no cost.
             </Banner>
-            <Button label="Create my trust" onPress={() => setStep(1)} style={{ marginTop: 6 }} />
+            <Button label="Create My Trust" onPress={() => setStep(1)} style={{ marginTop: 6 }} />
           </View>
         ) : null}
 

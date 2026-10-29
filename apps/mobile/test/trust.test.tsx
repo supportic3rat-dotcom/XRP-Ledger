@@ -14,8 +14,8 @@ describe('Create your crypto trust', () => {
 
   it('walks through the four steps, insists on shares totalling 100%, and creates the account and trust', async () => {
     await renderScreen(<TrustScreen />);
-    expect(screen.getByText('Create your crypto trust first')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Create my trust' }));
+    expect(screen.getByText('Create Your Crypto Trust First')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Create My Trust' }));
 
     // Step 1: type
     await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
