@@ -104,7 +104,7 @@ export const WelcomeScreen = () => {
             <T size={12.5} lh={1.44} color="accentText" underline onPress={() => router.push('/legal')} accessibilityRole="link">
               Privacy Policy
             </T>
-            . Built on the XRP Ledger.
+            . Built on Ripple and the XRP Ledger.
           </T>
         </View>
       </View>

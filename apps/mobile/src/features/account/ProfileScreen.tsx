@@ -282,7 +282,7 @@ export const ProfileScreen = () => {
         </Card>
         <Button as="a" label="Sign out" variant="secondary" textColor="neg" onPress={() => setSignOutSheet(true)} style={{ marginTop: 24 }} />
         <T size={11.5} color="text3" align="center" style={{ marginTop: 16 }}>
-          Built on the XRP Ledger
+          Built on Ripple and the XRP Ledger
         </T>
       </ScrollBody>
 
