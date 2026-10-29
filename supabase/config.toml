@@ -26,6 +26,9 @@ jwt_expiry = 900
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
+# Same rule as the app: 12+ characters with upper and lower case letters and a number.
+minimum_password_length = 12
+password_requirements = "lower_upper_letters_digits"
 
 [auth.email]
 enable_signup = true
