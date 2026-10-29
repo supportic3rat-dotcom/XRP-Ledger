@@ -12,6 +12,11 @@ import { useMarkets, usePriceMap } from './market';
 import { useSession } from '@/state/session';
 
 export const useProfile = () => useQuery({ queryKey: qk.profile, queryFn: api.profile });
+/** The customer's crypto trust (null until created). */
+export const useTrust = () => {
+  const signedIn = useSession((s) => s.signedIn);
+  return useQuery({ queryKey: qk.trust, queryFn: api.trust, enabled: signedIn });
+};
 export const useAssets = () => useQuery({ queryKey: qk.assets, queryFn: api.assets, staleTime: 5 * 60_000 });
 export const useHoldings = () => useQuery({ queryKey: qk.holdings, queryFn: api.holdings });
 const zero = (asset: string): Holding => ({ asset, available: 0n, reserved: 0n, pendingYield: 0n, yield: 0n, collateral: 0n });

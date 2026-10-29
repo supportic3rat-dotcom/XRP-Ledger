@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { FnName } from '@xrp/schemas';
-import type { AppNotification, Consent, KycStatus, Transaction, TxEvent } from '@xrp/types';
+import type { AppNotification, Consent, KycStatus, Transaction, Trust, TxEvent } from '@xrp/types';
 import { env } from '@/lib/env';
 import { deviceHeaders } from '@/lib/device';
 import { secureStorage } from '@/lib/secureStorage';
@@ -99,6 +99,48 @@ export const createSupabaseApi = (): Api => ({
     await supabase().auth.signOut();
   },
 
+  trust: async () => {
+    const { data: t } = await supabase().from('trusts').select('id, ref, trust_type, created_at').maybeSingle();
+    if (!t) return null;
+    const { data: b } = await supabase().from('trust_beneficiaries').select('*').eq('trust_id', (t as Row).id).order('sort');
+    return {
+      ref: str((t as Row).ref),
+      type: (t as Row).trust_type as Trust['type'],
+      createdAt: str((t as Row).created_at),
+      beneficiaries: ((b ?? []) as Row[]).map((r) => ({
+        isSelf: Boolean(r.is_self),
+        name: str(r.name),
+        relationship: r.relationship as Trust['beneficiaries'][number]['relationship'],
+        email: (r.email as string | null) ?? null,
+        allocationPct: Number(r.allocation_pct),
+        wallet: (r.wallet as string | null) ?? null,
+      })),
+    };
+  },
+  createTrust: async (input) => {
+    const { data, error } = await supabase().rpc('create_trust', {
+      p_trust_type: input.type,
+      p_first_name: input.firstName,
+      p_last_name: input.lastName,
+      p_phone: input.phone,
+      p_dob: input.dob,
+      p_address: input.address,
+      p_city: input.city,
+      p_region: input.region,
+      p_postal_code: input.postalCode,
+      p_country: input.country,
+      p_beneficiaries: input.beneficiaries.map((b) => ({
+        is_self: b.isSelf,
+        name: b.name.trim(),
+        relationship: b.relationship,
+        email: b.email.trim() || null,
+        allocation_pct: b.allocationPct,
+        wallet: b.wallet.trim() || null,
+      })),
+    });
+    if (error) throw new Error(error.message);
+    return { ref: str((data as Row).ref) };
+  },
   profile: async () => {
     const id = await uid();
     const { data: c } = await supabase().from('customers').select('*').eq('id', id).single();

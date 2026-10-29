@@ -578,7 +578,7 @@ export const ConnectWalletScreen = () => {
                 as="a"
                 label={signedIn ? 'Done' : 'Continue to custodial account'}
                 variant={signedIn && imported ? 'secondary' : 'primary'}
-                onPress={() => router.replace(signedIn ? '/profile' : '/create-account')}
+                onPress={() => router.replace(signedIn ? '/profile' : { pathname: '/trust', params: { from: 'connect' } })}
               />
               <Button label={imported ? 'Remove from this phone' : 'Disconnect'} variant="secondary" onPress={() => void disconnect()} />
             </View>

@@ -1,4 +1,4 @@
-import { ASSETS, formatAmount, formatUsd, parseUnits } from '@xrp/ledger';
+import { ASSETS, countryByCode, formatAmount, formatUsd, parseUnits, walletNetwork } from '@xrp/ledger';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, View } from 'react-native';
@@ -275,6 +275,105 @@ const PasswordReset = ({ customerId, email }: { customerId: string; email: strin
   );
 };
 
+const TRUST_NAMES: Record<string, string> = { revocable: 'Revocable trust', irrevocable: 'Irrevocable trust', spendthrift: 'Spendthrift trust' };
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+
+/** Address, crypto trust, beneficiaries and linked wallets — everything the customer gave us, masked by role. */
+const ProfileExtras = ({ customerId }: { customerId: string }) => {
+  const q = useOps(`extras:${customerId}`, (d) => d.customerExtras(customerId));
+  const x = q.data;
+  if (!x) return <Loading error={q.error} onRetry={() => void q.refetch()} />;
+  const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  const country = countryByCode(x.address.country)?.name ?? x.address.country;
+  return (
+    <>
+      <View>
+        <SecT>Address</SecT>
+        <KV
+          padX={0}
+          padY={0}
+          rowPad={9}
+          items={[
+            ...(x.address.line !== undefined ? [{ k: 'Street', v: x.address.line ?? '—' }] : []),
+            ...(x.address.city !== undefined ? [{ k: 'City', v: x.address.city ?? '—' }] : []),
+            ...(x.address.region !== undefined ? [{ k: 'State / region', v: x.address.region ?? '—' }] : []),
+            ...(x.address.postalCode !== undefined ? [{ k: 'Postal code', v: x.address.postalCode ?? '—' }] : []),
+            { k: 'Country', v: country || '—' },
+          ]}
+        />
+      </View>
+      <View>
+        <SecT>Crypto trust</SecT>
+        {x.trust ? (
+          <KV
+            padX={0}
+            padY={0}
+            rowPad={9}
+            items={[
+              { k: 'Type', v: TRUST_NAMES[x.trust.type] ?? cap(x.trust.type) },
+              { k: 'Reference', v: x.trust.ref, mono: true },
+              { k: 'Status', v: cap(x.trust.status) },
+              { k: 'Created', v: when(x.trust.createdAt) },
+              { k: 'Terms agreed', v: when(x.trust.termsAgreedAt) },
+            ]}
+          />
+        ) : (
+          <T size={13} color="text3">
+            No trust yet. The customer is asked to create one at sign-in.
+          </T>
+        )}
+      </View>
+      {x.beneficiaries.length ? (
+        <View>
+          <SecT>{`Beneficiaries · ${x.beneficiaries.reduce((n, b) => n + b.allocationPct, 0)}%`}</SecT>
+          {x.beneficiaries.map((b, i) => (
+            <Line key={i} first={i === 0} style={{ alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                <T size={13.5} weight={500}>{b.isSelf ? `${b.name} (the customer)` : b.name}</T>
+                <T size={12} color="text3">
+                  {[cap(b.relationship), b.email].filter(Boolean).join(' · ')}
+                </T>
+                {b.wallet ? (
+                  <T size={12} mono color="text3" numberOfLines={1}>
+                    {b.wallet}
+                  </T>
+                ) : null}
+              </View>
+              <T size={13.5} weight={600} num>{`${b.allocationPct}%`}</T>
+            </Line>
+          ))}
+        </View>
+      ) : null}
+      <View>
+        <SecT>Linked wallets</SecT>
+        {x.wallets.length ? (
+          x.wallets.map((w, i) => (
+            <Line key={`${w.network}:${w.address}`} first={i === 0} style={{ alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                <T size={13.5} weight={500}>{`${walletNetwork(w.network)?.name ?? w.network} · ${w.access === 'watch' ? 'watch-only' : 'self-custody'}`}</T>
+                <T size={12} mono color="text3" numberOfLines={1}>
+                  {w.address}
+                </T>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                {Object.entries(w.balances).map(([asset, units]) => (
+                  <T key={asset} size={12.5} num>
+                    {formatAmount(BigInt(units), asset)}
+                  </T>
+                ))}
+              </View>
+            </Line>
+          ))
+        ) : (
+          <T size={13} color="text3">
+            None
+          </T>
+        )}
+      </View>
+    </>
+  );
+};
+
 const RecordDeposit = ({ customerId, disabled }: { customerId: string; disabled: boolean }) => {
   const { data } = useStaffSession();
   const { pending, run } = useOpsAction();
@@ -391,6 +490,8 @@ export const CustomerScreen = () => {
             ]}
           />
         </View>
+
+        <ProfileExtras customerId={u.id} />
 
         <View>
           <SecT>Identity check</SecT>

@@ -191,3 +191,31 @@ export type ExternalWallet = {
   /** Every supported asset's balance on this network, in base units. */
   balances: Record<string, bigint>;
 };
+
+// ───────── Crypto trust ─────────
+export type TrustType = 'revocable' | 'irrevocable' | 'spendthrift';
+export type BeneficiaryRelationship = 'self' | 'spouse' | 'child' | 'parent' | 'sibling' | 'friend' | 'charity' | 'other';
+export type TrustBeneficiary = {
+  isSelf: boolean;
+  name: string;
+  relationship: BeneficiaryRelationship;
+  email: string | null;
+  allocationPct: number;
+  wallet: string | null;
+};
+export type Trust = { ref: string; type: TrustType; createdAt: string; beneficiaries: TrustBeneficiary[] };
+/** What the trust form submits (the account itself is created first from the email and password). */
+export type TrustInput = {
+  type: TrustType;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  /** YYYY-MM-DD */
+  dob: string;
+  address: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+  beneficiaries: { isSelf: boolean; name: string; relationship: BeneficiaryRelationship; email: string; allocationPct: number; wallet: string }[];
+};

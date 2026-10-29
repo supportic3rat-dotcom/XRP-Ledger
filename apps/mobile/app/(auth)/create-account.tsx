@@ -1,3 +1,6 @@
-import { CreateAccountScreen } from '@/features/onboarding/CreateAccountScreen';
+import { Redirect } from 'expo-router';
 
-export default CreateAccountScreen;
+/** Accounts are created with the crypto trust (the trust form asks for the email and password). */
+export default function CreateAccountRoute() {
+  return <Redirect href={{ pathname: '/trust', params: { from: 'create' } }} />;
+}

@@ -909,6 +909,18 @@ export const createDemoData = (role: Role): AdminData => {
         documents: ['id-photo', 'selfie', 'address-utility-bill'].map((name) => ({ name, url: null })),
       };
     },
+    customerExtras: async () => {
+      const full = role === 'compliance';
+      return {
+        address: { line: full ? '14 Admiralty Way' : '•••', city: 'Lekki', region: 'Lagos', postalCode: full ? '106104' : '10•••', country: 'NG' },
+        trust: { ref: 'TR-2026-00042', type: 'revocable', status: 'active', createdAt: '2026-09-02T09:20:00Z', termsAgreedAt: '2026-09-02T09:20:00Z' },
+        beneficiaries: [
+          { name: full ? 'Tobi Adeyemi' : 'Tobi A.', relationship: 'self', isSelf: true, allocationPct: 40, email: null, wallet: null },
+          { name: full ? 'Kemi Adeyemi' : 'Kemi A.', relationship: 'spouse', isSelf: false, allocationPct: 60, email: full ? 'kemi@example.com' : 'ke•••@example.com', wallet: full ? 'rExtProtoWa11et9xQb7mKcV9tYwZ2' : 'rExtPr…tYwZ2' },
+        ],
+        wallets: [{ network: 'xrp', access: 'watch', address: full ? 'rExtProtoWa11et9xQb7mKcV9tYwZ2' : 'rExtPr…tYwZ2', balances: { XRP: '312400000' } }],
+      };
+    },
     decideIdentity: async (customerId, decision, note) => {
       if (role !== 'compliance') return { ok: false, error: 'Only Compliance can decide identity checks.' };
       if (decision !== 'verified' && note.trim().length < 10) return { ok: false, error: 'Write a short reason — the customer sees it and it goes into the audit log.' };

@@ -848,6 +848,61 @@ await test('a watch-only wallet can be on any supported network; self-custody is
   }
 });
 
+console.log('\nTrusts');
+const TRUSTER = '00000000-0000-4000-8000-00000000ab01';
+const beneficiaries = (rows) => `'${JSON.stringify(rows)}'::jsonb`;
+const createTrust = (rows, type = 'revocable') =>
+  `select ref from create_trust('${type}', 'Ama', 'Mensah', '+233 24 123 4567', '1990-04-12', '12 Ring Road', 'Accra', 'Greater Accra', 'GA-123', 'GH', ${beneficiaries(rows)})`;
+await test('a customer creates their trust; shares must total 100% and it can only be created once', async () => {
+  await signUp(TRUSTER, 'ama@example.com');
+  await as(TRUSTER, null, async () => {
+    await db.exec('savepoint s');
+    await throwsLike(createTrust([{ name: 'Kofi', relationship: 'child', allocation_pct: 60 }]), /add up to 60 percent/);
+    await db.exec('rollback to savepoint s');
+    await throwsLike(createTrust([{ is_self: true, allocation_pct: 50 }, { is_self: true, allocation_pct: 50 }]), /only add yourself once/);
+    await db.exec('rollback to savepoint s');
+    await throwsLike(createTrust([{ name: 'Kofi', relationship: 'child', allocation_pct: 100 }], 'offshore'), /Choose a trust type/);
+    await db.exec('rollback to savepoint s');
+    const t = await one(createTrust([
+      { is_self: true, allocation_pct: 40, wallet: 'rp489nfz7Q6KoHYkB6Uj3Ks4RtSoX4CfCV' },
+      { name: 'Kofi Mensah', relationship: 'child', email: 'kofi@example.com', allocation_pct: 60, wallet: '0xc33B5D681Fdf4986921123f34156D6957Ab60656' },
+    ]));
+    assert(/^TR-\d{4}-\d{5}$/.test(t.ref), t.ref);
+    const mine = await db.query(`select b.name, b.relationship, b.allocation_pct from trust_beneficiaries b join trusts t on t.id = b.trust_id order by b.sort`);
+    assert(mine.rows.length === 2 && mine.rows[0].relationship === 'self' && mine.rows[0].name === 'Ama Mensah', JSON.stringify(mine.rows));
+    const c = await one(`select full_name, city, phone, country from customers where id = '${TRUSTER}'`);
+    assert(c.full_name === 'Ama Mensah' && c.city === 'Accra' && c.country === 'GH', JSON.stringify(c));
+    await db.exec('savepoint s2');
+    await throwsLike(createTrust([{ name: 'X', relationship: 'friend', allocation_pct: 100 }]), /already have a trust/);
+    await db.exec('rollback to savepoint s2');
+    // Committed for the staff checks below: release the `as` transaction's work into a fresh one.
+    await db.exec('reset role');
+    const p = await one(`select (staff_customer_profile('${TRUSTER}')) p`).catch((e) => ({ err: e.message }));
+    assert(p.err && /Not authorised/.test(p.err), 'a customer must not read staff profiles');
+  });
+});
+await test('staff see the trust on the profile, masked by role', async () => {
+  // Set up committed data (the previous test rolled back).
+  await db.exec(`begin;
+    select set_config('request.jwt.claim.sub', '${TRUSTER}', true), set_config('request.jwt.claims', '{"sub": "${TRUSTER}"}', true);
+    set local role authenticated;`);
+  try {
+    await db.exec(createTrust([{ is_self: true, allocation_pct: 40 }, { name: 'Kofi Mensah', relationship: 'child', email: 'kofi@example.com', allocation_pct: 60, wallet: '0xc33B5D681Fdf4986921123f34156D6957Ab60656' }]));
+    await db.exec('reset role');
+    await actAs(COMP, 'compliance');
+    const full = (await one(`select staff_customer_profile('${TRUSTER}') p`)).p;
+    await db.exec('reset role');
+    await actAs(OPS, 'operations');
+    const ops = (await one(`select staff_customer_profile('${TRUSTER}') p`)).p;
+    await db.exec('reset role');
+    const kofiFull = full.beneficiaries[1], kofiOps = ops.beneficiaries[1];
+    assert(full.trust.type === 'revocable' && full.address.line === '12 Ring Road' && kofiFull.email === 'kofi@example.com' && kofiFull.wallet.startsWith('0xc33B5D'), JSON.stringify(full));
+    assert(ops.address.line === '•••' && kofiOps.name === 'Kofi M.' && kofiOps.email === 'ko•••@example.com' && kofiOps.wallet === '0xc33B…0656', JSON.stringify(ops));
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
 console.log('\nPassword reset by support');
 await test('only Compliance resets a password; sessions end, withdrawals pause and the customer is told', async () => {
   await as(OPS, 'operations', () => throwsLike(`select customer_password_reset('${BRENDAN}')`, /Only Compliance/));

@@ -92,8 +92,8 @@ export const WelcomeScreen = () => {
             </T>
             <Icon name="chevronRight" size="sm" color="text3" />
           </Pressable>
-          <Button as="a" label="Create account" onPress={() => router.push('/create-account')} />
-          <Button as="a" label="Connect an existing wallet" variant="secondary" onPress={() => router.push('/connect-wallet')} />
+          <Button as="a" label="Create account" onPress={() => router.push({ pathname: '/trust', params: { from: 'create' } })} />
+          <Button as="a" label="Connect an existing wallet" variant="secondary" onPress={() => router.push({ pathname: '/trust', params: { from: 'connect' } })} />
           <Pressable accessibilityRole="link" onPress={() => router.push('/sign-in')} style={{ height: 44, alignItems: 'center', justifyContent: 'center' }}>
             <T weight={500} color="accentText">
               I already have an account · Sign in

@@ -172,6 +172,14 @@ export type Overview = {
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
+/** The rest of a customer's profile: address, crypto trust, beneficiaries and linked wallets (masked by role in SQL). */
+export type CustomerExtras = {
+  address: { line?: string | null; city?: string | null; region?: string | null; postalCode?: string | null; country: string };
+  trust: { ref: string; type: string; status: string; createdAt: string; termsAgreedAt: string } | null;
+  beneficiaries: { name: string; relationship: string; isSelf: boolean; allocationPct: number; email: string | null; wallet: string | null }[];
+  wallets: { network: string; access: string; address: string; balances: Record<string, string> }[];
+};
+
 export type IdentityDecision = 'verified' | 'more_info' | 'rejected';
 /** A customer's latest identity check. Document links are signed for a few minutes and only issued to Compliance. */
 export type IdentityCheck = {
@@ -197,6 +205,8 @@ export type AdminData = {
 
   /** Compliance opening a full record; the read itself is audited in SQL. */
   recordViewed(customerId: string): Promise<void>;
+  /** Address, crypto trust, beneficiaries and linked wallets. */
+  customerExtras(customerId: string): Promise<CustomerExtras>;
   /** The latest identity check, or null if the customer hasn't submitted documents. */
   identity(customerId: string): Promise<IdentityCheck | null>;
   /** Compliance decides an identity check; a reason (shown to the customer) is required unless verifying. */

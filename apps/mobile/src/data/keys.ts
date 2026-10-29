@@ -19,4 +19,5 @@ export const qk = {
   notificationPrefs: ['notificationPrefs'] as const,
   quote: (txId: string) => ['quote', txId] as const,
   fx: (currency: string) => ['fx', currency] as const,
+  trust: ['trust'] as const,
 };

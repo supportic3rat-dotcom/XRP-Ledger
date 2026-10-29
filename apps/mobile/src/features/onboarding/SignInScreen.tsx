@@ -201,7 +201,7 @@ export const SignInScreen = () => {
               <T size={13.5} color="text2">
                 New here?
               </T>
-              <T size={13.5} weight={500} color="accentText" underline accessibilityRole="link" onPress={() => router.replace('/create-account')}>
+              <T size={13.5} weight={500} color="accentText" underline accessibilityRole="link" onPress={() => router.replace({ pathname: '/trust', params: { from: 'create' } })}>
                 Create an account
               </T>
             </View>

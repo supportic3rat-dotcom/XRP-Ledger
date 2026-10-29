@@ -16,6 +16,8 @@ import type {
   SupportTicket,
   Transaction,
   YieldPosition,
+  Trust,
+  TrustInput,
 } from '@xrp/types';
 
 export type NotificationPrefs = { receipts: boolean; alerts: boolean };
@@ -79,6 +81,9 @@ export type Api = {
   signOut: () => Promise<void>;
   // Reads
   profile: () => Promise<CustomerProfile>;
+  /** The customer's crypto trust, or null if they haven't created one yet. */
+  trust: () => Promise<Trust | null>;
+  createTrust: (input: TrustInput) => Promise<{ ref: string }>;
   assets: () => Promise<AssetInfo[]>;
   /** Balances for every asset the customer has touched. */
   holdings: () => Promise<Holding[]>;

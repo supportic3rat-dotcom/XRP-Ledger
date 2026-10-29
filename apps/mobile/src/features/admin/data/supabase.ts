@@ -583,6 +583,26 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         documents: paths.map((p, i) => ({ name: p.split('/').pop() ?? p, url: signed[i]?.signedUrl ?? null })),
       };
     },
+    customerExtras: async (customerId) => {
+      const { data, error } = await db.rpc('staff_customer_profile', { p_customer: customerId });
+      if (error) throw new Error(error.message);
+      const d = data as Row;
+      const a = (d.address as Row) ?? {};
+      const t = d.trust as Row | null;
+      return {
+        address: { line: (a.line as string | null) ?? null, city: (a.city as string | null) ?? null, region: (a.region as string | null) ?? null, postalCode: (a.postal_code as string | null) ?? null, country: str(a.country) },
+        trust: t ? { ref: str(t.ref), type: str(t.type), status: str(t.status), createdAt: str(t.created_at), termsAgreedAt: str(t.terms_agreed_at) } : null,
+        beneficiaries: ((d.beneficiaries as Row[]) ?? []).map((b) => ({
+          name: str(b.name),
+          relationship: str(b.relationship),
+          isSelf: Boolean(b.is_self),
+          allocationPct: Number(b.allocation_pct),
+          email: (b.email as string | null) ?? null,
+          wallet: (b.wallet as string | null) ?? null,
+        })),
+        wallets: ((d.wallets as Row[]) ?? []).map((w) => ({ network: str(w.network), access: str(w.access), address: str(w.address), balances: (w.balances as Record<string, string>) ?? {} })),
+      };
+    },
     decideIdentity: async (customerId, decision, note) => {
       const { error } = await db.rpc('kyc_review', { p_customer: customerId, p_decision: decision, p_note: note || null });
       if (error) return { ok: false, error: error.message };

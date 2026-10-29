@@ -277,3 +277,20 @@ Everything here differs from the design files or the brief on purpose, or still 
   the XRPL Foundation's `xrpl-secret-numbers` (`src/lib/secretNumbers.ts`); the screen asks the customer to check the
   address matches Xaman's.
 - Fixed: the XRP address reader found an `r…` fragment inside other networks' addresses (a Tron address read as XRP).
+
+## 2026-10-29 · Crypto trust before an account or a wallet connection
+
+- Welcome's "Create account" and "Connect an existing wallet" (and Sign in's "Create an account") open the crypto
+  trust prompt and its 4-step form (`/trust`, `TrustScreen`): trust type (revocable / irrevocable / spendthrift, all
+  free) → personal information (name, email, password, phone, date of birth, address, country) → beneficiaries
+  (optionally yourself; name, relationship, email, share, wallet; shares must total 100%) → review, agree to the
+  Terms and Conditions, create. The email and password create the account, then `create_trust` stores the trust,
+  beneficiaries and the personal details on the customer record (`20261029000500_trusts.sql`). "Connect a wallet"
+  continues to the wallet screen afterwards; "Create account" to identity verification.
+- Accounts without a trust (made before this) are sent to the form after sign-in, with their details prefilled.
+- Differences from the supplied form: password is 12+ characters with upper/lower case and a number (the server
+  enforces it); country is the full list (it also sets the display currency); phone placeholder is international.
+- The console's customer page shows address, crypto trust, beneficiaries and linked wallets
+  (`staff_customer_profile`), masked like the rest of the record: Compliance in full, Operations partly, Auditors least.
+- The Terms of Service are still taken down, so the form's "Terms and Conditions" link opens the legal documents
+  that are live; the Terms need restoring before launch.

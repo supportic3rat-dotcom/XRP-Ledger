@@ -13,7 +13,7 @@ import {
   unitsToCents,
   walletNetwork,
 } from '@xrp/ledger';
-import type { Balances, Consent, KycStatus, LedgerAccountKind, SupportTicket, Transaction, TxEvent, TxKind } from '@xrp/types';
+import type { Balances, Consent, KycStatus, LedgerAccountKind, SupportTicket, Transaction, Trust, TxEvent, TxKind } from '@xrp/types';
 import type { Api, AssetInfo, FirmQuote, Holding } from '../api';
 import { latestPrice } from '../market';
 import * as seed from './seed';
@@ -23,6 +23,17 @@ const ZERO: Balances = { available: 0n, reserved: 0n, pendingYield: 0n, yield: 0
 type Listener = () => void;
 
 /** In-memory backend for local development and tests. Same rules as the database: state machines + balanced journals. */
+/** The demo customer already has a trust (so the sample wallet opens straight away). */
+let demoTrust: Trust | null = {
+  ref: 'TR-2026-00042',
+  type: 'revocable',
+  createdAt: '2026-09-02T09:20:00Z',
+  beneficiaries: [
+    { isSelf: true, name: 'Brendan Ebson', relationship: 'self', email: null, allocationPct: 50, wallet: null },
+    { isSelf: false, name: 'Ada Ebson', relationship: 'spouse', email: 'ada@example.com', allocationPct: 50, wallet: null },
+  ],
+};
+
 /** Demo balances for a linked wallet: a sample amount of each asset the network carries. */
 const demoBalances = (network: string): Record<string, bigint> =>
   Object.fromEntries((walletNetwork(network)?.assets ?? []).map((a) => [a, 10n ** BigInt(assetSpec(a).decimals)]));
@@ -181,6 +192,28 @@ export const createDemoApi = (): Api => {
     },
 
     profile: async () => ({ ...db.profile, kycStatus: db.kyc }),
+    trust: async () => demoTrust,
+    createTrust: async (input) => {
+      await wait(600);
+      const total = input.beneficiaries.reduce((n, b) => n + b.allocationPct, 0);
+      if (total !== 100) throw new Error(`The shares add up to ${total} percent; they must total 100%.`);
+      demoTrust = {
+        ref: 'TR-2026-00001',
+        type: input.type,
+        createdAt: iso(),
+        beneficiaries: input.beneficiaries.map((b) => ({
+          isSelf: b.isSelf,
+          name: b.isSelf ? `${input.firstName} ${input.lastName}` : b.name,
+          relationship: b.isSelf ? 'self' : b.relationship,
+          email: b.email || null,
+          allocationPct: b.allocationPct,
+          wallet: b.wallet || null,
+        })),
+      };
+      db.profile = { ...db.profile, fullName: `${input.firstName} ${input.lastName}`, country: input.country };
+      emit();
+      return { ref: demoTrust.ref };
+    },
     assets: async () =>
       ASSETS.map(
         (a): AssetInfo => ({

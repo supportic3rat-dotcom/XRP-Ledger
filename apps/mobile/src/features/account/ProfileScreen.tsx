@@ -8,6 +8,7 @@ import { Pill } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { KV } from '@/components/KV';
 import { Icon } from '@/components/Icon';
 import { Row } from '@/components/Row';
 import { Screen, ScrollBody } from '@/components/Screen';
@@ -19,7 +20,7 @@ import { T } from '@/components/T';
 import { Toggle } from '@/components/Toggle';
 import { useToast } from '@/components/Toast';
 import { api } from '@/data';
-import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile } from '@/data/hooks';
+import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile, useTrust } from '@/data/hooks';
 import { hasKey, removeSelfCustody } from '@/lib/selfCustody';
 import { usePreferences } from '@/state/preferences';
 import { useSession } from '@/state/session';
@@ -55,6 +56,7 @@ export const ProfileScreen = () => {
   const profile = useProfile();
   const allowlist = useAllowlist();
   const wallets = useExternalWallets();
+  const trust = useTrust();
   const docs = useLegalDocuments();
   const consents = useConsents();
   const theme = usePreferences((s) => s.theme);
@@ -143,6 +145,25 @@ export const ProfileScreen = () => {
             </View>
           </Row>
         </Card>
+
+        {trust.data ? (
+          <>
+            <Sec>Your crypto trust</Sec>
+            <Card>
+              <KV
+                items={[
+                  { k: 'Trust', v: `${trust.data.type.charAt(0).toUpperCase()}${trust.data.type.slice(1)} trust`, sub: trust.data.ref },
+                  ...trust.data.beneficiaries.map((b) => ({
+                    k: b.isSelf ? 'You' : b.name,
+                    sub: b.isSelf ? undefined : b.relationship.charAt(0).toUpperCase() + b.relationship.slice(1),
+                    v: `${b.allocationPct}%`,
+                  })),
+                ]}
+                baseline={false}
+              />
+            </Card>
+          </>
+        ) : null}
 
         <Sec>External wallets</Sec>
         <Card>
