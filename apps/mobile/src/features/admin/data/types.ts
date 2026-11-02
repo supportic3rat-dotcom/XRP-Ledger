@@ -137,6 +137,10 @@ export type Recon = {
 
 export type Custody = {
   wallets: { name: string; address: string; balanceDrops: bigint; signing: string; ceilingDrops: bigint | null; tier: string }[];
+  /** Wallets Compliance added, on any network. */
+  added: AddedWallet[];
+  /** 12 months of minimum Earn rewards per coin, against the reserve wallets' live balances. */
+  reserveNeeds: ReserveNeed[];
   policy: [string, string][];
   policyVersion: string;
   signers: { name: string; meta: string; status: 'Active' | 'Standby' }[];
@@ -170,6 +174,11 @@ export type Overview = {
   attention: { title: string; note: string; where: 'Queue' | 'Reconciliation' | 'Users' | 'Custody'; href: string; tone: Tone }[];
 };
 
+export type IdentityWaiting = { id: string; accountRef: string };
+
+export type AddedWallet = { id: string; name: string; network: string; address: string; reserve: boolean };
+export type ReserveNeed = { asset: string; allocatedUnits: bigint; neededUnits: bigint };
+
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
 /** The rest of a customer's profile: address, crypto trust, beneficiaries and linked wallets (masked by role in SQL). */
@@ -196,6 +205,10 @@ export type AdminData = {
   mode: 'demo' | 'supabase';
   me(): Promise<Staff | null>;
   overview(): Promise<Overview>;
+  /** Customers whose identity documents are waiting for Compliance. */
+  identityWaiting(): Promise<IdentityWaiting[]>;
+  /** Compliance: this phone gets a notification when an identity check arrives. */
+  registerPush(token: string): Promise<void>;
   queue(): Promise<QueueItem[]>;
   transactions(): Promise<TxItem[]>;
   customers(): Promise<CustomerRecord[]>;
@@ -219,6 +232,8 @@ export type AdminData = {
   setFrozen(customerId: string, frozen: boolean): Promise<ActionResult>;
   /** Compliance sets a new password for a customer who emailed support; it's returned once, to email back. */
   resetPassword(customerId: string): Promise<{ ok: true; email: string; password: string } | { ok: false; error: string }>;
+  /** Compliance removes two-factor for a customer who lost their authenticator and backup codes. */
+  resetTwoFactor(customerId: string): Promise<ActionResult>;
   decidePolicy(changeId: string, decision: 'approve' | 'decline'): Promise<ActionResult>;
   exportAudit(filter: 'all' | 'staff' | 'customer' | 'system'): Promise<ActionResult & { csv?: string; filename?: string }>;
 
@@ -232,6 +247,10 @@ export type AdminData = {
     enabled: boolean,
     networks?: Record<string, string | null>,
   ): Promise<ActionResult>;
+  /** Compliance only: list another platform wallet on Custody (never changes where deposits go). */
+  addWallet(name: string, network: string, address: string): Promise<ActionResult>;
+  removeWallet(id: string): Promise<ActionResult>;
+  setWalletReserve(id: string, reserve: boolean): Promise<ActionResult>;
   /** Record a deposit seen arriving for a customer; a different staff member approves the credit in the queue. */
   recordDeposit(customerId: string, asset: string, amountUnits: bigint, txHash: string, note: string): Promise<ActionResult>;
   /** Approved non-XRP withdrawal: mark sent (with the network hash) or failed (funds return to the customer). */

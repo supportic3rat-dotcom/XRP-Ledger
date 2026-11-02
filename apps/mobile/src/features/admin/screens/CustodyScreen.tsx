@@ -1,16 +1,181 @@
+import { formatAmount, isNetworkAddress, walletNetwork, WALLET_NETWORKS } from '@xrp/ledger';
+import { useQueries, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { View } from 'react-native';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
+import { ErrorText, Field, Help, Label, TextField } from '@/components/Form';
 import { KV } from '@/components/KV';
+import { Select } from '@/components/Select';
 import { Status } from '@/components/Status';
 import { T } from '@/components/T';
+import { api } from '@/data';
 import { useTheme } from '@/theme';
 import { shortAddr, xrp0, xrp2 } from '../data/format';
+import type { AddedWallet, ReserveNeed } from '../data/types';
 import { useOps, useOpsAction, useStaffSession } from '../hooks';
 import { BlockNote, Line, Loading, OpsScreen, Panel, SecT } from '../ui';
 
 /** Share of holdings to one decimal, rounded half-up in integer maths. */
 const share = (part: bigint, total: bigint) => (total === 0n ? '0.0%' : `${(Number((part * 2000n + total) / (2n * total)) / 10).toFixed(1)}%`);
+
+const NETWORK_OPTIONS = WALLET_NETWORKS.map((n) => ({ value: n.id, label: `${n.name} · ${n.assets.join(', ')}` }));
+
+/** One added wallet with its live balance, read from the public network. */
+const AddedWalletRow = ({ w, first, canEdit }: { w: AddedWallet; first: boolean; canEdit: boolean }) => {
+  const { data } = useStaffSession();
+  const { pending, run } = useOpsAction();
+  const balances = useQuery({ queryKey: ['ops', 'wallet-balance', w.network, w.address], queryFn: () => api.walletBalance(w.network, w.address) });
+  const held = Object.entries(balances.data ?? {}).filter(([, units]) => units > 0n);
+  const amounts = balances.isError ? 'Balance unavailable' : !balances.data ? 'Reading…' : held.map(([a, units]) => formatAmount(units, a)).join(' · ') || 'Empty';
+  return (
+    <Line first={first} style={{ alignItems: 'flex-start' }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <T size={13.5} weight={500}>
+          {w.name}
+        </T>
+        <T size={12} mono color="text3">
+          {shortAddr(w.address, 9, 4)}
+        </T>
+        <T size={12} color="text3">
+          {walletNetwork(w.network)?.name ?? w.network}
+        </T>
+      </View>
+      <View style={{ alignItems: 'flex-end', gap: 6, flexShrink: 1 }}>
+        <T size={13} num weight={500} align="right">
+          {amounts}
+        </T>
+        {w.reserve ? <Status tone="ok" label="Earn reserve" /> : null}
+        {canEdit ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 }}>
+            <Button
+              label={w.reserve ? 'Stop using as reserve' : 'Use as Earn reserve'}
+              variant="secondary"
+              size={36}
+              disabled={pending}
+              onPress={() => void run(() => data.setWalletReserve(w.id, !w.reserve))}
+            />
+            <Button label="Remove" variant="secondary" textColor="neg" size={36} disabled={pending} onPress={() => void run(() => data.removeWallet(w.id))} />
+          </View>
+        ) : null}
+      </View>
+    </Line>
+  );
+};
+
+/** 12 months of minimum Earn rewards per coin, against what the reserve wallets hold on the network right now. */
+const EarnReserve = ({ needs, wallets }: { needs: ReserveNeed[]; wallets: AddedWallet[] }) => {
+  const reserves = wallets.filter((w) => w.reserve);
+  const balances = useQueries({
+    queries: reserves.map((w) => ({ queryKey: ['ops', 'wallet-balance', w.network, w.address], queryFn: () => api.walletBalance(w.network, w.address) })),
+  });
+  const allRead = balances.every((b) => b.isSuccess);
+  const heldOf = (asset: string) => balances.reduce((sum, b) => sum + (b.data?.[asset] ?? 0n), 0n);
+  return (
+    <Panel style={{ gap: 0 }}>
+      <SecT>Earn reserve · 12 months of minimum rewards</SecT>
+      {needs.map((n, i) => {
+        const held = heldOf(n.asset);
+        const covered = held >= n.neededUnits;
+        return (
+          <Line key={n.asset} first={i === 0} style={{ alignItems: 'flex-start' }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <T size={13.5} weight={500}>
+                {n.asset}
+              </T>
+              <T size={12} num color="text3">{`Need ${formatAmount(n.neededUnits, n.asset)} on ${formatAmount(n.allocatedUnits, n.asset)} allocated`}</T>
+              <T size={12} num color="text3">{`Held ${formatAmount(held, n.asset)}`}</T>
+            </View>
+            {covered ? (
+              <Status tone="ok" label="Covered" />
+            ) : allRead ? (
+              <Status tone="bad" label={`Short ${formatAmount(n.neededUnits - held, n.asset)}`} />
+            ) : (
+              <Status tone="wait" label="Checking" />
+            )}
+          </Line>
+        );
+      })}
+      {needs.length === 0 ? (
+        <T size={13} color="text3">
+          No coins are allocated to Earn yet.
+        </T>
+      ) : null}
+      <Help>Reserve wallets must hold only the platform’s own money. Mark one under Added wallets. Wallets taking customer deposits can’t be used.</Help>
+    </Panel>
+  );
+};
+
+/** Compliance adds more platform wallets on any network; everyone else can see them. */
+const AddedWallets = ({ wallets, canEdit }: { wallets: AddedWallet[]; canEdit: boolean }) => {
+  const { data } = useStaffSession();
+  const { pending, run } = useOpsAction();
+  const [name, setName] = useState('');
+  const [network, setNetwork] = useState('xrp');
+  const [address, setAddress] = useState('');
+  const [tried, setTried] = useState(false);
+  const net = walletNetwork(network) ?? WALLET_NETWORKS[0]!;
+  const nameErr = tried && !name.trim() ? 'Give the wallet a name.' : '';
+  const addrErr = tried && !isNetworkAddress(network, address) ? `That isn’t a valid ${net.name} address.` : '';
+
+  const add = () => {
+    setTried(true);
+    if (!name.trim() || !isNetworkAddress(network, address)) return;
+    void run(
+      () => data.addWallet(name.trim(), network, address.trim()),
+      () => {
+        setName('');
+        setAddress('');
+        setTried(false);
+      },
+    );
+  };
+
+  return (
+    <Panel style={{ gap: 0 }}>
+      <SecT>Added wallets</SecT>
+      {wallets.map((w, i) => (
+        <AddedWalletRow key={w.id} w={w} first={i === 0} canEdit={canEdit} />
+      ))}
+      {wallets.length === 0 ? (
+        <T size={13} color="text3">
+          No wallets added yet.
+        </T>
+      ) : null}
+      {canEdit ? (
+        <View style={{ gap: 12, marginTop: 14 }}>
+          <SecT>Add a wallet</SecT>
+          <Field>
+            <Label nativeID="aw-name">Wallet name</Label>
+            <TextField accessibilityLabelledBy="aw-name" value={name} onChangeText={setName} invalid={!!nameErr} maxLength={60} placeholder="e.g. Treasury BTC" height={48} />
+            <ErrorText>{nameErr}</ErrorText>
+          </Field>
+          <Field>
+            <Label nativeID="aw-net">Network</Label>
+            <Select label="Network" value={network} options={NETWORK_OPTIONS} onChange={setNetwork} height={48} />
+          </Field>
+          <Field>
+            <Label nativeID="aw-addr">{`${net.name} address`}</Label>
+            <TextField
+              accessibilityLabelledBy="aw-addr"
+              value={address}
+              onChangeText={(v) => setAddress(v.trim())}
+              invalid={!!addrErr}
+              mono
+              autoCapitalize="none"
+              autoCorrect={false}
+              height={48}
+            />
+            <ErrorText>{addrErr}</ErrorText>
+            <Help>{net.addressHint}</Help>
+          </Field>
+          <Help>Adding a wallet doesn’t change where customers deposit. To send deposits here, set it as the coin’s address under Assets.</Help>
+          <Button label="Add wallet" size={48} loading={pending} onPress={add} />
+        </View>
+      ) : null}
+    </Panel>
+  );
+};
 
 export const CustodyScreen = () => {
   const { c: color } = useTheme();
@@ -87,6 +252,9 @@ export const CustodyScreen = () => {
                   </Banner>
                 ) : null}
               </Panel>
+
+              <AddedWallets wallets={c.added} canEdit={isComp} />
+              <EarnReserve needs={c.reserveNeeds} wallets={c.added} />
 
               <Panel style={{ gap: 0 }}>
                 <SecT>{`Signing policy · ${c.policyVersion}`}</SecT>

@@ -23,6 +23,7 @@ const ICONS: Record<AppNotification['icon'], Parameters<typeof Icon>[0]['name']>
   doc: 'doc',
   ex: 'exchange',
   clock: 'clockPath',
+  idCard: 'idCard',
 };
 
 const NoteIcon = ({ n }: { n: AppNotification }) => {

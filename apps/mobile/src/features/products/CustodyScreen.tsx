@@ -198,7 +198,7 @@ export const CustodyScreen = () => {
           ))}
         </Card>
         <Banner tone="info" icon="info" style={{ marginTop: 16 }}>
-          No insurance, asset segregation or regulatory approval is claimed. Those details will appear here only once they’re documented.
+          How your assets are held, and your rights, are set out in the documents above.
         </Banner>
         {api.mode === 'demo' ? (
           <T size={11.5} color="text3" align="center" style={{ marginTop: 16 }}>

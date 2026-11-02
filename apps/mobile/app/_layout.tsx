@@ -9,8 +9,11 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryClient } from '@/data/queryClient';
+import { markActive } from '@/lib/lastActive';
+import { useRestoreSession } from '@/lib/useRestoreSession';
 import { useUpkeep } from '@/lib/useUpkeep';
 import { ThemeProvider, useTheme } from '@/theme';
+import { AppSplash } from '@/components/AppSplash';
 import { ToastHost } from '@/components/Toast';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -31,16 +34,15 @@ const Navigator = () => {
 
 export default function RootLayout() {
   const [loaded] = useFonts({ Geist_400Regular, Geist_500Medium, Geist_600SemiBold, GeistMono_400Regular, GeistMono_500Medium });
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync().catch(() => undefined);
-  }, [loaded]);
-  if (!loaded) return null;
+  const restored = useRestoreSession();
+  if (!loaded || !restored) return null;
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={markActive}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <Navigator />
+            <AppSplash />
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

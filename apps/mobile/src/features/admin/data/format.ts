@@ -1,5 +1,20 @@
 import { hm as localHm, md as localMd } from '@/lib/dates';
 import { formatXrp } from '@xrp/ledger';
+import type { Overview } from './types';
+
+/** The "Needs attention" row for identity checks waiting on Compliance. */
+export const identityAttention = (waiting: { id: string; accountRef: string }[]): Overview['attention'] =>
+  waiting.length === 0
+    ? []
+    : [
+        {
+          title: waiting.length === 1 ? 'Identity check waiting' : `${waiting.length} identity checks waiting`,
+          note: waiting.length === 1 ? `${waiting[0]!.accountRef} · documents to review` : 'Documents to review',
+          where: 'Users',
+          href: waiting.length === 1 ? `/users?sel=${waiting[0]!.id}` : '/users',
+          tone: 'wait',
+        },
+      ];
 
 /** "1,250.00" */
 export const xrp2 = (drops: bigint): string => formatXrp(drops);

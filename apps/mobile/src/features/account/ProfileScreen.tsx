@@ -20,7 +20,7 @@ import { T } from '@/components/T';
 import { Toggle } from '@/components/Toggle';
 import { useToast } from '@/components/Toast';
 import { api } from '@/data';
-import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile, useTrust } from '@/data/hooks';
+import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile, useSignOut, useTrust } from '@/data/hooks';
 import { hasKey, removeSelfCustody } from '@/lib/selfCustody';
 import { usePreferences } from '@/state/preferences';
 import { useSession } from '@/state/session';
@@ -61,7 +61,6 @@ export const ProfileScreen = () => {
   const consents = useConsents();
   const theme = usePreferences((s) => s.theme);
   const setTheme = usePreferences((s) => s.setTheme);
-  const setSignedIn = useSession((s) => s.setSignedIn);
   const allow = useApiMutation(api.setAllowlist);
   const currency = useApiMutation(api.setDisplayCurrency);
   const remove = useApiMutation(({ address, network }: { address: string; network: string }) => api.removeExternalWallet(address, network));
@@ -86,12 +85,10 @@ export const ProfileScreen = () => {
     await remove.mutateAsync({ address: wallet.address, network: wallet.network });
     showToast('Wallet disconnected. Nothing in custody was affected.', { durationMs: 2600 });
   };
+  const endSession = useSignOut();
   const signOut = async () => {
-    await api.signOut();
-    qc.clear();
     setSignOutSheet(false);
-    setSignedIn(false);
-    router.replace('/welcome');
+    await endSession();
   };
 
   return (
@@ -125,7 +122,7 @@ export const ProfileScreen = () => {
               </T>
             </Pill>
           ) : (
-            <Button as="a" label="Verify" size={36} variant="secondary" onPress={() => router.push('/verify')} />
+            <Button as="a" label={p?.kycStatus === 'in_progress' ? 'Under review' : 'Verify'} size={36} variant="secondary" onPress={() => router.push('/verify')} />
           )}
         </Card>
 
@@ -141,7 +138,7 @@ export const ProfileScreen = () => {
           <Row minHeight={52} accessibilityRole="link" onPress={() => router.push('/security')} chevron>
             <View style={{ flex: 1, gap: 1 }}>
               <T weight={500}>Security settings</T>
-              <Val>Password, devices, allowlist</Val>
+              <Val>Password, two-factor, devices, allowlist</Val>
             </View>
           </Row>
         </Card>
@@ -282,7 +279,7 @@ export const ProfileScreen = () => {
         </Card>
         <Button as="a" label="Sign out" variant="secondary" textColor="neg" onPress={() => setSignOutSheet(true)} style={{ marginTop: 24 }} />
         <T size={11.5} color="text3" align="center" style={{ marginTop: 16 }}>
-          Built on Ripple and the XRP Ledger
+          Built on Ripple and the XRP Ledger Foundation.
         </T>
       </ScrollBody>
 
@@ -308,7 +305,7 @@ export const ProfileScreen = () => {
           label="Connect a wallet"
           onPress={() => {
             setConnectSheet(false);
-            router.push('/connect-wallet');
+            router.push({ pathname: '/connect-wallet', params: { from: 'profile' } });
           }}
         />
         <Button label="Cancel" variant="secondary" onPress={() => setConnectSheet(false)} style={{ marginTop: 10 }} />

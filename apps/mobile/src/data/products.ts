@@ -1,5 +1,9 @@
 import { asset as assetSpec, assetLimits, xrpToDrops } from '@xrp/ledger';
 
+/** Earn's minimum APR on every coin, before the platform fee. The database refuses anything lower. */
+export const EARN_MIN_APR_BPS = 100;
+export const EARN_MIN_APR = `${(EARN_MIN_APR_BPS / 100).toFixed(2)}%`;
+
 export type FlexibleProduct = {
   asset: string;
   name: string;

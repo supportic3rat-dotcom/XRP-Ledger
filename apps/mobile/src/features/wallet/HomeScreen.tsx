@@ -1,4 +1,4 @@
-import { asset as assetSpec, formatAmount, unitsToCents } from '@xrp/ledger';
+import { asset as assetSpec, formatAmount, shortAddress, unitsToCents, walletNetwork } from '@xrp/ledger';
 import { chartPeriods } from '@xrp/providers';
 import type { IconName } from '@xrp/tokens';
 import { useRouter, type Href } from 'expo-router';
@@ -21,7 +21,8 @@ import { T } from '@/components/T';
 import { TxDetailSheet } from '@/components/TxDetailSheet';
 import { TxRow } from '@/components/TxRow';
 import type { TxView } from '@/data/describeTx';
-import { useActivity, useHoldings, useLoan, useMarkets, useNotifications, usePortfolioHistory, usePriceMap, useProfile, useYieldPositions } from '@/data/hooks';
+import { api } from '@/data';
+import { useActivity, useApiMutation, useExternalWallets, useHoldings, useLoan, useKycDecision, useMarkets, useNotifications, usePortfolioHistory, usePriceMap, useProfile, useYieldPositions } from '@/data/hooks';
 import { PERIOD_IDS } from '@/data/series';
 import { hm, hmz } from '@/lib/dates';
 import { MASK, useHideAmounts } from '@/state/ui';
@@ -158,11 +159,46 @@ const splitMoney = (text: string): [string, string] => {
   return dot < 0 ? [text, ''] : [text.slice(0, dot), text.slice(dot)];
 };
 
+/** Where the customer's identity check stands, from sign-in until they've seen the outcome. */
+const KycBanner = () => {
+  const router = useRouter();
+  const status = useProfile().data?.kycStatus;
+  const decision = useKycDecision();
+  const markRead = useApiMutation((ids: string[]) => api.markNotificationsRead(ids));
+  const view = <SecLink element="a" label="View" onPress={() => router.push('/verify')} />;
+  const style = { marginTop: 10 };
+
+  if (status === 'in_progress') {
+    return (
+      <Banner tone="info" icon="clock" style={style} trailing={view}>
+        Your verification is under review. We’ll notify you when it’s done.
+      </Banner>
+    );
+  }
+  if (status === 'more_info' || status === 'rejected') {
+    const bad = status === 'rejected';
+    return (
+      <Banner tone={bad ? 'error' : 'warn'} icon="alert" alert style={style} trailing={view}>
+        {`${bad ? 'We couldn’t verify your identity.' : 'We need a little more information.'}${decision ? ` ${decision.body}` : ''}`}
+      </Banner>
+    );
+  }
+  if (status === 'verified' && decision && !decision.readAt) {
+    return (
+      <Banner tone="info" icon="check" alert style={style} trailing={<SecLink element="button" label="OK" onPress={() => markRead.mutate([decision.id])} />}>
+        {`Your identity is verified. ${decision.body}`}
+      </Banner>
+    );
+  }
+  return null;
+};
+
 export const HomeScreen = () => {
   const router = useRouter();
   const { c } = useTheme();
   const profile = useProfile();
   const holdings = useHoldings();
+  const wallets = useExternalWallets();
   const { prices, live, at } = usePriceMap();
   const m = useMoney();
   const markets = useMarkets();
@@ -218,6 +254,16 @@ export const HomeScreen = () => {
   const historyRows = activity.views.filter((t) => historyFilter === 'all' || HISTORY_KINDS[historyFilter].includes(kindOf.get(t.id) ?? ''));
   const empty = activity.views.length === 0 && totalCents === 0n && !activity.isLoading;
   const priceAt = at ? hmz(at) : '';
+  const linked = (wallets.data ?? []).map((w) => {
+    const held = Object.entries(w.balances).filter(([, units]) => units > 0n);
+    return {
+      key: `${w.network}:${w.address}`,
+      name: `${walletNetwork(w.network)?.name ?? w.network} · ${w.access === 'watch' ? 'Watch-only' : 'Self-custody'}`,
+      address: shortAddress(w.address),
+      value: held.reduce((s, [a, units]) => s + cents(units, a), 0n),
+      amounts: held.map(([a, units]) => formatAmount(units, a)).join(' · ') || 'Empty',
+    };
+  });
 
   const onAction = (a: Action) => {
     if (a.key === 'history') {
@@ -310,6 +356,8 @@ export const HomeScreen = () => {
             Live prices aren’t available right now, so values may be out of date. Your coin balances are unaffected.
           </Banner>
         ) : null}
+
+        <KycBanner />
 
         <Sec top={20}>Quick actions</Sec>
         <View style={{ gap: 8 }}>
@@ -410,6 +458,17 @@ export const HomeScreen = () => {
             </Card>
           </>
         )}
+
+        {linked.length ? (
+          <>
+            <Sec>Connected wallets · not in your custodial total</Sec>
+            <Card>
+              {linked.map((w, i) => (
+                <Line key={w.key} first={i === 0} k={w.name} ks={w.address} v={money(w.value)} vs={hidden ? MASK : w.amounts} />
+              ))}
+            </Card>
+          </>
+        ) : null}
 
         <Sec trailing={<SecLink element="button" label="History" onPress={() => setHistory(true)} />}>Recent activity</Sec>
         <Card>

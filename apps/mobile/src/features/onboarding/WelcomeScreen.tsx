@@ -21,8 +21,8 @@ const POINTS: { icon: IconName; title: string; body: string }[] = [
 const CUSTODIAL_POINTS = [
   'Your assets are held by the platform through its disclosed custody provider, not in a wallet you control.',
   'You access them by signing in. There’s no recovery phrase, and we’ll never ask you for one.',
-  'Withdrawals are reviewed before they’re sent, so they aren’t instant.',
-  'You depend on the platform and its providers staying solvent and available. Read the Custody Agreement and Risk Disclosure before depositing.',
+  'Every withdrawal is reviewed before it’s sent, so allow a little time.',
+  'Your assets are held with the platform and its providers. The Custody Agreement and Risk Disclosure explain how this works, so please read them before depositing.',
 ];
 
 export const WelcomeScreen = () => {
@@ -46,7 +46,7 @@ export const WelcomeScreen = () => {
             One custodial wallet for Bitcoin, Ethereum, XRP and more — with yield and borrowing built in.
           </BalancedText>
           <T size={15} lh={1.5} color="text2">
-            Hold 18 major coins with institutional custody, earn yield on them, or borrow against them — with live prices and every request tracked from submission to settlement.
+            Hold over 18 major coins with institutional custody, earn yield on them, or borrow against them, with live prices and every request tracked from submission to settlement.
           </T>
         </View>
 
@@ -104,7 +104,7 @@ export const WelcomeScreen = () => {
             <T size={12.5} lh={1.44} color="accentText" underline onPress={() => router.push('/legal')} accessibilityRole="link">
               Privacy Policy
             </T>
-            . Built on Ripple and the XRP Ledger.
+            . Built on Ripple and the XRP Ledger Foundation.
           </T>
         </View>
       </View>

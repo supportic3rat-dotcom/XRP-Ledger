@@ -68,7 +68,8 @@ export type LegalDoc = {
 /** For a swap, `receiveUnits` is the amount of the bought asset (after the spread). */
 export type FirmQuote = { quoteId: string; priceMicro: MicroUsd; feeCents: bigint; receiveCents: bigint; receiveUnits?: bigint; expiresAt: string };
 /** Email and password are the whole sign-in: there is no second step. */
-export type SignInResult = { status: 'ok' } | { status: 'error'; attemptsLeft: number; locked: boolean };
+/** `mfa_required`: the password was right and this account has two-factor on, so the session isn't usable until `verifyMfa`. */
+export type SignInResult = { status: 'ok' } | { status: 'mfa_required' } | { status: 'error'; attemptsLeft: number; locked: boolean };
 export type ProviderStatus = 'operational' | 'degraded' | 'outage';
 
 /** Everything the app reads or writes. Money writes go through Edge Functions in the Supabase implementation. */
@@ -77,6 +78,7 @@ export type Api = {
   now: () => Date;
   // Auth
   signIn: (email: string, password: string) => Promise<SignInResult>;
+  verifyMfa: (code: string, backup: boolean) => Promise<{ ok: boolean }>;
   signUp: (input: { name: string; email: string; password: string; country: string; currency: string; updates: boolean }) => Promise<void>;
   signOut: () => Promise<void>;
   // Reads
@@ -126,6 +128,11 @@ export type Api = {
   applyLoan: (input: { idempotencyKey: string; asset: string; collateralDrops: bigint; principalCents: bigint; payout: BankPayout }) => Promise<Transaction>;
   repayLoan: (input: { idempotencyKey: string; loanId: string; amountCents: bigint; via: 'bank' | 'sell' }) => Promise<Transaction>;
   addCollateral: (input: { idempotencyKey: string; loanId: string; amountDrops: bigint }) => Promise<Transaction>;
+  setTwoFactor: (enabled: boolean) => Promise<void>;
+  /** Starts authenticator setup. Null when an authenticator already exists (cancelling a pending turn-off). */
+  startTotpEnrollment: () => Promise<{ factorId: string; uri: string; secret: string } | null>;
+  confirmTotpEnrollment: (factorId: string, code: string) => Promise<{ ok: boolean }>;
+  regenerateBackupCodes: () => Promise<string[]>;
   setAllowlist: (enabled: boolean) => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
   addAllowlistAddress: (input: { asset: string; label: string; address: string; tag: string | null; memo?: string | null }) => Promise<void>;

@@ -15,6 +15,10 @@ jest.mock('expo-secure-store', () => {
     WHEN_UNLOCKED_THIS_DEVICE_ONLY: 0,
   };
 });
+jest.mock('expo-notifications', () => ({
+  useLastNotificationResponse: () => null,
+  requestPermissionsAsync: jest.fn(async () => ({ granted: false })),
+}));
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 require('react-native-gesture-handler/jestSetup');

@@ -31,6 +31,9 @@ export const seedProfile: CustomerProfile = {
   country: 'NG',
   currency: 'USD',
   kycStatus: 'verified',
+  twoFactorEnabled: false,
+  twoFactorOffAt: null,
+  backupCodesUnused: 0,
   allowlistEnabled: false,
   passwordChangedAt: w('2026-07-20T08:00:00Z'),
   frozen: false,
@@ -455,7 +458,7 @@ export const legalDocs: LegalDoc[] = [
     sections: [
       ['Price risk', 'XRP can lose value quickly, including all of it.'],
       ['Custodial risk', 'You rely on the platform and its providers remaining solvent and available.'],
-      ['No guarantees', 'No deposit insurance or guaranteed returns unless stated in a specific product.'],
+      ['Product terms', 'Deposit insurance and guaranteed returns apply only where a specific product states them.'],
     ],
   },
   {

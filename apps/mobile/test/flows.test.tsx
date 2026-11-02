@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { api } from '@/data';
 import { useStaff } from '@/features/admin/session';
 import { SignInScreen } from '@/features/onboarding/SignInScreen';
 import { renderScreen, routerCalls } from './render';
@@ -16,7 +17,22 @@ describe('Sign in', () => {
     useStaff.getState().setSession(null);
   });
 
-  it('signs straight in with the right email and password (no code step)', async () => {
+  it('with two-factor on, the password alone doesn’t get in', async () => {
+    await api.setTwoFactor(true);
+    await signIn('Prototype-Pass-2026');
+    expect(await screen.findByText('Two-factor check')).toBeTruthy();
+    expect(routerCalls().some((c) => c.method === 'replace')).toBe(false);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Verify and continue' }));
+    expect(await screen.findByText('Enter the 6-digit authenticator code.')).toBeTruthy();
+
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.press(screen.getByRole('button', { name: 'Verify and continue' }));
+    await waitFor(() => expect(routerCalls().some((c) => c.method === 'replace' && c.to === '/')).toBe(true));
+    await api.setTwoFactor(false);
+  });
+
+  it('signs straight in with the right email and password when two-factor is off', async () => {
     await signIn('Prototype-Pass-2026');
     await waitFor(() => expect(routerCalls().some((c) => c.method === 'replace' && c.to === '/')).toBe(true));
     expect(screen.queryByText('Two-factor check')).toBeNull();

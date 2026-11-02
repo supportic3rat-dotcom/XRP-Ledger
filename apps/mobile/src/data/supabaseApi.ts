@@ -83,7 +83,21 @@ export const createSupabaseApi = (): Api => ({
       const locked = error.status === 429;
       return { status: 'error', attemptsLeft: locked ? 0 : 4, locked };
     }
-    return { status: 'ok' };
+    const { data: level } = await supabase().auth.mfa.getAuthenticatorAssuranceLevel();
+    return level?.nextLevel === 'aal2' && level.currentLevel !== 'aal2' ? { status: 'mfa_required' } : { status: 'ok' };
+  },
+  verifyMfa: async (code, backup) => {
+    if (backup) {
+      const r = await call<{ ok: boolean }>('mfa-backup-verify', { code: code.toUpperCase() });
+      // The access-token hook upgrades this session to aal2 on refresh.
+      if (r.ok) await supabase().auth.refreshSession();
+      return { ok: r.ok };
+    }
+    const { data: factors } = await supabase().auth.mfa.listFactors();
+    const totp = factors?.totp[0];
+    if (!totp) return { ok: false };
+    const { error } = await supabase().auth.mfa.challengeAndVerify({ factorId: totp.id, code });
+    return { ok: !error };
   },
   signUp: async (input) => {
     const { data, error } = await supabase().auth.signUp({
@@ -143,7 +157,11 @@ export const createSupabaseApi = (): Api => ({
   },
   profile: async () => {
     const id = await uid();
-    const { data: c } = await supabase().from('customers').select('*').eq('id', id).single();
+    const [{ data: c }, { data: codes }, { data: factors }] = await Promise.all([
+      supabase().from('customers').select('*').eq('id', id).single(),
+      supabase().from('auth_backup_codes_status').select('unused').maybeSingle(),
+      supabase().auth.mfa.listFactors(),
+    ]);
     const row = (c ?? {}) as Row;
     const name = str(row.full_name);
     return {
@@ -161,6 +179,9 @@ export const createSupabaseApi = (): Api => ({
       country: str(row.country),
       currency: (row.display_currency as never) ?? 'USD',
       kycStatus: row.kyc_status as KycStatus,
+      twoFactorEnabled: (factors?.totp.length ?? 0) > 0 && row.mfa_disable_at === null,
+      twoFactorOffAt: (row.mfa_disable_at as string | null) ?? null,
+      backupCodesUnused: Number((codes as Row | null)?.unused ?? 0),
       allowlistEnabled: Boolean(row.allowlist_enabled),
       passwordChangedAt: str(row.password_changed_at),
       frozen: row.frozen_at !== null,
@@ -431,6 +452,23 @@ export const createSupabaseApi = (): Api => ({
   repayLoan: async (input) => callTx('loan-repay', { loanId: input.loanId, amountCents: input.amountCents.toString(), via: input.via }, input.idempotencyKey),
   addCollateral: async (input) =>
     callTx('loan-add-collateral', { loanId: input.loanId, amountDrops: input.amountDrops.toString(), acknowledged: true }, input.idempotencyKey),
+  setTwoFactor: async (enabled) => {
+    await call('security-update', { action: enabled ? 'mfa-enable' : 'mfa-disable' });
+  },
+  startTotpEnrollment: async () => {
+    const { data: factors } = await supabase().auth.mfa.listFactors();
+    if ((factors?.totp ?? []).some((f) => f.status === 'verified')) return null;
+    // Drop abandoned setups so the new QR code is the only pending one.
+    for (const f of factors?.all ?? []) if (f.status === 'unverified') await supabase().auth.mfa.unenroll({ factorId: f.id });
+    const { data, error } = await supabase().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator app' });
+    if (error) throw new Error(error.message);
+    return { factorId: data.id, uri: data.totp.uri, secret: data.totp.secret };
+  },
+  confirmTotpEnrollment: async (factorId, code) => {
+    const { error } = await supabase().auth.mfa.challengeAndVerify({ factorId, code });
+    return { ok: !error };
+  },
+  regenerateBackupCodes: async () => (await call<{ codes: string[] }>('security-update', { action: 'backup-codes-regenerate' })).codes,
   setAllowlist: async (enabled) => {
     await call('security-update', { action: 'allowlist-toggle', enabled });
   },
@@ -492,6 +530,7 @@ export const createSupabaseApi = (): Api => ({
       const { error } = await supabase().storage.from('kyc').uploadToSignedUrl(target.path, target.token, body, { contentType: file.type, upsert: true });
       if (error) throw new Error('A photo didn’t upload. Check your connection and submit again.');
     }
+    await call('kyc-submitted', { reference: session.reference });
     return { reference: session.reference };
   },
 });

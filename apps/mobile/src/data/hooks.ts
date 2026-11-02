@@ -1,5 +1,7 @@
+import { AppState } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { centsIn, formatFiat, formatFiatCompact, formatFiatPrice, formatUsd } from '@xrp/ledger';
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { api } from './index';
 import { describeTx, type TxView } from './describeTx';
@@ -48,6 +50,8 @@ export const useConsents = (enabled = true) => useQuery({ queryKey: qk.consents,
 export const useExternalWallets = () => useQuery({ queryKey: qk.externalWallets, queryFn: api.externalWallets });
 export const useCustodyStatus = () => useQuery({ queryKey: qk.custody, queryFn: api.custodyStatus });
 export const useKycStatus = () => useQuery({ queryKey: qk.kyc, queryFn: api.kycStatus });
+/** The newest identity decision sent to the customer, with Compliance's reason. */
+export const useKycDecision = () => useNotifications().data?.find((n) => n.link === '/verify') ?? null;
 export const useQuote = (txId: string | null) => useQuery({ queryKey: qk.quote(txId ?? ''), queryFn: () => api.currentQuote(txId ?? ''), enabled: !!txId });
 
 /** When the transaction occurred for lists: settlement time for settled withdrawals, loans and rewards; creation time otherwise. */
@@ -107,26 +111,51 @@ export const useActivity = () => {
   return { ...txs, views, raw: txs.data ?? [] };
 };
 
+/** Each mounted app layout gets its own channel: Supabase reuses a channel by name and throws on a second subscribe. */
+let liveChannels = 0;
+
 /** Live updates: Supabase Realtime on transactions/notifications, or the demo backend's change feed. Invalidates queries. */
 export const useLiveUpdates = () => {
   const qc = useQueryClient();
   useEffect(() => {
     if (api.mode === 'demo') return subscribeDemo(() => qc.invalidateQueries());
+    // Realtime misses anything that happens while the app is in the background.
+    const onForeground = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      for (const queryKey of [qk.notifications, qk.profile, qk.kyc]) qc.invalidateQueries({ queryKey });
+    });
     const channel = supabase()
-      .channel('customer-live')
+      .channel(`customer-live-${++liveChannels}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
         qc.invalidateQueries({ queryKey: qk.activity });
         qc.invalidateQueries({ queryKey: qk.holdings });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transaction_events' }, () => qc.invalidateQueries({ queryKey: qk.activity }))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => qc.invalidateQueries({ queryKey: qk.notifications }))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+        qc.invalidateQueries({ queryKey: qk.notifications });
+        qc.invalidateQueries({ queryKey: qk.profile });
+        qc.invalidateQueries({ queryKey: qk.kyc });
+      })
       .subscribe();
     return () => {
+      onForeground.remove();
       supabase()
         .removeChannel(channel)
         .catch(() => undefined);
     };
   }, [qc]);
+};
+
+export const useSignOut = () => {
+  const qc = useQueryClient();
+  const router = useRouter();
+  const setSignedIn = useSession((s) => s.setSignedIn);
+  return async () => {
+    await api.signOut().catch(() => undefined);
+    qc.clear();
+    setSignedIn(false);
+    router.replace('/welcome');
+  };
 };
 
 /** Mutation helper: runs an API write and refreshes everything it may have touched. */

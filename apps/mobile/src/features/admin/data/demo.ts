@@ -1,5 +1,5 @@
-import { ASSETS, asset as assetSpec, formatAmount, isAssetAddress, toUnits, unitsToCents } from '@xrp/ledger';
-import { hm } from './format';
+import { ASSETS, asset as assetSpec, formatAmount, isAssetAddress, isNetworkAddress, toUnits, unitsToCents, walletNetwork } from '@xrp/ledger';
+import { hm, identityAttention } from './format';
 import { livePrices } from './prices';
 import { maskPersonal } from './mask';
 import { approveBlock } from './rules';
@@ -19,6 +19,7 @@ import type {
   Role,
   Staff,
   TxItem,
+  AddedWallet,
 } from './types';
 import { ROLES } from './types';
 
@@ -582,6 +583,7 @@ type State = {
   /** Queue items acted on in this session; their transactions show the live status. */
   touched: Set<string>;
   /** Deposit addresses and on/off per asset, as Compliance set them. */
+  addedWallets: AddedWallet[];
   assetCfg: Record<string, { address: string | null; memo: string | null; enabled: boolean; networks?: Record<string, string | null> }>;
   /** Outcome of manually sent withdrawals. */
   sent: Record<string, { hash: string } | { failed: string }>;
@@ -610,12 +612,15 @@ const fresh = (): State => ({
   policy: 'pending',
   mine: [],
   touched: new Set(),
+  addedWallets: [],
   assetCfg: Object.fromEntries(ASSETS.map((a) => [a.id, { address: DEMO_ADDRESSES[a.id] ?? null, memo: null, enabled: true }])),
   sent: {},
   identity: {},
 });
 const g = globalThis as { __xrpAdminDemo?: State };
 const state = (): State => (g.__xrpAdminDemo ??= fresh());
+const identityWaiting = () =>
+  USERS.filter((u) => u.kyc.startsWith('Pending') && !state().identity[u.id]).map((u) => ({ id: u.id, accountRef: u.accountRef }));
 /** Tests and the "reset demo" control start over. */
 export const resetDemo = () => {
   g.__xrpAdminDemo = fresh();
@@ -664,6 +669,7 @@ export const createDemoData = (role: Role): AdminData => {
           { name: '[Market data provider]', note: 'XRP $2.38 · updated 12:50', status: 'Operational', tone: 'ok' },
         ],
         attention: [
+          ...identityAttention(identityWaiting()),
           {
             title: 'WD-PROTO-2042 needs a second approval',
             note: '1,250.00 XRP · over 1,000 XRP threshold',
@@ -842,6 +848,8 @@ export const createDemoData = (role: Role): AdminData => {
             tier: 'cold',
           },
         ],
+        added: s.addedWallets,
+        reserveNeeds: [{ asset: 'XRP', allocatedUnits: 1_500_000_000n, neededUnits: 13_500_000n }],
         policyVersion: 'v3',
         policy: [
           ['Up to 1,000 XRP', '1 staff approval, then hot wallet auto-sign'],
@@ -894,6 +902,9 @@ export const createDemoData = (role: Role): AdminData => {
     },
 
     recordViewed: async () => undefined,
+    identityWaiting: async () => identityWaiting(),
+    registerPush: async () => undefined,
+
     identity: async (customerId) => {
       const u = USERS.find((x) => x.id === customerId);
       if (!u) return null;
@@ -1000,6 +1011,11 @@ export const createDemoData = (role: Role): AdminData => {
       log('Reset customer password · sessions signed out', id);
       return { ok: true, email: 'customer@example.com', password: 'Demo-pass-2345-Xy7k' };
     },
+    resetTwoFactor: async (id) => {
+      if (role !== 'compliance') return { ok: false, error: 'Only Compliance can remove two-factor.' };
+      log('Removed customer two-factor · sessions signed out', id);
+      return { ok: true, message: 'Two-factor removed. The customer has been signed out and told.' };
+    },
     decidePolicy: async (_id, decision) => {
       if (role !== 'compliance') return { ok: false, error: 'Separation of duties: requested by Operations, so it needs Compliance approval.' };
       state().policy = decision === 'approve' ? 'approved' : 'declined';
@@ -1070,6 +1086,24 @@ export const createDemoData = (role: Role): AdminData => {
       state().assetCfg[asset] = { address: addr, memo: memo?.trim() || null, enabled, networks: { ...prev, ...extra } };
       log(`Set ${asset} deposit address${addr ? ` · ${addr.slice(0, 10)}…` : ' (closed)'}`, asset);
       return { ok: true, message: `${asset} settings saved.` };
+    },
+    addWallet: async (name, network, address) => {
+      if (role !== 'compliance') return { ok: false, error: 'Only Compliance can add wallets.' };
+      if (!name.trim()) return { ok: false, error: 'Give the wallet a name of up to 60 characters.' };
+      if (!isNetworkAddress(network, address)) return { ok: false, error: `That isn’t a valid ${walletNetwork(network)?.name ?? ''} address.` };
+      if (state().addedWallets.some((w) => w.network === network && w.address === address.trim())) return { ok: false, error: 'That wallet is already added.' };
+      state().addedWallets.push({ id: `wallet-${state().addedWallets.length + 1}`, name: name.trim(), network, address: address.trim(), reserve: false });
+      return { ok: true, message: 'Wallet added.' };
+    },
+    removeWallet: async (id) => {
+      if (role !== 'compliance') return { ok: false, error: 'Only Compliance can remove wallets.' };
+      state().addedWallets = state().addedWallets.filter((w) => w.id !== id);
+      return { ok: true, message: 'Wallet removed.' };
+    },
+    setWalletReserve: async (id, reserve) => {
+      if (role !== 'compliance') return { ok: false, error: 'Only Compliance can change the Earn reserve.' };
+      state().addedWallets = state().addedWallets.map((w) => (w.id === id ? { ...w, reserve } : w));
+      return { ok: true, message: reserve ? 'Wallet added to the Earn reserve.' : 'Wallet removed from the Earn reserve.' };
     },
     recordDeposit: async (customerId, asset, amountUnits, txHash, note) => {
       if (role === 'auditor') return { ok: false, error: 'Read-only role: you can view but not act.' };

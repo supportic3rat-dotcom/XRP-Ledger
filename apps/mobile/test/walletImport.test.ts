@@ -1,6 +1,10 @@
 import { readWalletAddress } from '@/lib/walletAddress';
-import { areValidSecretNumbers, isValidRow, secretNumbersToSeed, secretNumbersToWallet } from '@/lib/secretNumbers';
+import { areValidSecretNumbers, isValidRow, secretNumbersProblem, secretNumbersToSeed, secretNumbersToWallet } from '@/lib/secretNumbers';
+import { phraseProblem } from '@/lib/selfCustody';
 import { parseAddressInput } from '@/lib/xrpl';
+
+jest.mock('expo-local-authentication', () => ({ SecurityLevel: { NONE: 0, BIOMETRIC_WEAK: 2 } }));
+jest.mock('expo-secure-store', () => ({}));
 
 describe('reading a wallet address from a QR code or paste', () => {
   it.each([
@@ -54,5 +58,28 @@ describe('XRP secret key (family seed) import', () => {
     expect(isValidSecretKey(seed)).toBe(true);
     expect(isValidSecretKey(`${seed.slice(0, -1)}${seed.endsWith('a') ? 'b' : 'a'}`)).toBe(false);
     expect(isValidSecretKey('not-a-seed')).toBe(false);
+  });
+});
+
+describe('alerting on a wrong phrase', () => {
+  const good = [...Array<string>(11).fill('abandon'), 'about'];
+  it('accepts a valid phrase', () => expect(phraseProblem(good)).toBeNull());
+  it('names missing words', () => {
+    const w = [...good];
+    w[2] = '';
+    w[6] = '';
+    expect(phraseProblem(w)).toBe('Wrong phrase: words 3 and 7 are missing.');
+  });
+  it('names words that aren’t recovery words', () => {
+    const w = [...good];
+    w[4] = 'abandonn';
+    expect(phraseProblem(w)).toBe('Wrong phrase: word 5 isn’t a recovery word. Check the spelling.');
+  });
+  it('catches real words in the wrong order', () => {
+    expect(phraseProblem(['about', ...good.slice(0, 11)])).toContain('don’t make a valid recovery phrase');
+  });
+  it('names wrong Secret Numbers rows', () => {
+    expect(secretNumbersProblem(Array<string>(8).fill('000000'))).toBeNull();
+    expect(secretNumbersProblem(['000001', ...Array<string>(7).fill('000000')])).toBe('Wrong Secret Numbers: check row A.');
   });
 });

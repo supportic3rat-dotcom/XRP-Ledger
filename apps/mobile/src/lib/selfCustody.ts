@@ -19,6 +19,21 @@ export const isKnownWord = (word: string): boolean => wordlist.includes(word.tri
 export const isValidPhrase = (words: string[]): boolean =>
   (words.length === 12 || words.length === 24) && words.every(isKnownWord) && validateMnemonic(words.map((w) => w.trim().toLowerCase()).join(' '), wordlist);
 
+const numbered = (noun: string, n: number[]): string => {
+  const list = n.length > 1 ? `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}` : `${n[0]}`;
+  return `${noun}${n.length > 1 ? 's' : ''} ${list}`;
+};
+
+/** What's wrong with a phrase, for the alert under the words; null when it's valid. Never includes the words themselves. */
+export const phraseProblem = (words: string[]): string | null => {
+  const at = (test: (w: string) => boolean) => words.flatMap((w, i) => (test(w) ? [i + 1] : []));
+  const missing = at((w) => !w.trim());
+  if (missing.length) return `Wrong phrase: ${numbered('word', missing)} ${missing.length > 1 ? 'are' : 'is'} missing.`;
+  const unknown = at((w) => !isKnownWord(w));
+  if (unknown.length) return `Wrong phrase: ${numbered('word', unknown)} ${unknown.length > 1 ? 'aren’t recovery words' : 'isn’t a recovery word'}. Check the spelling.`;
+  return isValidPhrase(words) ? null : 'Wrong phrase: these words don’t make a valid recovery phrase. Check the order and that none is mistyped.';
+};
+
 const LEGACY_KEY = 'xrp.selfcustody.v1';
 const keyFor = (address: string) => `xrp.selfcustody.v2.${address}`;
 

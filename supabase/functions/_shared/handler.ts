@@ -11,8 +11,8 @@ import { type Claims, readClaims } from './jwt.ts';
 import { providers as defaultProviders } from './providers.ts';
 
 export type Access =
-  /** A signed-in customer. Email and password are the whole sign-in: there is no second step. */
-  | { kind: 'customer' }
+  /** A signed-in customer. If they turned on two-factor the session must have passed it, unless `secondStep`: the call that passes it. */
+  | { kind: 'customer'; secondStep?: boolean }
   /** Operations, Compliance or Auditor. */
   | { kind: 'staff'; roles?: readonly StaffRole[] }
   /** Staff, or the scheduler presenting CRON_SECRET. */
@@ -110,6 +110,7 @@ const authenticate = async (req: Request, access: Access, deps: Deps): Promise<C
   const role = claims.app_role ?? 'customer';
   if (access.kind === 'customer') {
     if (STAFF.includes(role)) throw new HttpError(403, 'Staff accounts cannot use customer actions.', 'forbidden');
+    if (!access.secondStep && user.totpFactorIds.length && claims.aal !== 'aal2') throw new HttpError(403, 'Enter your authenticator code to continue.', 'mfa_required');
   } else {
     if (!STAFF.includes(role)) throw new HttpError(403, 'Not authorised.', 'forbidden');
     if (access.roles && !access.roles.includes(role as StaffRole)) throw new HttpError(403, 'Your role cannot do this.', 'forbidden');

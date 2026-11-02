@@ -175,9 +175,20 @@ export const createDemoApi = (): Api => {
         return { status: 'error', attemptsLeft: Math.max(0, 5 - db.badAttempts), locked: db.badAttempts >= 5 };
       }
       db.badAttempts = 0;
+      if (db.profile.twoFactorEnabled) return { status: 'mfa_required' };
       db.signedIn = true;
       emit();
       return { status: 'ok' };
+    },
+    verifyMfa: async (code, backup) => {
+      await wait();
+      if (backup) {
+        if (db.profile.backupCodesUnused === 0 || !/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code.toUpperCase())) return { ok: false };
+        db.profile.backupCodesUnused -= 1;
+      } else if (!/^\d{6}$/.test(code)) return { ok: false };
+      db.signedIn = true;
+      emit();
+      return { ok: true };
     },
     signUp: async (input) => {
       await wait();
@@ -546,6 +557,27 @@ export const createDemoApi = (): Api => {
         at: iso(),
       });
       emit();
+    },
+    setTwoFactor: async (enabled) => {
+      db.profile.twoFactorEnabled = enabled;
+      db.profile.twoFactorOffAt = enabled ? null : new Date(api.now().getTime() + 86_400_000).toISOString();
+      db.securityEvents.unshift({
+        id: `s${Date.now()}`,
+        title: enabled ? 'Two-factor turned on' : 'Two-factor turn-off requested · 24-hour hold',
+        meta: 'Just now · iPhone 15',
+        at: iso(),
+      });
+      emit();
+    },
+    startTotpEnrollment: async () =>
+      db.profile.twoFactorOffAt ? null : { factorId: 'demo', uri: 'otpauth://totp/XRP%20Ledger?secret=JBSWY3DPEHPK3PXP', secret: 'JBSWY3DPEHPK3PXP' },
+    confirmTotpEnrollment: async (_factorId, code) => ({ ok: /^\d{6}$/.test(code) }),
+    regenerateBackupCodes: async () => {
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const pick = () => Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+      db.profile.backupCodesUnused = 8;
+      emit();
+      return Array.from({ length: 8 }, () => `${pick()}-${pick()}`);
     },
     changePassword: async () => {
       await wait();

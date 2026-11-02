@@ -46,11 +46,8 @@ export const resolveStaff = async (email: string): Promise<StaffSession | null> 
 
 type StaffState = { session: StaffSession | null; setSession: (s: StaffSession | null) => void };
 
-/** The signed-in staff member, kept in memory only: closing the app ends the console session. */
+/** The signed-in staff member, rebuilt from the stored session at launch (`useRestoreSession`). */
 export const useStaff = create<StaffState>()((set) => ({
   session: null,
   setSession: (session) => set({ session }),
 }));
-
-/** Idle staff sessions end after 15 minutes (TDD). */
-export const IDLE_LIMIT_MS = 15 * 60_000;

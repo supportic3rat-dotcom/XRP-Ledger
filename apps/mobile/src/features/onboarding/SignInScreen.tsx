@@ -6,7 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Linking, Pressable, View } from 'react-native';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
-import { ErrorText, Field, Help, Label, TextField } from '@/components/Form';
+import { ErrorText, Field, Help, Label, OtpInput, TextField } from '@/components/Form';
 import { HeroIcon } from '@/components/Glyph';
 import { Screen, ScrollBody } from '@/components/Screen';
 import { T } from '@/components/T';
@@ -16,7 +16,7 @@ import { passwordResetEmail, SUPPORT_EMAIL } from '@/lib/support';
 import { resolveStaff, useStaff } from '@/features/admin/session';
 import { useSession } from '@/state/session';
 
-type View_ = 'signin' | 'forgot' | 'sent';
+type View_ = 'signin' | 'twofa' | 'forgot' | 'sent';
 
 /** `.h1` 24/600 −0.02em and `.lead` 14/1.5 text-2. */
 const H1 = ({ children }: { children: string }) => (
@@ -46,6 +46,9 @@ export const SignInScreen = () => {
   const [view, setView] = useState<View_>('signin');
   const [showPass, setShowPass] = useState(false);
   const [bad, setBad] = useState<{ attemptsLeft: number; locked: boolean } | null>(null);
+  const [backup, setBackup] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const form = useForm<SignInInput>({
@@ -55,16 +58,11 @@ export const SignInScreen = () => {
     reValidateMode: 'onChange',
   });
   const email = form.watch('email');
+  const at = email.indexOf('@');
+  const masked = at > 1 ? `${email.charAt(0)}•••${email.slice(at)}` : 'your account';
 
-  const submit = form.handleSubmit(async ({ email: e, password }) => {
-    setBusy(true);
-    const r = await api.signIn(e.trim(), password);
-    if (r.status !== 'ok') {
-      setBusy(false);
-      setBad({ attemptsLeft: r.attemptsLeft, locked: r.locked });
-      return;
-    }
-    // Staff accounts open the operations console; everyone else opens their wallet.
+  /** Staff accounts open the operations console; everyone else opens their wallet. */
+  const enter = async (e: string) => {
     const staff = await resolveStaff(e).catch(() => null);
     setBusy(false);
     if (staff) {
@@ -74,7 +72,41 @@ export const SignInScreen = () => {
     }
     setSignedIn(true);
     router.replace('/');
+  };
+
+  const submit = form.handleSubmit(async ({ email: e, password }) => {
+    setBusy(true);
+    const r = await api.signIn(e.trim(), password);
+    if (r.status === 'mfa_required') {
+      setBusy(false);
+      setBad(null);
+      setView('twofa');
+      return;
+    }
+    if (r.status !== 'ok') {
+      setBusy(false);
+      setBad({ attemptsLeft: r.attemptsLeft, locked: r.locked });
+      return;
+    }
+    await enter(e);
   });
+
+  const verify = async () => {
+    const valid = backup ? /^[A-Z0-9]{4}-?[A-Z0-9]{4}$/.test(otp) : /^\d{6}$/.test(otp);
+    if (!valid) {
+      setOtpError(backup ? 'Enter the 8-character backup code.' : 'Enter the 6-digit authenticator code.');
+      return;
+    }
+    setBusy(true);
+    const code = backup && !otp.includes('-') ? `${otp.slice(0, 4)}-${otp.slice(4)}` : otp;
+    const r = await api.verifyMfa(code, backup).catch(() => ({ ok: false }));
+    if (!r.ok) {
+      setBusy(false);
+      setOtpError(backup ? 'That backup code isn’t valid or was already used.' : 'That code didn’t match. Check your authenticator app and try again.');
+      return;
+    }
+    await enter(email);
+  };
 
   /** No email service: the request goes to support from the customer's own mail app, which proves they own the address. */
   const sendReset = async () => {
@@ -91,7 +123,12 @@ export const SignInScreen = () => {
   };
 
   const back = () => {
+    // Leaving the two-factor step ends the half-finished sign-in.
+    if (view === 'twofa') void api.signOut().catch(() => undefined);
     form.clearErrors();
+    setOtp('');
+    setOtpError('');
+    setBackup(false);
     setView('signin');
   };
 
@@ -205,6 +242,55 @@ export const SignInScreen = () => {
                 Create an account
               </T>
             </View>
+          </>
+        ) : null}
+
+        {view === 'twofa' ? (
+          <>
+            <View style={{ marginBottom: 14 }}>
+              <HeroIcon icon="lock" tone="ok" size={52} />
+            </View>
+            <H1>Two-factor check</H1>
+            <Lead>
+              Enter the {backup ? '8-character backup code' : '6-digit code from your authenticator app'} for{' '}
+              <T weight={600} color="text2">
+                {masked}
+              </T>
+              .
+            </Lead>
+            <View style={{ marginBottom: 6 }}>
+              <Label>{backup ? 'Backup code' : 'Authentication code'}</Label>
+            </View>
+            <OtpInput
+              label={backup ? 'Backup code' : 'Authentication code'}
+              value={otp}
+              alphanumeric={backup}
+              length={backup ? 8 : 6}
+              invalid={!!otpError}
+              onChange={(v) => {
+                setOtp(v);
+                if (otpError) setOtpError('');
+              }}
+            />
+            <ErrorText style={{ marginTop: 6 }}>{otpError}</ErrorText>
+            <View style={{ marginTop: 20, gap: 10 }}>
+              <Button label="Verify and continue" onPress={verify} loading={busy} />
+              <Button
+                label={backup ? 'Use authenticator code instead' : 'Use a backup code'}
+                variant="secondary"
+                onPress={() => {
+                  setBackup((b) => !b);
+                  setOtp('');
+                  setOtpError('');
+                }}
+              />
+            </View>
+            <Help align="center" style={{ marginTop: 16 }}>
+              Lost access to your authenticator?{' '}
+              <T size={12.5} color="accentText" onPress={() => router.push('/support')} accessibilityRole="link">
+                Contact support
+              </T>
+            </Help>
           </>
         ) : null}
 

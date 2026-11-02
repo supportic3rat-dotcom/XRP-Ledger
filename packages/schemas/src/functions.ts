@@ -92,6 +92,7 @@ export const fnSchemas = {
   /** Staff pay out an approved loan, or confirm a bank repayment arrived, with the bank transfer reference. */
   'loan-settle': z.object({ transactionId: uuid, reference: z.string().trim().min(4).max(80) }),
   'kyc-session': z.object({ documentType: z.enum(['passport', 'national', 'licence']), country: z.string(), addressDocument: z.enum(['bank', 'utility']) }),
+  'kyc-submitted': z.object({ reference: z.string().min(1).max(120) }),
   'ticket-create': z.object({ topic: z.string().min(1), transactionRef: z.string().nullable(), message: z.string().min(20) }),
   'ticket-reply': z.object({ ticketRef: z.string(), message: z.string().min(1) }),
   'consent-accept': z.object({ document: legalDocument, version: z.string().min(1) }),
@@ -112,6 +113,8 @@ export const fnSchemas = {
   'customer-freeze': z.object({ customerId: z.string().uuid(), frozen: z.boolean() }),
   /** Compliance sets a new password for a customer who emailed support; it's shown once to send back. */
   'customer-password-reset': z.object({ customerId: uuid }),
+  /** Compliance removes two-factor for a customer who lost their authenticator and backup codes. */
+  'customer-mfa-reset': z.object({ customerId: uuid }),
   /** Runs whatever scheduled upkeep is due (prices, jobs, balances, daily reconciliation). Called by the app. */
   upkeep: z.object({}),
   'customer-flag': z.object({ customerId: z.string().uuid(), note: z.string() }),

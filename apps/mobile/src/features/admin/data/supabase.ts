@@ -2,7 +2,7 @@ import { asset as assetSpec, formatAmount, formatPrice, isAssetId, unitsToCents 
 import { providerNames } from '@xrp/providers';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
-import { age, hm, shortAddr, when, xrp2 } from './format';
+import { age, hm, identityAttention, shortAddr, when, xrp2 } from './format';
 import { livePrices } from './prices';
 import { accountLabel, amountLabel, kindLabel, queueKind, statusLabel, txFilterKind } from './labels';
 import type {
@@ -15,6 +15,7 @@ import type {
   CustomerRecord,
   HoldingRow,
   IdentityCheck,
+  IdentityWaiting,
   JournalRow,
   QueueItem,
   Recon,
@@ -391,9 +392,14 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
     };
   };
 
+  const identityWaiting = async (): Promise<IdentityWaiting[]> =>
+    (await rows(db.from('customers_masked').select('id, account_ref').eq('kyc_status', 'in_progress'))).map((c) => ({ id: str(c.id), accountRef: str(c.account_ref) }));
+
   const custody = async (): Promise<Custody> => {
-    const [wallets, signers, limits, changes, run] = await Promise.all([
+    const [wallets, added, needs, signers, limits, changes, run] = await Promise.all([
       rows(db.from('custody_wallets').select('*')),
+      rows(db.from('platform_wallets').select('*').is('removed_at', null).order('created_at')),
+      rows(db.rpc('earn_reserve_needs')),
       rows(db.from('signers').select('*').order('status').order('name')),
       rows(db.from('limits').select('*')),
       rows(db.from('policy_changes').select('*').order('created_at', { ascending: false }).limit(1)),
@@ -423,6 +429,8 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
           ceilingDrops: w.ceiling_drops === null ? null : big(w.ceiling_drops),
           tier: str(w.tier),
         })),
+      added: added.map((w) => ({ id: str(w.id), name: str(w.name), network: str(w.network), address: str(w.address), reserve: w.reward_reserve === true })),
+      reserveNeeds: needs.map((n) => ({ asset: str(n.asset), allocatedUnits: big(n.allocated_drops), neededUnits: big(n.needed_drops) })),
       policyVersion: 'v3',
       policy: [
         ['Up to 1,000 XRP', '1 staff approval, then hot wallet auto-sign'],
@@ -491,7 +499,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
         custody(),
         rows(db.from('worker_heartbeat').select('*').order('at', { ascending: false }).limit(1)),
         rows(db.from('prices').select('usd_micro, at, source').eq('asset', 'XRP').order('at', { ascending: false }).limit(1)),
-        rows(db.from('customers_masked').select('id').in('kyc_status', ['in_progress', 'more_info'])),
+        identityWaiting(),
       ]);
       const pending = q.filter((i) => !i.decided);
       const oldest = pending[0];
@@ -539,6 +547,7 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
           },
         ],
         attention: [
+          ...identityAttention(kyc),
           ...pending
             .filter((i) => i.required === 2)
             .slice(0, 1)
@@ -564,6 +573,11 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
             : []),
         ],
       };
+    },
+
+    identityWaiting,
+    registerPush: async (token) => {
+      await db.rpc('staff_push_register', { p_token: token });
     },
 
     identity: async (customerId) => {
@@ -643,6 +657,10 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
       const r = await call('customer-password-reset', { customerId: id });
       return r.ok ? { ok: true, email: str(r.email), password: str(r.password) } : r;
     },
+    resetTwoFactor: async (id) => {
+      const r = await call('customer-mfa-reset', { customerId: id });
+      return r.ok ? { ok: true, message: 'Two-factor removed. The customer has been signed out and told.' } : r;
+    },
     decidePolicy: async (id, decision) => {
       const r = await call('policy-decide', { policyChangeId: id, decision });
       return r.ok ? { ok: true, message: decision === 'approve' ? 'Approved. The new ceiling applies after a 24-hour delay.' : 'Change declined.' } : r;
@@ -690,6 +708,18 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
     updateAsset: async (asset, depositAddress, memo, enabled, networks) => {
       const r = await call('asset-update', { asset, depositAddress, memo, enabled, ...(networks ? { networks } : {}) });
       return r.ok ? { ok: true, message: `${asset} settings saved.` } : r;
+    },
+    addWallet: async (name, network, address) => {
+      const { error } = await db.rpc('platform_wallet_add', { p_name: name, p_network: network, p_address: address });
+      return error ? { ok: false, error: error.message } : { ok: true, message: 'Wallet added.' };
+    },
+    removeWallet: async (id) => {
+      const { error } = await db.rpc('platform_wallet_remove', { p_id: id });
+      return error ? { ok: false, error: error.message } : { ok: true, message: 'Wallet removed.' };
+    },
+    setWalletReserve: async (id, reserve) => {
+      const { error } = await db.rpc('platform_wallet_set_reserve', { p_id: id, p_reserve: reserve });
+      return error ? { ok: false, error: error.message } : { ok: true, message: reserve ? 'Wallet added to the Earn reserve.' : 'Wallet removed from the Earn reserve.' };
     },
     recordDeposit: async (customerId, asset, amountUnits, txHash, note) => {
       const r = await call('deposit-record', { customerId, asset, amountUnits: amountUnits.toString(), txHash, note });

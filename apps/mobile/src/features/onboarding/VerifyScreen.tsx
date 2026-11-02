@@ -13,7 +13,7 @@ import { Status } from '@/components/Status';
 import { StepBar } from '@/components/Steps';
 import { T } from '@/components/T';
 import { TopBar } from '@/components/TopBar';
-import { useKycStatus } from '@/data/hooks';
+import { useKycDecision, useKycStatus } from '@/data/hooks';
 
 const I_ID = 'M4 6.5h16v11H4zM8 10.5h3M8 13.5h5M15.5 10.5h1.5';
 const I_OK = 'M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1zM8.8 12.2l2.2 2.2 4.2-4.4';
@@ -47,10 +47,10 @@ const STATES: Record<KycStatus, StateCopy> = {
     secondaryTarget: 'home',
   },
   in_progress: {
-    label: 'In progress',
+    label: 'Under review',
     tone: 'wait',
     icon: I_CLOCK,
-    title: 'We’re reviewing your details',
+    title: 'Your verification is under review',
     body: 'Most reviews finish within a few hours. We’ll notify you when there’s an update — you don’t need to keep the app open.',
     cta: 'Go to Home',
     target: 'home',
@@ -112,7 +112,7 @@ const CHECKS: Partial<Record<KycStatus, [string, Tone][]>> = {
   in_progress: [
     ['Received', 'ok'],
     ['Received', 'ok'],
-    ['In review', 'wait'],
+    ['Under review', 'wait'],
   ],
   more_info: [
     ['Received', 'ok'],
@@ -132,11 +132,13 @@ export const VerifyScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ status?: KycStatus }>();
   const kyc = useKycStatus();
+  const decision = useKycDecision();
   const key: KycStatus = params.status && params.status in STATES ? params.status : (kyc.data ?? 'not_started');
   const st = STATES[key];
   const verified = key === 'verified';
   const blocked = key === 'rejected' || key === 'restricted';
   const checks = CHECKS[key];
+  const reason = (key === 'rejected' || key === 'more_info') && decision ? decision.body : null;
   const go = (t: StateCopy['target'] | StateCopy['secondaryTarget']) =>
     t === 'identity' ? router.push('/identity') : t === 'support' ? router.push('/support') : t === 'custody' ? router.push('/custody') : router.replace('/');
 
@@ -152,7 +154,7 @@ export const VerifyScreen = () => {
             {st.title}
           </BalancedText>
           <T lh={1.5} color="text2">
-            {st.body}
+            {reason ?? st.body}
           </T>
         </View>
         {checks ? (

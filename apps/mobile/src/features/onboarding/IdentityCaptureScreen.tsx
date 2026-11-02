@@ -4,8 +4,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
-import { Platform, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import Svg, { Ellipse } from 'react-native-svg';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
@@ -44,6 +44,10 @@ const POSES = [
   { key: 'left', prompt: 'Turn your head slightly to the left', done: 'Left' },
   { key: 'right', prompt: 'Now turn slightly to the right', done: 'Right' },
 ] as const;
+
+/** How long the camera gets to start before the customer is told and offered another way. */
+const CAMERA_START_MS = 8000;
+const CAMERA_PROBLEM = 'The camera didn’t start. Try again, or close other apps using the camera.';
 
 const H1 = ({ children }: { children: string }) => (
   <T size={22} weight={600} ls={-0.02} style={{ marginBottom: 6 }} accessibilityRole="header">
@@ -88,6 +92,10 @@ export const IdentityCaptureScreen = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [reference, setReference] = useState('');
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraProblem, setCameraProblem] = useState('');
+  const [cameraAttempt, setCameraAttempt] = useState(0);
+  const [capturing, setCapturing] = useState(false);
 
   const d = DOCS.find((x) => x.id === doc) ?? DOCS[1]!;
   const steps: StepId[] = ['doc', 'front', ...(d.sides === 2 ? (['back'] as const) : []), 'selfie', 'address', 'review', 'done'];
@@ -101,23 +109,66 @@ export const IdentityCaptureScreen = () => {
   const go = (n: number) => setI(Math.max(0, Math.min(steps.length - 1, n)));
   const useLiveCamera = Platform.OS !== 'web' && !!permission?.granted;
 
+  const native = Platform.OS !== 'web';
+  const needsCameraAccess = native && captureStep && !taken && !!permission && !permission.granted;
+  const cameraOn = useLiveCamera && captureStep && !taken;
+  const cameraStarting = cameraOn && !cameraReady;
+
+  useEffect(() => {
+    if (needsCameraAccess && permission.canAskAgain) void requestPermission();
+  }, [needsCameraAccess, permission?.canAskAgain, requestPermission]);
+
+  useEffect(() => {
+    setCameraReady(false);
+    setCameraProblem('');
+  }, [cameraOn, cur, cameraAttempt]);
+
+  useEffect(() => {
+    if (!cameraStarting) return;
+    const timer = setTimeout(() => setCameraProblem(CAMERA_PROBLEM), CAMERA_START_MS);
+    return () => clearTimeout(timer);
+  }, [cameraStarting, cur, cameraAttempt]);
+
+  const onCameraReady = () => {
+    setCameraReady(true);
+    setCameraProblem('');
+  };
+  const shotKey = () => (cur === 'selfie' ? POSES[pose === -1 ? 0 : pose]!.key : cur === 'back' ? 'back' : 'front');
+
   const capture = async () => {
     setError('');
-    if (Platform.OS !== 'web' && !permission?.granted) {
-      const r = await requestPermission();
-      if (!r.granted) {
-        setError('Camera access is needed to photograph your ID. You can allow it in Settings.');
-        return;
-      }
+    if (!native) {
+      setShots((s) => ({ ...s, [shotKey()]: 'captured' }));
+      return;
     }
-    let uri = 'captured';
-    if (useLiveCamera && camera.current) {
+    if (!permission?.granted) {
+      const r = await requestPermission();
+      if (!r.granted) setError('Camera access is needed to photograph your ID. You can allow it in Settings.');
+      return;
+    }
+    if (!camera.current || !cameraReady) return;
+    setCapturing(true);
+    try {
       // Kept in the app's cache only (never the camera roll) and uploaded straight to the private kyc bucket.
       const photo = await camera.current.takePictureAsync({ quality: 0.7, skipProcessing: false });
-      uri = photo?.uri ?? uri;
+      if (!photo?.uri) throw new Error('No photo');
+      setShots((s) => ({ ...s, [shotKey()]: photo.uri }));
+    } catch {
+      setError('We couldn’t take that photo. Try again.');
+    } finally {
+      setCapturing(false);
     }
-    const key = cur === 'selfie' ? POSES[pose === -1 ? 0 : pose]!.key : cur === 'back' ? 'back' : 'front';
-    setShots((s) => ({ ...s, [key]: uri }));
+  };
+  const uploadPhoto = async () => {
+    const r = await DocumentPicker.getDocumentAsync({ type: ['image/jpeg'], copyToCacheDirectory: true, multiple: false });
+    const asset = r.assets?.[0];
+    if (r.canceled || !asset) return;
+    if ((asset.size ?? 0) > 10 * 1024 * 1024) {
+      setError('That photo is over 10 MB. Choose a smaller JPG.');
+      return;
+    }
+    setError('');
+    setShots((s) => ({ ...s, [shotKey()]: asset.uri }));
   };
   const retake = () =>
     setShots((s) => (cur === 'selfie' ? { ...s, selfie: undefined, left: undefined, right: undefined } : { ...s, [cur === 'back' ? 'back' : 'front']: undefined }));
@@ -191,9 +242,9 @@ export const IdentityCaptureScreen = () => {
           marginBottom={4}
         />
         {cur !== 'done' ? <StepBar total={total} current={i + 1} style={{ marginBottom: 20 }} /> : null}
-        {error ? (
+        {error || cameraProblem ? (
           <Banner tone="error" icon="alert" alert style={{ marginBottom: 14 }}>
-            {error}
+            {error || cameraProblem}
           </Banner>
         ) : null}
 
@@ -261,13 +312,29 @@ export const IdentityCaptureScreen = () => {
                 overflow: 'hidden',
               }}
             >
-              {useLiveCamera && !taken ? <CameraView ref={camera} facing="back" style={{ position: 'absolute', inset: 0 }} /> : null}
+              {cameraOn ? (
+                <CameraView
+                  key={`${cur}-${cameraAttempt}`}
+                  ref={camera}
+                  facing="back"
+                  style={StyleSheet.absoluteFill}
+                  onCameraReady={onCameraReady}
+                  onMountError={() => setCameraProblem(CAMERA_PROBLEM)}
+                />
+              ) : null}
+              {taken && native ? (
+                <Image source={{ uri: cur === 'back' ? shots.back : shots.front }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+              ) : null}
               <Corners />
-              {taken ? (
+              {taken && !native ? (
                 <>
                   <Icon name="check" size={32} color="pos" />
                   <T weight={500}>Photo captured</T>
                 </>
+              ) : cameraStarting ? (
+                <T size={13} color="text3">
+                  Starting camera…
+                </T>
               ) : !useLiveCamera ? (
                 <>
                   <Icon name="camera" size={32} color="text3" />
@@ -316,7 +383,16 @@ export const IdentityCaptureScreen = () => {
                 accessibilityLabel={faceDone ? 'Face scan complete' : `Camera preview. ${POSES[pose]!.prompt}`}
                 style={{ width: 190, height: 240, alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden', borderRadius: 95 }}
               >
-                {useLiveCamera && !faceDone ? <CameraView ref={camera} facing="front" style={{ position: 'absolute', inset: 0 }} /> : null}
+                {cameraOn ? (
+                  <CameraView
+                    key={`${cur}-${cameraAttempt}`}
+                    ref={camera}
+                    facing="front"
+                    style={StyleSheet.absoluteFill}
+                    onCameraReady={onCameraReady}
+                    onMountError={() => setCameraProblem(CAMERA_PROBLEM)}
+                  />
+                ) : null}
                 <Svg width={190} height={240} style={{ position: 'absolute' }}>
                   <Ellipse
                     cx={95}
@@ -464,7 +540,7 @@ export const IdentityCaptureScreen = () => {
               <KV
                 items={[
                   { k: 'Reference', v: reference, mono: true, valueSize: 12.5 },
-                  { k: 'Status', v: 'In review' },
+                  { k: 'Status', v: 'Under review' },
                   { k: 'Meanwhile you can', v: 'Explore the app' },
                 ]}
               />
@@ -474,7 +550,17 @@ export const IdentityCaptureScreen = () => {
       </ScrollBody>
 
       <Footer>
-        {captureStep && !taken ? <Button label={cur === 'selfie' ? (pose === 0 ? 'Start face scan' : 'Capture') : 'Take photo'} onPress={capture} flex={1} /> : null}
+        {captureStep && !taken && cameraProblem ? <Button label="Try again" variant="secondary" onPress={() => setCameraAttempt((n) => n + 1)} flex={1} /> : null}
+        {isPhoto && !taken && native ? <Button label="Upload photo" variant="secondary" onPress={uploadPhoto} flex={1} /> : null}
+        {captureStep && !taken && !cameraProblem ? (
+          <Button
+            label={cameraStarting ? 'Starting…' : cur === 'selfie' ? (pose === 0 ? 'Start face scan' : 'Capture') : 'Take photo'}
+            disabled={cameraStarting}
+            loading={capturing}
+            onPress={capture}
+            flex={1}
+          />
+        ) : null}
         {captureStep && taken ? (
           <>
             <Button label="Retake" variant="secondary" onPress={retake} flex={1} />

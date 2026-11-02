@@ -104,6 +104,7 @@ Everything here differs from the design files or the brief on purpose, or still 
 
 ## 2026-10-23 · Sign-in is email and password only (owner's decision)
 
+- Two-factor later came back as an option; see the 2026-11-02 entry.
 - Removed every 6-digit code step: the sign-up email code (mobile), the authenticator step at sign-in (mobile,
   web, admin), the authenticator code on withdrawals (mobile, web, `withdraw-request`), and the two-factor switch,
   authenticator setup and backup codes (mobile Profile/Security, web Settings).
@@ -118,6 +119,19 @@ Everything here differs from the design files or the brief on purpose, or still 
 - Fixed (same day): app sign-ups never got a `customers` row (only the seed wrote them). A trigger on `auth.users`
   now creates it from the sign-up metadata, with a unique destination tag and an `ACC-…` reference
   (`20261023000300_customer_on_signup.sql`). Users created without `full_name` (staff) are skipped.
+
+## 2026-11-02 · Two-factor is back, as an option (owner's decision)
+
+- Customers can turn on an authenticator app in Security. Off by default: without it, sign-in stays email and
+  password. It asks for a code at sign-in only; withdrawals keep Face ID / passcode and take no code.
+- Backup codes are generated straight after setup. Turning it off still takes 24 hours and pauses withdrawals.
+- Once it's on, the password alone is enforced as not enough: Edge Functions refuse `aal1` customer calls
+  (`_shared/handler.ts`), and a restrictive `mfa_required` policy on every RLS table blocks direct reads
+  (`20261102000100_optional_two_factor.sql`). New tables need that policy too.
+- A few low-risk RPCs granted to `authenticated` (`create_trust`, `set_notification_prefs`) aren't gated by it.
+- Compliance can remove two-factor from a customer's console page (`customer-mfa-reset`) for someone who lost
+  their authenticator and backup codes.
+- Staff accounts aren't included: they stay password-only.
 
 ## 2026-10-23 · One mobile app: staff console moved into the app (owner's decision)
 
@@ -310,3 +324,71 @@ Everything here differs from the design files or the brief on purpose, or still 
 - Production wording: no "v0.1", "draft", "sample" or bracket placeholders; legal documents are version 1.0;
   "Built on the XRP Ledger" replaces the affiliation disclaimer (no claim of endorsement by Ripple or the XRP Ledger
   Foundation).
+
+## 2026-10-31 · Wrong-phrase alert; connected wallets on Home
+
+- Import wallet is tappable once anything is typed and alerts on a wrong phrase, Secret Numbers or secret key, naming
+  the words or rows to check (never echoing them). A phrase can't be tested against the wallet the customer meant, so
+  a valid phrase that opens a wallet with no XRP gets a warning on the done screen.
+- Home lists connected wallets with their balances in their own section, labelled as outside the custodial total.
+- **Not built, by design:** crediting a custodial balance for coins in a connected wallet. Custodial balances stay
+  backed by coins that actually arrived (`deposit-report`, `deposit-record`).
+
+## 2026-10-31 · Staying signed in; the Done crash; added wallets
+
+- Sessions last 15 minutes from the last use, app open or closed, for customers and staff (`lib/lastActive.ts`,
+  `useIdleSignOut`). Launch reopens one inside the limit and ends an older one (`useRestoreSession`); before this every
+  launch asked for the password, because `signedIn` lived only in memory. Staff sessions no longer end on close.
+- Fixed: leaving Connect a wallet with Done closed the app. Going from `(auth)` back into `(app)` by `replace` mounts a
+  second `(app)` layout, whose `useLiveUpdates` reused the open `customer-live` channel and threw (realtime-js refuses
+  callbacks after `subscribe()`). Channels are now per mount, and Done from Profile goes back.
+- Custody → Added wallets: Compliance adds or removes more wallets on any network, listed with live balances
+  (`platform_wallets`, `20261031000100_platform_wallets.sql`). They're separate from `custody_wallets`, which the worker
+  and reconciliation read as XRP, and don't change where deposits go.
+
+## 2026-11-01 · Confident customer wording
+
+- Earn, Welcome and Custody copy reworded to lead with what's true. Earn rewards are not described as guaranteed: the
+  APR is variable and can reach zero. The Earn risk sheet still says so.
+- Loss-prevention warnings and legal documents are unchanged.
+
+## 2026-11-01 · Earn minimum APR and reserve
+
+- Earn has a 1% minimum APR on every coin, before the 10% platform fee, so customers receive at least 0.9%
+  (`20261101000100_earn_minimum_apr.sql`). Database checks refuse a lower rate on coins and positions.
+- The Custody screen shows an Earn reserve per coin: 12 months of minimum rewards after fees against the live balances
+  of wallets Compliance marks as reserve. Wallets taking customer deposits can't be marked. It reports cover; it doesn't
+  move funds or stop payouts.
+- Customer wording says "minimum", not "guaranteed", until the reserve is funded and the terms are updated and reviewed.
+
+## 2026-11-01 · Identity camera
+
+- The identity screen asks for camera access on arrival, waits for the camera before "Take photo", and reports a failed
+  start or shot with "Try again". A first tap no longer records an empty placeholder as a photo.
+- Document steps show the real photo after capture and offer "Upload photo" (JPG up to 10 MB). The face scan has no
+  upload, so it stays live.
+- The black preview itself hasn't been reproduced on a phone.
+
+## 2026-11-01 · Identity under review and Compliance alert
+
+- Customers see "Under review" on Verify, Home and Profile once they submit.
+- Waiting identity checks appear under "Needs attention", and Compliance gets a pop-up on any console screen, checked
+  every 30 seconds while the console is open. There is no push or email alert.
+- The status changes when upload links are issued, before the files finish uploading (`kyc-session`), so a failed
+  upload can still show as under review with documents missing.
+
+## 2026-11-01 · Identity submitted only when complete; Compliance phone alerts
+
+- `kyc-session` now holds a submission in `kyc_pending`. The new `kyc-submitted` function checks every file arrived,
+  then creates the check and puts the customer under review (`20261101000200_kyc_submit_and_staff_push.sql`).
+- Compliance phones register for Expo push notifications when the console opens, and get one alert per submission with
+  the account reference only. Sign-out keeps the registration so alerts still arrive when nobody is signed in.
+- Phone alerts are switched off for now (`PUSH_READY` in `staffPush.ts`, plugin out of `app.json`): the owner left the
+  Firebase and Apple setup for later, so no phone registers and Compliance relies on the console alerts.
+
+## 2026-11-01 · Identity status on Home
+
+- Home shows the identity status: under review, more information needed or rejected (with Compliance's reason), and
+  verified until the customer dismisses it. The Verify screen shows the same reason.
+- Status now refreshes when a decision notification arrives and when the app returns to the foreground.
+- Identity notifications used an icon the Notifications screen had no entry for; it now has one.

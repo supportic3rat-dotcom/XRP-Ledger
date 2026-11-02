@@ -1,7 +1,7 @@
 import { WALLET_NETWORKS, formatAmount, isNetworkAddress, shortAddress, walletNetwork } from '@xrp/ledger';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { IconName } from '@xrp/tokens';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 import { Banner } from '@/components/Banner';
@@ -20,8 +20,8 @@ import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useApiMutation } from '@/data/hooks';
 import { dropPendingWallet, savePendingWallet } from '@/lib/pendingWallets';
-import { areValidSecretNumbers, isValidRow, ROWS } from '@/lib/secretNumbers';
-import { importFromPhrase, importFromSecretKey, importFromSecretNumbers, isKnownWord, isValidPhrase, isValidSecretKey, removeSelfCustody } from '@/lib/selfCustody';
+import { isValidRow, ROWS, secretNumbersProblem } from '@/lib/secretNumbers';
+import { importFromPhrase, importFromSecretKey, importFromSecretNumbers, isKnownWord, isValidSecretKey, phraseProblem, removeSelfCustody } from '@/lib/selfCustody';
 import { readWalletAddress } from '@/lib/walletAddress';
 import { useSession } from '@/state/session';
 import { familyFor, useTheme } from '@/theme';
@@ -173,6 +173,7 @@ const WordSlot = ({
 
 export const ConnectWalletScreen = () => {
   const router = useRouter();
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const signedIn = useSession((x) => x.signedIn);
   const [method, setMethod] = useState<Method>('scan');
   const [step, setStep] = useState<Step>('choose');
@@ -191,6 +192,7 @@ export const ConnectWalletScreen = () => {
   const [otherFormat, setOtherFormat] = useState<Format>('phrase');
   const [seed, setSeed] = useState('');
   const [error, setError] = useState('');
+  const [triedImport, setTriedImport] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scanned = useRef(false);
   const refs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
@@ -218,9 +220,17 @@ export const ConnectWalletScreen = () => {
   const format: Format = other ? otherFormat : src.format;
   const xaman = format === 'numbers';
   const walletName = other ? otherName.trim() || 'Another wallet' : src.label;
-  const phraseOk =
-    (!other || otherName.trim().length > 0) &&
-    (format === 'numbers' ? areValidSecretNumbers(numbers) : format === 'seed' ? isValidSecretKey(seed) : isValidPhrase(slots));
+  const secretProblem =
+    other && !otherName.trim()
+      ? 'Type the wallet’s name.'
+      : format === 'numbers'
+        ? secretNumbersProblem(numbers)
+        : format === 'seed'
+          ? isValidSecretKey(seed)
+            ? null
+            : 'Wrong secret key: it starts with “s” and is about 29 characters. Check each character.'
+          : phraseProblem(slots);
+  const phraseOk = !secretProblem;
   const anySecret = format === 'numbers' ? numbers.some(Boolean) : format === 'seed' ? seed.length > 0 : anyWord;
 
   /** Links the wallet to the account, or keeps it on this phone until sign-up, then reads its balance. */
@@ -288,6 +298,7 @@ export const ConnectWalletScreen = () => {
   };
 
   const importWallet = async () => {
+    setTriedImport(true);
     if (!phraseOk) return;
     setStep('wait');
     setError('');
@@ -298,6 +309,7 @@ export const ConnectWalletScreen = () => {
       setNumbers(Array(ROWS).fill(''));
       setSeed('');
       setShow(false);
+      setTriedImport(false);
       await link(account.address, 'import');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Import failed.');
@@ -330,7 +342,7 @@ export const ConnectWalletScreen = () => {
               Connect a wallet you already own
             </T>
             <T lh={1.5} color="text2" style={{ marginBottom: 16 }}>
-              Link it to see its balance, or import it with its recovery phrase to use it from this app. It stays separate from your custodial account.
+              Link it to see its balance, or import it with its recovery phrase to use it from this app seamlessly.
             </T>
             <Segmented
               label="Connection method"
@@ -547,6 +559,7 @@ export const ConnectWalletScreen = () => {
                       setWords(Array(24).fill(''));
                       setNumbers(Array(ROWS).fill(''));
                       setSeed('');
+                      setTriedImport(false);
                     }}
                   />
                   <Button
@@ -572,7 +585,12 @@ export const ConnectWalletScreen = () => {
                   <Tick>You’re not sharing your screen or on a call</Tick>
                   <Tick>You keep your own paper backup — we can’t restore it</Tick>
                 </Card>
-                <Button label="Import wallet" onPress={importWallet} disabled={!phraseOk} style={{ marginTop: 16 }} />
+                {triedImport && secretProblem ? (
+                  <Banner tone="error" icon="alert" alert style={{ marginTop: 14 }}>
+                    {secretProblem}
+                  </Banner>
+                ) : null}
+                <Button label="Import wallet" onPress={importWallet} disabled={!anySecret} style={{ marginTop: 16 }} />
               </>
             ) : null}
           </>
@@ -620,6 +638,11 @@ export const ConnectWalletScreen = () => {
                 baseline={false}
               />
             </Card>
+            {imported && balances && !balances.XRP ? (
+              <Banner tone="warn" icon="alert" alert style={{ marginTop: 12 }}>
+                This wallet has no XRP. If you expected a balance, this may be the wrong phrase: remove it and check your backup.
+              </Banner>
+            ) : null}
             {imported && xaman ? (
               <Banner tone="warn" icon="shield" style={{ marginTop: 12 }}>
                 Check this address matches the one Xaman shows for this account. If it doesn’t, remove it and check the numbers.
@@ -642,7 +665,10 @@ export const ConnectWalletScreen = () => {
                 as="a"
                 label={signedIn ? 'Done' : 'Continue to custodial account'}
                 variant={signedIn && imported ? 'secondary' : 'primary'}
-                onPress={() => router.replace(signedIn ? '/profile' : { pathname: '/trust', params: { from: 'connect' } })}
+                onPress={() => {
+                  if (from === 'profile') router.back();
+                  else router.replace(signedIn ? '/profile' : { pathname: '/trust', params: { from: 'connect' } });
+                }}
               />
               <Button label={imported ? 'Remove from this phone' : 'Disconnect'} variant="secondary" onPress={() => void disconnect()} />
             </View>

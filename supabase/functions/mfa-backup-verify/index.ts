@@ -12,7 +12,7 @@ const MAX_FAILURES_PER_15_MIN = 5;
 export const handler = defineFunction({
   name: 'mfa-backup-verify',
   schema: fnSchemas['mfa-backup-verify'],
-  access: { kind: 'customer' },
+  access: { kind: 'customer', secondStep: true },
   run: async (ctx) => {
     const me = customerId(ctx);
     const session = sessionId(ctx);

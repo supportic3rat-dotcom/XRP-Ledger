@@ -20,7 +20,7 @@ import { T } from '@/components/T';
 import { useToast } from '@/components/Toast';
 import { api } from '@/data';
 import { useApiMutation, useAssets, useHoldings, usePriceMap, useProfile, useYieldPositions } from '@/data/hooks';
-import { flexibleProduct } from '@/data/products';
+import { EARN_MIN_APR, flexibleProduct } from '@/data/products';
 import { md, mdhm } from '@/lib/dates';
 import { newIdempotencyKey } from '@/lib/idempotency';
 import { useMoney } from '@/lib/money';
@@ -180,8 +180,8 @@ export const EarnScreen = () => {
         </T>
         <T size={13} color="text3" style={{ marginHorizontal: 4, marginBottom: 16 }}>
           {active.length
-            ? `${m.money(totalEarningCents)} earning across ${active.length} ${active.length === 1 ? 'asset' : 'assets'}. Rates can change; rewards aren’t guaranteed.`
-            : 'Rates are variable and can change. Rewards aren’t guaranteed.'}
+            ? `${m.money(totalEarningCents)} earning across ${active.length} ${active.length === 1 ? 'asset' : 'assets'}. Rewards are paid daily from our revenue share. Rates are variable, with a ${EARN_MIN_APR} minimum before fee.`
+            : `Earn on your crypto with no lock-up. Rewards are paid daily from our revenue share. Rates are variable, with a ${EARN_MIN_APR} minimum before fee.`}
         </T>
 
         {active.map((pos) => {
@@ -279,6 +279,7 @@ export const EarnScreen = () => {
               rowPad={10}
               items={[
                 { k: 'Minimum', v: formatAmount(product.minDrops, sel, { minDecimals: 0, maxDecimals: 8 }) },
+                { k: 'Minimum APR', v: `${EARN_MIN_APR} before fee` },
                 { k: 'Lock-up', v: product.lockUp },
                 { k: 'Withdrawal', v: product.withdrawal },
                 { k: 'Platform fee', v: `${product.feeBps / 100}% of rewards` },
@@ -372,7 +373,7 @@ export const EarnScreen = () => {
             ]}
           />
           <T size={12} lh={1.5} color="text3">
-            {`Simple interest: amount × ${((calcProduct?.aprBps ?? 0) / 100).toFixed(2)}% × ${days} days ÷ 365. An estimate at today’s rate, not a promise of returns.`}
+            {`Simple interest: amount × ${((calcProduct?.aprBps ?? 0) / 100).toFixed(2)}% × ${days} days ÷ 365. Estimated at today’s rate; rates are variable.`}
           </T>
         </Card>
       </ScrollBody>
@@ -384,9 +385,9 @@ export const EarnScreen = () => {
         </T>
         <Bullets
           items={[
-            'The rate is variable and set by us. It can fall to zero.',
-            `Allocated ${sheetAsset} stays with us in your account. Rewards are paid from our revenue and aren’t guaranteed.`,
-            'You can withdraw any time; it’s back in your available balance at once.',
+            `The APR is variable and set by us based on market conditions, with a minimum of ${EARN_MIN_APR} before our ${(sheetProduct?.feeBps ?? 0) / 100}% platform fee.`,
+            `Your allocated ${sheetAsset} stays in your account. Rewards are paid daily from our revenue share.`,
+            'Withdraw anytime with no lock-up; it’s back in your available balance at once.',
             `Rewards are paid in ${sheetAsset}, so their USD value moves with the ${sheetAsset} price.`,
           ]}
         />

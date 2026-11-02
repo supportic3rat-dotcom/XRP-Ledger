@@ -123,7 +123,7 @@ export type AppNotification = {
   id: string;
   type: NotificationType;
   tone: 'ok' | 'warn' | 'bad' | '';
-  icon: 'recv' | 'shield' | 'coin' | 'alert' | 'doc' | 'ex' | 'clock';
+  icon: 'recv' | 'shield' | 'coin' | 'alert' | 'doc' | 'ex' | 'clock' | 'idCard';
   title: string;
   body: string;
   createdAt: IsoDateTime;
@@ -176,6 +176,10 @@ export type CustomerProfile = {
   country: string;
   currency: DisplayCurrency;
   kycStatus: KycStatus;
+  twoFactorEnabled: boolean;
+  /** When a requested turn-off takes effect. Null unless one is pending. */
+  twoFactorOffAt: IsoDateTime | null;
+  backupCodesUnused: number;
   allowlistEnabled: boolean;
   passwordChangedAt: IsoDateTime;
   frozen: boolean;

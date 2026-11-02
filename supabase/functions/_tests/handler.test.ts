@@ -19,10 +19,18 @@ Deno.test('refuses unauthenticated calls', async () => {
   assertEquals(res.status, 401);
 });
 
-Deno.test('a password-only (aal1) session can make money requests', async () => {
-  const { deps } = fakeDeps({ rpcs });
+Deno.test('without two-factor, a password-only (aal1) session can make money requests', async () => {
+  const { deps } = fakeDeps({ rpcs, factors: [] });
   const res = await withdraw(post(withdrawal, { Authorization: customer('aal1'), 'Idempotency-Key': 'key-00000001' }), deps);
   assertEquals(res.status, 200);
+});
+
+Deno.test('with two-factor on, a password alone (aal1) is refused before anything runs', async () => {
+  const { deps, calls } = fakeDeps({ rpcs });
+  const res = await withdraw(post(withdrawal, { Authorization: customer('aal1'), 'Idempotency-Key': 'key-00000002' }), deps);
+  assertEquals(res.status, 403);
+  assertEquals((await res.json()).code, 'mfa_required');
+  assertEquals(calls.length, 0);
 });
 
 Deno.test('rejects amounts that are not integer drops (no floats)', async () => {

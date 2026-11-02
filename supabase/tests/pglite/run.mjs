@@ -337,6 +337,7 @@ await test('tickets need 20+ characters and get an automatic reply', async () =>
 await test('KYC decision updates the customer and notifies them', async () => {
   await db.exec(`begin; update customers set kyc_status = 'not_started' where id = '${BRENDAN}';`);
   await db.exec(`select kyc_started('${BRENDAN}', 'kyc-test-1', 'passport', 'NG', '{}')`);
+  await db.exec(`select kyc_submitted('${BRENDAN}', 'kyc-test-1')`);
   await db.exec(`select kyc_decided('kyc-test-1', 'verified')`);
   const c = await one(`select kyc_status from customers where id = '${BRENDAN}'`);
   const n = await one(`select title from notifications where customer_id = '${BRENDAN}' order by created_at desc limit 1`);
@@ -381,6 +382,35 @@ await test('2FA turn-off waits 24 hours and can be cancelled', async () => {
   const after = await one(`select has_totp('${BRENDAN}') t`);
   await db.exec('rollback');
   assert(early.n === 0 && early.t === true && late.n === 1 && after.t === false, JSON.stringify({ early, late, after }));
+});
+await test('optional 2FA: once on, a password-only session reads nothing; without it nothing changes', async () => {
+  const seen = async (aal) => {
+    await db.exec(`select set_config('request.jwt.claim.sub', '${BRENDAN}', true), set_config('request.jwt.claims', '${JSON.stringify({ sub: BRENDAN, aal })}', true); set local role authenticated;`);
+    const { n } = await one(`select count(*)::int n from customers`);
+    await db.exec('reset role');
+    return n;
+  };
+  await db.exec('begin');
+  const off = await seen('aal1');
+  await db.exec(`insert into auth.mfa_factors (user_id, factor_type, status) values ('${BRENDAN}', 'totp', 'verified')`);
+  const password = await seen('aal1');
+  const second = await seen('aal2');
+  await db.exec('rollback');
+  assert(off === 1 && password === 0 && second === 1, JSON.stringify({ off, password, second }));
+});
+await test('Compliance removes a lost 2FA: factors, codes and sessions go, withdrawals pause, audited', async () => {
+  await db.exec(`begin; insert into auth.mfa_factors (user_id, factor_type, status) values ('${BRENDAN}', 'totp', 'verified');`);
+  await db.exec(`select set_backup_codes('${BRENDAN}', array_fill('AAAA-BBBB'::text, array[8]))`);
+  await db.exec(`savepoint s; select set_config('request.jwt.claim.sub', '${OPS}', true), set_config('request.jwt.claims', '${JSON.stringify({ sub: OPS, app_role: 'operations', aal: 'aal2' })}', true)`);
+  const ops = await db.exec(`select customer_mfa_reset('${BRENDAN}')`).then(() => null, (e) => e.message);
+  await db.exec('rollback to s');
+  await db.exec(`select set_config('request.jwt.claim.sub', '${COMP}', true), set_config('request.jwt.claims', '${JSON.stringify({ sub: COMP, app_role: 'compliance', aal: 'aal2' })}', true)`);
+  await db.exec(`select customer_mfa_reset('${BRENDAN}')`);
+  const r = await one(`select has_totp('${BRENDAN}') t, (select count(*)::int from auth_backup_codes where user_id = '${BRENDAN}' and used_at is null) codes,
+    (select count(*)::int from notifications where customer_id = '${BRENDAN}' and title = 'Two-factor was removed by support') told`);
+  await db.exec('rollback');
+  assert(/Only Compliance/.test(ops ?? ''), `ops: ${ops}`);
+  assert(r.t === false && r.codes === 0 && r.told === 1, JSON.stringify(r));
 });
 await test('reconciliation inputs: liabilities, suspense and delayed provider steps', async () => {
   const r = (await one(`select recon_inputs() j`)).j;
@@ -646,6 +676,65 @@ await test('only Compliance sets a network’s address, and it must match that n
   });
 });
 
+await test('Earn refuses an APR under the 1% minimum, on coins and positions', async () => {
+  await throwsLike(`update assets set yield_apr_bps = 99 where id = 'XRP'`, /assets_earn_minimum_apr/);
+  await throwsLike(`update yield_positions set apr_bps = 0`, /yield_positions_minimum_apr/);
+});
+
+await test('the Earn reserve excludes customer deposit wallets and needs 12 months of net minimum rewards', async () => {
+  const addr = '0x1111111111111111111111111111111111111111';
+  const w = (await one(`insert into platform_wallets (name, network, address, created_by) values ('Reserve', 'ethereum', '${addr}', '${COMP}') returning id`)).id;
+  await as(OPS, 'operations', () => throwsLike(`select platform_wallet_set_reserve('${w}', true)`, /Only Compliance/));
+  await as(COMP, 'compliance', async () => {
+    await db.exec(`reset role; update asset_networks set deposit_address = '${addr}' where network = 'ethereum' and asset = 'ETH'; set local role authenticated`);
+    await throwsLike(`select platform_wallet_set_reserve('${w}', true)`, /customer funds/);
+  });
+  await as(COMP, 'compliance', async () => {
+    assert((await one(`select reward_reserve from platform_wallet_set_reserve('${w}', true)`)).reward_reserve === true, 'marked');
+    const xrp = (await db.query(`select * from earn_reserve_needs()`)).rows.find((r) => r.asset === 'XRP');
+    assert(BigInt(xrp.needed_drops) === (BigInt(xrp.allocated_drops) * 9n + 999n) / 1000n, 'needs 0.9% of allocated');
+  });
+  await db.exec(`delete from platform_wallets where id = '${w}'`);
+});
+
+await test('identity review starts only once a submission is complete, and alerts once', async () => {
+  await db.exec(`begin`);
+  await db.exec(`update customers set kyc_status = 'not_started' where id = '${BRENDAN}'`);
+  await db.exec(`select kyc_started('${BRENDAN}', 'KYC-S1', 'passport', 'NG', array['a'])`);
+  assert((await one(`select kyc_status from customers where id = '${BRENDAN}'`)).kyc_status === 'not_started', 'not under review yet');
+  assert((await one(`select count(*)::int n from kyc_checks where provider_ref = 'KYC-S1'`)).n === 0, 'no check yet');
+  const first = await one(`select kyc_submitted('${BRENDAN}', 'KYC-S1') r`);
+  assert(first.r !== null, 'first submit returns the account');
+  assert((await one(`select kyc_status from customers where id = '${BRENDAN}'`)).kyc_status === 'in_progress', 'under review');
+  assert((await one(`select kyc_submitted('${BRENDAN}', 'KYC-S1') r`)).r === null, 'a retry stays quiet');
+  await throwsLike(`select kyc_submitted('${BRENDAN}', 'KYC-NONE')`, /Unknown verification/);
+  await db.exec(`rollback`);
+});
+
+await test('only Compliance registers for phone alerts, and only Compliance gets them', async () => {
+  const token = 'ExponentPushToken[abc123]';
+  await as(OPS, 'operations', () => throwsLike(`select staff_push_register('${token}')`, /Only Compliance/));
+  await as(COMP, 'compliance', () => throwsLike(`select staff_push_register('nonsense')`, /isn’t a push token/));
+  await as(COMP, 'compliance', async () => {
+    await db.exec(`select staff_push_register('${token}')`);
+    await db.exec(`reset role`);
+    assert((await one(`select count(*)::int n from compliance_push_tokens() where token = '${token}'`)).n === 1, 'listed');
+  });
+});
+
+await test('only Compliance adds a platform wallet, checked against its network', async () => {
+  await as(OPS, 'operations', () => throwsLike(`select platform_wallet_add('Treasury', 'ethereum', '${EVM_ADDR}')`, /Only Compliance/));
+  await as(COMP, 'compliance', () => throwsLike(`select platform_wallet_add('Treasury', 'tron', '${EVM_ADDR}')`, /valid Tron/));
+  await as(COMP, 'compliance', () => throwsLike(`select platform_wallet_add('Treasury', 'nowhere', '${EVM_ADDR}')`, /isn’t supported/));
+  await as(COMP, 'compliance', () => throwsLike(`select platform_wallet_add(' ', 'ethereum', '${EVM_ADDR}')`, /Give the wallet a name/));
+  await as(COMP, 'compliance', async () => {
+    const w = await one(`select id from platform_wallet_add('Treasury', 'ethereum', '${EVM_ADDR}')`);
+    await db.exec(`select platform_wallet_remove('${w.id}')`);
+    assert((await one(`select id from platform_wallet_add('Again', 'ethereum', '${EVM_ADDR}')`)).id !== w.id, 'not re-added');
+    await throwsLike(`select platform_wallet_add('Twice', 'ethereum', '${EVM_ADDR}')`, /already added/);
+  });
+});
+
 await test('an XRP deposit is reported, and the approval asks staff to match the customer’s tag', async () => {
   const t = await rpc(`select id, destination_tag::text tag, meta->>'to_address' addr from report_deposit('${BRENDAN}', 'XRP', 20000000, 'E3FE6EA3D48F0C2B639448020EA4F03D4F4F8FFDB243A852A0F59177921B4879', null, 'dep-xrp')`);
   const c = await one(`select destination_tag::text tag from customers where id = '${BRENDAN}'`);
@@ -665,6 +754,7 @@ const KEMI2 = '00000000-0000-4000-8000-00000000c0df';
 await test('Compliance verifies an identity check, which unlocks the customer and tells them', async () => {
   await signUp(KEMI, 'kemi@example.com');
   await db.exec(`select kyc_started('${KEMI}', 'KYC-T1', 'passport', 'NG', array['${KEMI}/KYC-T1/id-photo'])`);
+  await db.exec(`select kyc_submitted('${KEMI}', 'KYC-T1')`);
   await as(OPS, 'operations', () => throwsLike(`select kyc_review('${KEMI}', 'verified', null)`, /Only Compliance/));
   // `as` rolls back, so check the outcome inside it.
   await as(COMP, 'compliance', async () => {
@@ -680,6 +770,7 @@ await test('Compliance verifies an identity check, which unlocks the customer an
 await test('a rejection needs a reason, which the customer is shown', async () => {
   await signUp(KEMI2, 'kemi2@example.com');
   await db.exec(`select kyc_started('${KEMI2}', 'KYC-T2', 'passport', 'NG', array['${KEMI2}/KYC-T2/id-photo'])`);
+  await db.exec(`select kyc_submitted('${KEMI2}', 'KYC-T2')`);
   await as(COMP, 'compliance', () => throwsLike(`select kyc_review('${KEMI2}', 'rejected', 'no')`, /short reason/));
   await as(COMP, 'compliance', async () => {
     await db.exec(`select kyc_review('${KEMI2}', 'rejected', 'The passport photo is blurred; please upload a clearer one.')`);

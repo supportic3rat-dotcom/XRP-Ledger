@@ -2,13 +2,16 @@ import { ASSETS, asset as assetSpec, isAssetAddress, shortAddress } from '@xrp/l
 import { ScrollView } from 'react-native-gesture-handler';
 import { CoinLogo } from '@/components/CoinLogo';
 import { changePasswordSchema } from '@xrp/schemas';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { ErrorText, Field, Help, Label, TextField } from '@/components/Form';
+import { CopyButton } from '@/components/CopyButton';
+import { ErrorText, Field, Help, Label, OtpInput, TextField } from '@/components/Form';
 import { Icon } from '@/components/Icon';
 import { Row } from '@/components/Row';
 import { Screen, ScrollBody } from '@/components/Screen';
@@ -77,12 +80,16 @@ export const SecurityScreen = () => {
   const allowlist = useAllowlist();
   const devices = useDevices();
   const events = useSecurityEvents();
+  const twofa = useApiMutation(api.setTwoFactor);
+  const regen = useApiMutation(api.regenerateBackupCodes);
   const allow = useApiMutation(api.setAllowlist);
   const changePw = useApiMutation(({ current, next }: { current: string; next: string }) => api.changePassword(current, next));
   const addAddr = useApiMutation(api.addAllowlistAddress);
   const removeAddr = useApiMutation(api.removeAllowlistAddress);
   const revoke = useApiMutation(api.revokeDevice);
-  const [sheet, setSheet] = useState<'pw' | 'add' | null>(null);
+  const [sheet, setSheet] = useState<'codes' | 'pw' | 'add' | 'totp' | 'off' | null>(null);
+  const [totp, setTotp] = useState<{ factorId: string; uri: string; secret: string; code: string; error: string; busy: boolean } | null>(null);
+  const [freshCodes, setFreshCodes] = useState<string[] | null>(null);
   const [pw, setPw] = useState({ current: '', next: '', confirm: '', tried: false });
   const [pwError, setPwError] = useState('');
   const [ad, setAd] = useState({ asset: 'XRP', label: '', address: '', tag: '', tried: false });
@@ -112,6 +119,40 @@ export const SecurityScreen = () => {
       setPwError(e instanceof Error ? e.message : 'We couldn’t change your password.');
     }
   };
+  /** Set up an authenticator, or cancel a pending turn-off if one is still in place. */
+  const turnOnTwoFactor = async () => {
+    try {
+      const setup = await api.startTotpEnrollment();
+      if (!setup) {
+        await twofa.mutateAsync(true);
+        toast('Two-factor stays on.');
+        return;
+      }
+      setTotp({ ...setup, code: '', error: '', busy: false });
+      setSheet('totp');
+    } catch {
+      toast('We couldn’t start authenticator setup. Try again.');
+    }
+  };
+  const confirmTotp = async () => {
+    if (!totp) return;
+    if (!/^\d{6}$/.test(totp.code)) {
+      setTotp({ ...totp, error: 'Enter the 6-digit code from your authenticator app.' });
+      return;
+    }
+    setTotp({ ...totp, busy: true, error: '' });
+    const r = await api.confirmTotpEnrollment(totp.factorId, totp.code).catch(() => ({ ok: false }));
+    if (!r.ok) {
+      setTotp({ ...totp, busy: false, error: 'That code didn’t match. Check your authenticator app and try again.' });
+      return;
+    }
+    await twofa.mutateAsync(true).catch(() => undefined);
+    setTotp(null);
+    toast('Two-factor is on.');
+    // Backup codes are the way back in if the phone is lost, so they come straight after setup.
+    setFreshCodes(await regen.mutateAsync(undefined).catch(() => null));
+    setSheet('codes');
+  };
   const saveAddr = async () => {
     if (!ad.label.trim() || !isAssetAddress(ad.asset, ad.address)) {
       setAd((s) => ({ ...s, tried: true }));
@@ -134,8 +175,33 @@ export const SecurityScreen = () => {
         <TopBar title="Security" leadingLabel="Back to Profile" />
         <Sec top={0}>Sign-in</Sec>
         <Card>
+          <Row first>
+            <View style={{ flex: 1, gap: 1 }}>
+              <T weight={500}>Two-factor authentication</T>
+              <Val>Optional · a code from an authenticator app at sign-in</Val>
+            </View>
+            <Toggle label="Two-factor authentication" on={!!p?.twoFactorEnabled} onChange={(v) => (v ? void turnOnTwoFactor() : setSheet('off'))} />
+          </Row>
+          {p?.twoFactorOffAt ? (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              <Banner tone="warn">{`Two-factor turns off in ${hoursUntil(p.twoFactorOffAt, now)}h, and withdrawals are paused until then. Turn it back on to cancel.`}</Banner>
+            </View>
+          ) : null}
+          {p?.twoFactorEnabled ? (
+            <Row
+              onPress={() => {
+                setFreshCodes(null);
+                setSheet('codes');
+              }}
+              chevron
+            >
+              <View style={{ flex: 1, gap: 1 }}>
+                <T weight={500}>Backup codes</T>
+                <Val>{`${p.backupCodesUnused} of 8 unused`}</Val>
+              </View>
+            </Row>
+          ) : null}
           <Row
-            first
             onPress={() => {
               setPw({ current: '', next: '', confirm: '', tried: false });
               setPwError('');
@@ -238,9 +304,105 @@ export const SecurityScreen = () => {
           <T size={12.5} lh={1.45} color="accentText" underline accessibilityRole="link" onPress={() => router.push('/support')}>
             Contact support
           </T>{' '}
-          — we’ll never ask for your password.
+          — we’ll never ask for your password or codes.
         </Help>
       </ScrollBody>
+
+      <Sheet open={sheet === 'off'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.88} accessibilityLabel="Turn off two-factor">
+        <Grab />
+        <T size={18} weight={600} style={{ marginBottom: 6 }} accessibilityRole="header">
+          Turn off two-factor?
+        </T>
+        <Help style={{ marginBottom: 16 }}>It turns off after a 24-hour security hold, and withdrawals pause during that time. You can cancel any time before then.</Help>
+        <View style={{ gap: 10 }}>
+          <Button
+            label="Turn off"
+            textColor="neg"
+            variant="secondary"
+            loading={twofa.isPending}
+            onPress={async () => {
+              await twofa.mutateAsync(false).catch(() => toast('We couldn’t turn off two-factor. Try again.'));
+              setSheet(null);
+            }}
+          />
+          <Button label="Keep it on" onPress={() => setSheet(null)} />
+        </View>
+      </Sheet>
+
+      <Sheet open={sheet === 'codes'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.88} accessibilityLabel="Backup codes">
+        <Grab />
+        <T size={18} weight={600} style={{ marginBottom: 6 }} accessibilityRole="header">
+          Backup codes
+        </T>
+        <Help style={{ marginBottom: 14 }}>Each code works once if you lose your authenticator. Store them somewhere safe and offline.</Help>
+        <View accessibilityLabel={freshCodes ? 'Your new backup codes' : 'Backup codes are hidden'} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {(freshCodes ?? Array.from({ length: p?.backupCodesUnused ?? 0 }, () => '••••-••••')).map((code, i) => (
+            <View key={`${code}-${i}`} style={{ width: '48.5%', flexGrow: 1, padding: 10, borderRadius: 8, backgroundColor: c.sunken, alignItems: 'center' }}>
+              <T mono ls={0.06} selectable={!!freshCodes}>
+                {code}
+              </T>
+            </View>
+          ))}
+        </View>
+        <Help style={{ marginTop: 10 }}>
+          {freshCodes ? 'Shown once. Save them now — we only store a secure hash.' : 'For your security, codes are shown only when they’re generated.'}
+        </Help>
+        <View style={{ gap: 10, marginTop: 16 }}>
+          <Button
+            label="Generate new codes"
+            variant="secondary"
+            loading={regen.isPending}
+            onPress={async () => {
+              const codes = await regen.mutateAsync(undefined);
+              setFreshCodes(codes);
+              toast('New codes generated. The old ones no longer work.');
+            }}
+          />
+          <Button label="Done" onPress={() => setSheet(null)} />
+        </View>
+      </Sheet>
+
+      <Sheet open={sheet === 'totp'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.92} accessibilityLabel="Set up your authenticator">
+        <Grab />
+        <T size={18} weight={600} style={{ marginBottom: 6 }} accessibilityRole="header">
+          Set up your authenticator
+        </T>
+        <Help style={{ marginBottom: 14 }}>Scan this code with an authenticator app, then enter the 6-digit code it shows.</Help>
+        {totp ? (
+          <View style={{ gap: 14 }}>
+            <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+              <View
+                accessibilityLabel="QR code for your authenticator app"
+                style={{ width: 120, height: 120, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: c.border }}
+              >
+                <QRCode value={totp.uri} size={108} color="#000000" backgroundColor="#FFFFFF" quietZone={4} ecl="M" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                <T size={12.5} color="text3">
+                  Or enter this key
+                </T>
+                <T size={13} lh={1.5} mono selectable>
+                  {totp.secret.replace(/(.{4})/g, '$1 ').trim()}
+                </T>
+                <CopyButton
+                  label="Copy key"
+                  icon={<Icon name="copy" size="sm" />}
+                  onPress={() => {
+                    Clipboard.setStringAsync(totp.secret).catch(() => undefined);
+                    toast('Key copied');
+                  }}
+                />
+              </View>
+            </View>
+            <View>
+              <Label>Authentication code</Label>
+              <OtpInput label="Authentication code" value={totp.code} onChange={(v) => setTotp({ ...totp, code: v, error: '' })} invalid={!!totp.error} />
+              <ErrorText>{totp.error}</ErrorText>
+            </View>
+            <Button label="Turn on two-factor" loading={totp.busy} onPress={() => void confirmTotp()} />
+          </View>
+        ) : null}
+      </Sheet>
 
       <Sheet open={sheet === 'pw'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.88} accessibilityLabel="Change password">
         <Grab />

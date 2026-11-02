@@ -16,6 +16,12 @@ export const isValidRow = (position: number, row: string): boolean => {
 
 export const areValidSecretNumbers = (rows: string[]): boolean => rows.length === ROWS && rows.every((r, i) => isValidRow(i, r));
 
+/** What's wrong with the numbers, for the alert under the rows; null when they're valid. */
+export const secretNumbersProblem = (rows: string[]): string | null => {
+  const bad = rows.flatMap((r, i) => (isValidRow(i, r) ? [] : [String.fromCharCode(65 + i)]));
+  return bad.length ? `Wrong Secret Numbers: check row${bad.length > 1 ? 's' : ''} ${bad.join(', ')}.` : null;
+};
+
 export const secretNumbersToSeed = (rows: string[]): string => {
   if (!areValidSecretNumbers(rows)) throw new Error('Those numbers aren’t right. Check each row of 6 digits.');
   const entropy = new Uint8Array(16);

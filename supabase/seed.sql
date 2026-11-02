@@ -60,7 +60,7 @@ insert into public.legal_documents (id, grp, name, current_version, requires_acc
   ('privacy', 'Account', 'Privacy Policy', 'v0.1', true, null,
    '[["What we collect","Identity, contact, device and transaction data — and why each is needed."],["Who we share it with","[KYC provider], [Custody provider] and others, listed by purpose."],["Your rights","Access, correction and deletion, subject to record-keeping law."]]', 2),
   ('risk', 'Account', 'Digital Asset Risk Disclosure', 'v0.1', true, null,
-   '[["Price risk","XRP can lose value quickly, including all of it."],["Custodial risk","You rely on the platform and its providers remaining solvent and available."],["No guarantees","No deposit insurance or guaranteed returns unless stated in a specific product."]]', 3),
+   '[["Price risk","XRP can lose value quickly, including all of it."],["Custodial risk","You rely on the platform and its providers remaining solvent and available."],["Product terms","Deposit insurance and guaranteed returns apply only where a specific product states them."]]', 3),
   ('custody', 'Custody & payments', 'Custody Agreement', 'v0.1', true, null,
    '[["How assets are held","Through [Custody provider]; keys stay in the provider’s security boundary."],["Records and reconciliation","Our internal ledger, how it’s reconciled with the provider, and your statements."],["If something goes wrong","Outages, insolvency and how claims are handled."]]', 4),
   ('deposits', 'Custody & payments', 'Deposit and Withdrawal Policy', 'v0.1', true, null,

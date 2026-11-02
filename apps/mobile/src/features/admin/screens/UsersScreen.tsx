@@ -282,6 +282,38 @@ const PasswordReset = ({ customerId, email }: { customerId: string; email: strin
   );
 };
 
+/** For a customer who lost their authenticator and backup codes, once support has confirmed it's really them. */
+const TwoFactorReset = ({ customerId, email }: { customerId: string; email: string }) => {
+  const { data, me } = useStaffSession();
+  const { pending, run } = useOpsAction();
+  const [confirming, setConfirming] = useState(false);
+  if (me.role !== 'compliance') return <Help>Only Compliance can remove two-factor.</Help>;
+  if (!confirming) return <Button label="Remove two-factor" variant="secondary" size={48} onPress={() => setConfirming(true)} />;
+  return (
+    <Card style={{ padding: 14, gap: 12 }}>
+      <T size={13} lh={1.5}>
+        {`Only remove it if the request came from ${email} and you’re sure it’s the customer. This takes away their extra protection. Every session is signed out and withdrawals pause for 24 hours.`}
+      </T>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Button label="Cancel" variant="secondary" size={48} flex={1} onPress={() => setConfirming(false)} />
+        <Button
+          label="Remove"
+          size={48}
+          flex={1}
+          loading={pending}
+          onPress={() =>
+            void run(async () => {
+              const r = await data.resetTwoFactor(customerId);
+              if (r.ok) setConfirming(false);
+              return r;
+            })
+          }
+        />
+      </View>
+    </Card>
+  );
+};
+
 const TRUST_NAMES: Record<string, string> = { revocable: 'Revocable trust', irrevocable: 'Irrevocable trust', spendthrift: 'Spendthrift trust' };
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 
@@ -508,6 +540,11 @@ export const CustomerScreen = () => {
         <View>
           <SecT>Password</SecT>
           <PasswordReset customerId={u.id} email={u.email} />
+        </View>
+
+        <View>
+          <SecT>Two-factor</SecT>
+          <TwoFactorReset customerId={u.id} email={u.email} />
         </View>
 
         <View>
