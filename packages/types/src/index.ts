@@ -180,6 +180,8 @@ export type CustomerProfile = {
   /** When a requested turn-off takes effect. Null unless one is pending. */
   twoFactorOffAt: IsoDateTime | null;
   backupCodesUnused: number;
+  /** 6 words picked from 30, asked at sign-in and before withdrawals and deposits. */
+  securityPhraseEnabled: boolean;
   allowlistEnabled: boolean;
   passwordChangedAt: IsoDateTime;
   frozen: boolean;

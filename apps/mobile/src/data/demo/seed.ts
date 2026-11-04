@@ -34,6 +34,7 @@ export const seedProfile: CustomerProfile = {
   twoFactorEnabled: false,
   twoFactorOffAt: null,
   backupCodesUnused: 0,
+  securityPhraseEnabled: false,
   allowlistEnabled: false,
   passwordChangedAt: w('2026-07-20T08:00:00Z'),
   frozen: false,

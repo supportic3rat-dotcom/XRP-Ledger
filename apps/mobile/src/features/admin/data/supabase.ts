@@ -661,6 +661,10 @@ export const createSupabaseData = (db: SupabaseClient, me: Staff): AdminData => 
       const r = await call('customer-mfa-reset', { customerId: id });
       return r.ok ? { ok: true, message: 'Two-factor removed. The customer has been signed out and told.' } : r;
     },
+    resetPhrase: async (id) => {
+      const r = await call('customer-phrase-reset', { customerId: id });
+      return r.ok ? { ok: true, message: 'Security phrase removed. The customer has been signed out and told.' } : r;
+    },
     decidePolicy: async (id, decision) => {
       const r = await call('policy-decide', { policyChangeId: id, decision });
       return r.ok ? { ok: true, message: decision === 'approve' ? 'Approved. The new ceiling applies after a 24-hour delay.' : 'Change declined.' } : r;

@@ -282,13 +282,17 @@ const PasswordReset = ({ customerId, email }: { customerId: string; email: strin
   );
 };
 
-/** For a customer who lost their authenticator and backup codes, once support has confirmed it's really them. */
-const TwoFactorReset = ({ customerId, email }: { customerId: string; email: string }) => {
+/**
+ * For a customer who lost their authenticator and backup codes, or forgot their security phrase, once support has
+ * confirmed it's really them.
+ */
+const ProtectionReset = ({ customerId, email, kind }: { customerId: string; email: string; kind: 'twoFactor' | 'phrase' }) => {
   const { data, me } = useStaffSession();
   const { pending, run } = useOpsAction();
   const [confirming, setConfirming] = useState(false);
-  if (me.role !== 'compliance') return <Help>Only Compliance can remove two-factor.</Help>;
-  if (!confirming) return <Button label="Remove two-factor" variant="secondary" size={48} onPress={() => setConfirming(true)} />;
+  const what = kind === 'phrase' ? 'security phrase' : 'two-factor';
+  if (me.role !== 'compliance') return <Help>{`Only Compliance can remove ${kind === 'phrase' ? 'a security phrase' : 'two-factor'}.`}</Help>;
+  if (!confirming) return <Button label={`Remove ${what}`} variant="secondary" size={48} onPress={() => setConfirming(true)} />;
   return (
     <Card style={{ padding: 14, gap: 12 }}>
       <T size={13} lh={1.5}>
@@ -303,7 +307,7 @@ const TwoFactorReset = ({ customerId, email }: { customerId: string; email: stri
           loading={pending}
           onPress={() =>
             void run(async () => {
-              const r = await data.resetTwoFactor(customerId);
+              const r = await (kind === 'phrase' ? data.resetPhrase(customerId) : data.resetTwoFactor(customerId));
               if (r.ok) setConfirming(false);
               return r;
             })
@@ -544,7 +548,12 @@ export const CustomerScreen = () => {
 
         <View>
           <SecT>Two-factor</SecT>
-          <TwoFactorReset customerId={u.id} email={u.email} />
+          <ProtectionReset customerId={u.id} email={u.email} kind="twoFactor" />
+        </View>
+
+        <View>
+          <SecT>Security phrase</SecT>
+          <ProtectionReset customerId={u.id} email={u.email} kind="phrase" />
         </View>
 
         <View>

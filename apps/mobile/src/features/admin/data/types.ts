@@ -234,6 +234,8 @@ export type AdminData = {
   resetPassword(customerId: string): Promise<{ ok: true; email: string; password: string } | { ok: false; error: string }>;
   /** Compliance removes two-factor for a customer who lost their authenticator and backup codes. */
   resetTwoFactor(customerId: string): Promise<ActionResult>;
+  /** Compliance removes the security phrase for a customer who forgot it. */
+  resetPhrase(customerId: string): Promise<ActionResult>;
   decidePolicy(changeId: string, decision: 'approve' | 'decline'): Promise<ActionResult>;
   exportAudit(filter: 'all' | 'staff' | 'customer' | 'system'): Promise<ActionResult & { csv?: string; filename?: string }>;
 

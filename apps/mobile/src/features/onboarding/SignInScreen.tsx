@@ -13,10 +13,11 @@ import { T } from '@/components/T';
 import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { passwordResetEmail, SUPPORT_EMAIL } from '@/lib/support';
+import { PHRASE_MISMATCH, PhraseEntry } from '@/features/account/PhraseCheck';
 import { resolveStaff, useStaff } from '@/features/admin/session';
 import { useSession } from '@/state/session';
 
-type View_ = 'signin' | 'twofa' | 'forgot' | 'sent';
+type View_ = 'signin' | 'twofa' | 'phrase' | 'forgot' | 'sent';
 
 /** `.h1` 24/600 −0.02em and `.lead` 14/1.5 text-2. */
 const H1 = ({ children }: { children: string }) => (
@@ -50,6 +51,8 @@ export const SignInScreen = () => {
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [phrase, setPhrase] = useState<{ words: string[]; picked: string[]; error: string } | null>(null);
+  const [failed, setFailed] = useState('');
 
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -61,13 +64,45 @@ export const SignInScreen = () => {
   const at = email.indexOf('@');
   const masked = at > 1 ? `${email.charAt(0)}•••${email.slice(at)}` : 'your account';
 
-  /** Staff accounts open the operations console; everyone else opens their wallet. */
+  /** Staff accounts open the operations console; everyone else opens their wallet, after their security phrase if it's on. */
   const enter = async (e: string) => {
     const staff = await resolveStaff(e).catch(() => null);
-    setBusy(false);
     if (staff) {
+      setBusy(false);
       setStaffSession(staff);
       router.replace('/ops');
+      return;
+    }
+    const challenge = await api.phraseChallenge().then(
+      (ch) => ({ ch }),
+      () => null,
+    );
+    setBusy(false);
+    if (!challenge) {
+      await api.signOut().catch(() => undefined);
+      setFailed('We couldn’t finish signing you in. Check your connection and try again.');
+      setView('signin');
+      return;
+    }
+    if (challenge.ch && !challenge.ch.verified) {
+      setPhrase({ words: challenge.ch.words, picked: [], error: '' });
+      setView('phrase');
+      return;
+    }
+    setSignedIn(true);
+    router.replace('/');
+  };
+
+  const verifyPhrase = async () => {
+    if (!phrase) return;
+    setBusy(true);
+    const r = await api.verifyPhrase(phrase.picked).then(
+      (x) => (x.ok ? '' : PHRASE_MISMATCH),
+      (e: unknown) => (e instanceof Error ? e.message : 'We couldn’t check your security phrase. Try again.'),
+    );
+    setBusy(false);
+    if (r) {
+      setPhrase({ ...phrase, picked: [], error: r });
       return;
     }
     setSignedIn(true);
@@ -76,6 +111,7 @@ export const SignInScreen = () => {
 
   const submit = form.handleSubmit(async ({ email: e, password }) => {
     setBusy(true);
+    setFailed('');
     const r = await api.signIn(e.trim(), password);
     if (r.status === 'mfa_required') {
       setBusy(false);
@@ -123,8 +159,9 @@ export const SignInScreen = () => {
   };
 
   const back = () => {
-    // Leaving the two-factor step ends the half-finished sign-in.
-    if (view === 'twofa') void api.signOut().catch(() => undefined);
+    // Leaving the two-factor or phrase step ends the half-finished sign-in.
+    if (view === 'twofa' || view === 'phrase') void api.signOut().catch(() => undefined);
+    setPhrase(null);
     form.clearErrors();
     setOtp('');
     setOtpError('');
@@ -172,6 +209,11 @@ export const SignInScreen = () => {
           <>
             <H1>Welcome back</H1>
             <Lead>Sign in to your custodial account.</Lead>
+            {failed ? (
+              <Banner tone="error" icon="alert" alert style={{ marginBottom: 16 }}>
+                {failed}
+              </Banner>
+            ) : null}
             {bad ? (
               <Banner tone="error" icon="alert" alert style={{ marginBottom: 16 }}>
                 {bad.locked
@@ -287,6 +329,31 @@ export const SignInScreen = () => {
             </View>
             <Help align="center" style={{ marginTop: 16 }}>
               Lost access to your authenticator?{' '}
+              <T size={12.5} color="accentText" onPress={() => router.push('/support')} accessibilityRole="link">
+                Contact support
+              </T>
+            </Help>
+          </>
+        ) : null}
+
+        {view === 'phrase' && phrase ? (
+          <>
+            <View style={{ marginBottom: 14 }}>
+              <HeroIcon icon="lock" tone="ok" size={52} />
+            </View>
+            <H1>Security phrase</H1>
+            <Lead mb={18}>Tap your 6 words in the order you chose them.</Lead>
+            <PhraseEntry
+              words={phrase.words}
+              picked={phrase.picked}
+              onPick={(picked) => setPhrase({ ...phrase, picked, error: '' })}
+              error={phrase.error}
+              busy={busy}
+              submitLabel="Verify and continue"
+              onSubmit={() => void verifyPhrase()}
+            />
+            <Help align="center" style={{ marginTop: 16 }}>
+              Forgot your phrase?{' '}
               <T size={12.5} color="accentText" onPress={() => router.push('/support')} accessibilityRole="link">
                 Contact support
               </T>

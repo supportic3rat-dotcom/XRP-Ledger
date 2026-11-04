@@ -286,7 +286,7 @@ insert into public.signers (name, meta, status) values
   ('M. Okon · Operations', 'Hardware key · last used Oct 12', 'active'),
   ('Director · Treasury', 'Cold vault only', 'standby');
 insert into public.limits (id, label, amount_drops) values
-  ('customer_daily', 'Per customer, daily', 25000000000),
+  ('customer_daily', 'Per customer, daily', 1000000000000),
   ('auto_sign', 'Per transaction (auto-sign)', 1000000000),
   ('platform_daily', 'Platform outflow, daily', 150000000000);
 insert into public.policy_changes (ref, title, requested_by, requested_role, reason, created_at) values

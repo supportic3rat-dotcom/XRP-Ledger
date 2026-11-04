@@ -155,6 +155,19 @@ export const createSupabaseApi = (): Api => ({
     if (error) throw new Error(error.message);
     return { ref: str((data as Row).ref) };
   },
+  profilePhoto: async () => {
+    const { data } = await supabase()
+      .from('kyc_checks')
+      .select('documents')
+      .eq('status', 'verified')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const path = ((data as { documents: string[] } | null)?.documents ?? []).find((d) => d.endsWith('/selfie'));
+    if (!path) return null;
+    const { data: signed } = await supabase().storage.from('kyc').createSignedUrl(path, 3600);
+    return signed?.signedUrl ?? null;
+  },
   profile: async () => {
     const id = await uid();
     const [{ data: c }, { data: codes }, { data: factors }] = await Promise.all([
@@ -182,6 +195,7 @@ export const createSupabaseApi = (): Api => ({
       twoFactorEnabled: (factors?.totp.length ?? 0) > 0 && row.mfa_disable_at === null,
       twoFactorOffAt: (row.mfa_disable_at as string | null) ?? null,
       backupCodesUnused: Number((codes as Row | null)?.unused ?? 0),
+      securityPhraseEnabled: row.security_phrase_at !== null && row.security_phrase_at !== undefined,
       allowlistEnabled: Boolean(row.allowlist_enabled),
       passwordChangedAt: str(row.password_changed_at),
       frozen: row.frozen_at !== null,
@@ -469,6 +483,21 @@ export const createSupabaseApi = (): Api => ({
     return { ok: !error };
   },
   regenerateBackupCodes: async () => (await call<{ codes: string[] }>('security-update', { action: 'backup-codes-regenerate' })).codes,
+  phraseChallenge: async () => {
+    const r = await call<{ enabled: boolean; words: string[]; verified: boolean }>('security-phrase', { action: 'challenge' });
+    return r.enabled ? { words: r.words, verified: r.verified } : null;
+  },
+  verifyPhrase: async (words) => {
+    const r = await call<{ ok: boolean }>('security-phrase', { action: 'verify', words });
+    // The access-token hook drops the `phrase` claim for this session on refresh.
+    if (r.ok) await supabase().auth.refreshSession();
+    return r;
+  },
+  startPhraseSetup: async () => (await call<{ words: string[] }>('security-phrase', { action: 'setup' })).words,
+  enablePhrase: async (words) => {
+    await call('security-phrase', { action: 'enable', words });
+  },
+  disablePhrase: async (words) => call<{ ok: boolean }>('security-phrase', { action: 'disable', words }),
   setAllowlist: async (enabled) => {
     await call('security-update', { action: 'allowlist-toggle', enabled });
   },

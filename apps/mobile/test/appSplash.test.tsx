@@ -13,16 +13,23 @@ describe('AppSplash', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  it('stays up until its image loads, then hides the native splash and clears itself', async () => {
+  it('stays up until its image is drawn, then hides the native splash and holds for 2 seconds', async () => {
     await render(<AppSplash />);
     expect(SplashScreen.hideAsync).not.toHaveBeenCalled();
 
     await fireEvent(screen.getByLabelText('XRP Ledger'), 'loadEnd');
+    expect(SplashScreen.hideAsync).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
     expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText('XRP Ledger')).toBeTruthy();
 
     await act(async () => {
-      jest.advanceTimersByTime(900);
+      jest.advanceTimersByTime(1800);
+    });
+    expect(screen.getByLabelText('XRP Ledger')).toBeTruthy();
+    await act(async () => {
+      jest.advanceTimersByTime(300);
     });
     expect(screen.queryByLabelText('XRP Ledger')).toBeNull();
   });

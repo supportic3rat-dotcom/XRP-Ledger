@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { AppLockToggle } from '@/components/AppLockToggle';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -26,6 +27,7 @@ import { api } from '@/data';
 import { useAllowlist, useApiMutation, useDevices, useProfile, useSecurityEvents } from '@/data/hooks';
 import { hm, isSameDay, md } from '@/lib/dates';
 import { useNoScreenCapture } from '@/lib/useNoScreenCapture';
+import { PHRASE_MISMATCH, PhraseEntry } from './PhraseCheck';
 import { useTheme } from '@/theme';
 import { slopFor } from '@/components/hitSlop';
 
@@ -87,7 +89,12 @@ export const SecurityScreen = () => {
   const addAddr = useApiMutation(api.addAllowlistAddress);
   const removeAddr = useApiMutation(api.removeAllowlistAddress);
   const revoke = useApiMutation(api.revokeDevice);
-  const [sheet, setSheet] = useState<'codes' | 'pw' | 'add' | 'totp' | 'off' | null>(null);
+  const enablePhrase = useApiMutation(api.enablePhrase);
+  const disablePhrase = useApiMutation(api.disablePhrase);
+  const [sheet, setSheet] = useState<'codes' | 'pw' | 'add' | 'totp' | 'off' | 'phrase' | 'phraseOff' | null>(null);
+  /** Setup: pick 6 from the 30 (`first`), then pick them again from a shuffled grid to prove they're remembered. */
+  const [ps, setPs] = useState<{ stage: 'pick' | 'confirm'; words: string[]; first: string[]; picked: string[]; error: string } | null>(null);
+  const [offPhrase, setOffPhrase] = useState<{ words: string[]; picked: string[]; error: string } | null>(null);
   const [totp, setTotp] = useState<{ factorId: string; uri: string; secret: string; code: string; error: string; busy: boolean } | null>(null);
   const [freshCodes, setFreshCodes] = useState<string[] | null>(null);
   const [pw, setPw] = useState({ current: '', next: '', confirm: '', tried: false });
@@ -153,6 +160,57 @@ export const SecurityScreen = () => {
     setFreshCodes(await regen.mutateAsync(undefined).catch(() => null));
     setSheet('codes');
   };
+  const startPhrase = async () => {
+    try {
+      const words = await api.startPhraseSetup();
+      setPs({ stage: 'pick', words, first: [], picked: [], error: '' });
+      setSheet('phrase');
+    } catch {
+      toast('We couldn’t start security phrase setup. Try again.');
+    }
+  };
+  const nextPhraseStage = async () => {
+    if (!ps) return;
+    if (ps.stage === 'pick') {
+      setPs({ ...ps, stage: 'confirm', first: ps.picked, picked: [], words: [...ps.words].sort(() => Math.random() - 0.5) });
+      return;
+    }
+    if (ps.picked.join(' ') !== ps.first.join(' ')) {
+      setPs({ ...ps, picked: [], error: 'That isn’t the same 6 words in the same order. Try again.' });
+      return;
+    }
+    try {
+      await enablePhrase.mutateAsync(ps.first);
+      setSheet(null);
+      setPs(null);
+      toast('Security phrase is on. We’ll ask for it at sign-in, withdrawals and deposits.');
+    } catch (e) {
+      setPs({ ...ps, picked: [], error: e instanceof Error ? e.message : 'We couldn’t turn on your security phrase. Try again.' });
+    }
+  };
+  const startPhraseOff = async () => {
+    const ch = await api.phraseChallenge().catch(() => null);
+    if (!ch) {
+      toast('We couldn’t load your security phrase. Try again.');
+      return;
+    }
+    setOffPhrase({ words: ch.words, picked: [], error: '' });
+    setSheet('phraseOff');
+  };
+  const turnOffPhrase = async () => {
+    if (!offPhrase) return;
+    const r = await disablePhrase.mutateAsync(offPhrase.picked).then(
+      (x) => (x.ok ? '' : PHRASE_MISMATCH),
+      (e: unknown) => (e instanceof Error ? e.message : 'We couldn’t turn off your security phrase. Try again.'),
+    );
+    if (r) {
+      setOffPhrase({ ...offPhrase, picked: [], error: r });
+      return;
+    }
+    setSheet(null);
+    setOffPhrase(null);
+    toast('Security phrase is off.');
+  };
   const saveAddr = async () => {
     if (!ad.label.trim() || !isAssetAddress(ad.asset, ad.address)) {
       setAd((s) => ({ ...s, tried: true }));
@@ -175,7 +233,8 @@ export const SecurityScreen = () => {
         <TopBar title="Security" leadingLabel="Back to Profile" />
         <Sec top={0}>Sign-in</Sec>
         <Card>
-          <Row first>
+          <AppLockToggle first />
+          <Row first={false}>
             <View style={{ flex: 1, gap: 1 }}>
               <T weight={500}>Two-factor authentication</T>
               <Val>Optional · a code from an authenticator app at sign-in</Val>
@@ -201,6 +260,13 @@ export const SecurityScreen = () => {
               </View>
             </Row>
           ) : null}
+          <Row first={false}>
+            <View style={{ flex: 1, gap: 1 }}>
+              <T weight={500}>Security phrase</T>
+              <Val>Optional · 6 words asked at sign-in, withdrawals and deposits</Val>
+            </View>
+            <Toggle label="Security phrase" on={!!p?.securityPhraseEnabled} onChange={(v) => void (v ? startPhrase() : startPhraseOff())} />
+          </Row>
           <Row
             onPress={() => {
               setPw({ current: '', next: '', confirm: '', tried: false });
@@ -327,6 +393,57 @@ export const SecurityScreen = () => {
           />
           <Button label="Keep it on" onPress={() => setSheet(null)} />
         </View>
+      </Sheet>
+
+      <Sheet open={sheet === 'phrase'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.92} accessibilityLabel="Set up your security phrase">
+        <Grab />
+        <T size={18} weight={600} style={{ marginBottom: 6 }} accessibilityRole="header">
+          {ps?.stage === 'confirm' ? 'Confirm your security phrase' : 'Choose your security phrase'}
+        </T>
+        <Help style={{ marginBottom: 14 }}>
+          {ps?.stage === 'confirm'
+            ? 'Tap the same 6 words again, in the same order. The words have been mixed up.'
+            : 'Tap 6 words. The order you tap them is part of your phrase. Write them down and keep them somewhere safe and offline.'}
+        </Help>
+        {ps ? (
+          <PhraseEntry
+            words={ps.words}
+            picked={ps.picked}
+            onPick={(picked) => setPs({ ...ps, picked, error: '' })}
+            error={ps.error}
+            busy={enablePhrase.isPending}
+            submitLabel={ps.stage === 'confirm' ? 'Turn on security phrase' : 'Continue'}
+            onSubmit={() => void nextPhraseStage()}
+          />
+        ) : null}
+        {ps?.stage === 'confirm' ? (
+          <Button
+            label="Choose different words"
+            variant="secondary"
+            style={{ marginTop: 10 }}
+            onPress={() => setPs({ ...ps, stage: 'pick', picked: [], first: [], error: '' })}
+          />
+        ) : null}
+      </Sheet>
+
+      <Sheet open={sheet === 'phraseOff'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.92} accessibilityLabel="Turn off security phrase">
+        <Grab />
+        <T size={18} weight={600} style={{ marginBottom: 6 }} accessibilityRole="header">
+          Turn off security phrase?
+        </T>
+        <Help style={{ marginBottom: 14 }}>Tap your 6 words in order to turn it off.</Help>
+        {offPhrase ? (
+          <PhraseEntry
+            words={offPhrase.words}
+            picked={offPhrase.picked}
+            onPick={(picked) => setOffPhrase({ ...offPhrase, picked, error: '' })}
+            error={offPhrase.error}
+            busy={disablePhrase.isPending}
+            submitLabel="Turn off"
+            onSubmit={() => void turnOffPhrase()}
+          />
+        ) : null}
+        <Button label="Keep it on" variant="secondary" style={{ marginTop: 10 }} onPress={() => setSheet(null)} />
       </Sheet>
 
       <Sheet open={sheet === 'codes'} onClose={() => setSheet(null)} scrim="deep" shadow="strong" maxHeight={0.88} accessibilityLabel="Backup codes">

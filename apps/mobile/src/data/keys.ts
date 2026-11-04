@@ -1,5 +1,6 @@
 export const qk = {
   profile: ['profile'] as const,
+  profilePhoto: ['profilePhoto'] as const,
   assets: ['assets'] as const,
   holdings: ['holdings'] as const,
   activity: ['activity'] as const,

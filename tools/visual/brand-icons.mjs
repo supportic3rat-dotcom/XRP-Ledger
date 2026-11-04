@@ -1,25 +1,20 @@
 // Generates every app icon and favicon from the logo geometry in packages/tokens/src/brand.ts.
 // Usage (from tools/visual): node brand-icons.mjs
 import puppeteer from 'puppeteer-core';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { logoSvg } from '../../packages/tokens/src/brand.ts';
+import { lockupSvg, logoSvg } from '../../packages/tokens/src/brand.ts';
 
 const root = resolve(import.meta.dirname, '../..');
 const ink = '#0A0A0A';
 
 /** Small sizes: bold weight on a rounded tile. Large sizes: regular weight, full bleed (the OS applies its own mask). */
-const favicon = logoSvg({ fg: '#FFFFFF', bg: ink, weight: 'bold', fill: 0.8, radius: 0.25 });
+const favicon = logoSvg({ fg: '#FFFFFF', bg: ink, weight: 'bold', fill: 0.7, radius: 0.25 });
 const appIcon = logoSvg({ fg: '#FFFFFF', bg: ink, fill: 0.6, radius: 0 });
 const touchIcon = logoSvg({ fg: '#FFFFFF', bg: ink, weight: 'bold', fill: 0.66, radius: 0 });
 const glyphOnly = (fill) => logoSvg({ fg: '#FFFFFF', fill });
-const geist = readFileSync(resolve(root, 'apps/mobile/node_modules/@expo-google-fonts/geist/600SemiBold/Geist_600SemiBold.ttf')).toString('base64');
-/** Logo over the name, kept inside the centre circle Android 12+ crops splash icons to. The -31px trims the square viewBox to the glyph. */
-const splashLockup =
-  `<style>@font-face{font-family:Geist;font-weight:600;src:url(data:font/ttf;base64,${geist})}</style>` +
-  `<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">` +
-  `<div style="width:340px;height:340px;margin:-31px 0">${logoSvg({ fg: '#FFFFFF', fill: 1 })}</div>` +
-  `<div style="margin-top:44px;font:600 92px/1 Geist;letter-spacing:-0.02em;color:#FFFFFF">XRP Ledger</div></div>`;
+/** logo.jpg's lockup (glyph beside the name). Android's native splash is plain black (it would crop this to a circle), so only iOS and the in-app splash use it. */
+const splashLockup = lockupSvg({ fg: '#FFFFFF', fill: 0.55 });
 
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -61,7 +56,7 @@ const write = (rel, data) => {
 write('apps/mobile/assets/icon.png', await png(appIcon, 1024));
 // Android adaptive icon: the foreground must sit inside the 66% safe zone of a 108dp canvas.
 write('apps/mobile/assets/adaptive-icon.png', await png(glyphOnly(0.5), 1024));
-write('apps/mobile/assets/splash-icon.png', await shot(splashLockup, 1024));
+write('apps/mobile/assets/splash-icon.png', await png(splashLockup, 1024));
 write('apps/mobile/assets/favicon.png', await png(favicon, 48));
 write('logo.svg', logoSvg({ fg: '#FFFFFF', bg: ink, fill: 0.72, radius: 0.22 }));
 await browser.close();

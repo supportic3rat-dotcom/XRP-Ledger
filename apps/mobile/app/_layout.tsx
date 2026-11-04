@@ -13,8 +13,10 @@ import { markActive } from '@/lib/lastActive';
 import { useRestoreSession } from '@/lib/useRestoreSession';
 import { useUpkeep } from '@/lib/useUpkeep';
 import { ThemeProvider, useTheme } from '@/theme';
+import { AppLock } from '@/components/AppLock';
 import { AppSplash } from '@/components/AppSplash';
 import { ToastHost } from '@/components/Toast';
+import { PhraseCheckHost } from '@/features/account/PhraseCheck';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -27,6 +29,7 @@ const Navigator = () => {
   return (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: 'slide_from_right' }} />
+      <PhraseCheckHost />
       <ToastHost />
     </>
   );
@@ -42,6 +45,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <Navigator />
+            <AppLock />
             <AppSplash />
           </ThemeProvider>
         </QueryClientProvider>

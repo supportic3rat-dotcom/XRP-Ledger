@@ -83,6 +83,8 @@ export type Api = {
   signOut: () => Promise<void>;
   // Reads
   profile: () => Promise<CustomerProfile>;
+  /** The face photo from the customer's verified identity check, as a short-lived URL. Null until verified. */
+  profilePhoto: () => Promise<string | null>;
   /** The customer's crypto trust, or null if they haven't created one yet. */
   trust: () => Promise<Trust | null>;
   createTrust: (input: TrustInput) => Promise<{ ref: string }>;
@@ -133,6 +135,15 @@ export type Api = {
   startTotpEnrollment: () => Promise<{ factorId: string; uri: string; secret: string } | null>;
   confirmTotpEnrollment: (factorId: string, code: string) => Promise<{ ok: boolean }>;
   regenerateBackupCodes: () => Promise<string[]>;
+  /** Null when the security phrase is off. `words` are the customer's 30 in a new order each time; `verified`: this session passed it. */
+  phraseChallenge: () => Promise<{ words: string[]; verified: boolean } | null>;
+  /** Checks the 6 words, in order. A wrong pick is `ok: false`; too many tries throws. */
+  verifyPhrase: (words: string[]) => Promise<{ ok: boolean }>;
+  /** 30 fresh random words to pick from. */
+  startPhraseSetup: () => Promise<string[]>;
+  enablePhrase: (words: string[]) => Promise<void>;
+  /** Needs the phrase itself. */
+  disablePhrase: (words: string[]) => Promise<{ ok: boolean }>;
   setAllowlist: (enabled: boolean) => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
   addAllowlistAddress: (input: { asset: string; label: string; address: string; tag: string | null; memo?: string | null }) => Promise<void>;

@@ -1,6 +1,7 @@
 import { fnSchemas } from '@xrp/schemas';
-import { customerId, touchDevice, type TxRow } from '../_shared/customer.ts';
+import { customerId, sessionId, touchDevice, type TxRow } from '../_shared/customer.ts';
 import { defineFunction, serve } from '../_shared/handler.ts';
+import { HttpError } from '../_shared/http.ts';
 
 /**
  * Withdraw: one SQL transaction that checks limits and the allowlist, reserves the funds and opens the approval.
@@ -13,6 +14,9 @@ export const handler = defineFunction({
   idempotent: true,
   run: async (ctx) => {
     const { asset, amountDrops, destination, destinationTag, memo, network } = ctx.input;
+    // With a security phrase on, this session must have passed it in the last 10 minutes.
+    const fresh = await ctx.rpc<boolean>('phrase_fresh', { p_customer: customerId(ctx), p_session: sessionId(ctx) });
+    if (!fresh) throw new HttpError(403, 'Enter your security phrase to confirm this withdrawal.', 'phrase_stale');
     const { paused } = await touchDevice(ctx);
     const tx = await ctx.rpc<TxRow>('request_withdrawal', {
       p_customer: customerId(ctx),

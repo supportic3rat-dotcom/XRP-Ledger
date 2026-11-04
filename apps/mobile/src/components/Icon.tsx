@@ -51,18 +51,20 @@ export const Icon = ({ name, d, size = 'md', color = 'text', rawColor, strokeWid
   );
 };
 
-const tile = logoTile();
-const weight = logo.weights.bold;
+const tile = logoTile(0.7);
 
-/** The logo (wallet, XRP mark, coin) on an accent tile; inverts with the theme. */
+/** The logo (wallet, XRP mark, clasp) on an accent tile; inverts with the theme. Bold below 40px so the lines hold up. */
 export const BrandMark = ({ size = 28 }: { size?: number }) => {
   const { c } = useTheme();
   return (
     <Svg width={size} height={size} viewBox={tile.viewBox}>
       <Rect x={tile.x} y={tile.y} width={tile.side} height={tile.side} rx={tile.rx} fill={c.accent} />
-      <Path d={logo.outline} fill="none" stroke={c.onAccent} strokeWidth={weight.outline} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={logo.mark} fill={c.onAccent} stroke={c.onAccent} strokeWidth={weight.mark} strokeLinejoin="round" />
-      <Circle cx={logo.coin.cx} cy={logo.coin.cy} r={weight.coinR} fill="none" stroke={c.onAccent} strokeWidth={weight.coin} />
+      <Path
+        d={logo.path}
+        fill={c.onAccent}
+        fillRule="evenodd"
+        {...(size < 40 ? { stroke: c.onAccent, strokeWidth: logo.boldStroke, strokeLinejoin: 'round' as const } : null)}
+      />
     </Svg>
   );
 };

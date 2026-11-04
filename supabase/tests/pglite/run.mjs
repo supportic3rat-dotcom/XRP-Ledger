@@ -58,7 +58,7 @@ const balance = async (customer, kind) =>
 
 console.log('Applying Supabase stub, migrations and seed…');
 await db.exec(readFileSync(join(here, 'supabase-stub.sql'), 'utf8'));
-for (const file of readdirSync(join(root, 'migrations')).sort()) {
+for (const file of readdirSync(join(root, 'migrations')).filter((f) => f.endsWith('.sql')).sort()) {
   try {
     await db.exec(readFileSync(join(root, 'migrations', file), 'utf8'));
   } catch (e) {
@@ -411,6 +411,66 @@ await test('Compliance removes a lost 2FA: factors, codes and sessions go, withd
   await db.exec('rollback');
   assert(/Only Compliance/.test(ops ?? ''), `ops: ${ops}`);
   assert(r.t === false && r.codes === 0 && r.told === 1, JSON.stringify(r));
+});
+const PHRASE_POOL_SQL = `array['acorn','amber','anchor','apple','arrow','atlas','autumn','badge','bamboo','banner','basket','beacon','berry','birch','bloom',
+  'bottle','breeze','brick','bridge','brook','bucket','butter','cabin','cactus','camel','candle','canoe','canyon','carpet','castle']`;
+const SESSION_A = '22222222-2222-4222-8222-222222222222';
+const SESSION_B = '33333333-3333-4333-8333-333333333333';
+await test('security phrase: 6 of 30 in order; sessions signed in when it is turned on keep working, new ones owe it', async () => {
+  await db.exec(`begin; insert into auth.sessions (id, user_id) values ('${SESSION_A}', '${BRENDAN}');`);
+  await db.exec(`select phrase_setup('${BRENDAN}', ${PHRASE_POOL_SQL})`);
+  await db.exec('savepoint s');
+  const outside = await db.exec(`select phrase_enable('${BRENDAN}', array['acorn','amber','anchor','apple','arrow','zebra'])`).then(() => null, (e) => e.message);
+  await db.exec('rollback to s');
+  await db.exec(`select phrase_enable('${BRENDAN}', array['castle','apple','brook','cabin','amber','berry'])`);
+  const claim = async (sid) => (await one(`select custom_access_token_hook(jsonb_build_object('user_id', '${BRENDAN}', 'claims', jsonb_build_object('aal', 'aal1', 'session_id', '${sid}'))) -> 'claims' ->> 'phrase' p`)).p;
+  const before = { a: await claim(SESSION_A), b: await claim(SESSION_B) };
+  const order = await one(`select phrase_check('${BRENDAN}', array['apple','castle','brook','cabin','amber','berry'], '${SESSION_B}') ok`);
+  const right = await one(`select phrase_check('${BRENDAN}', array['castle','apple','brook','cabin','amber','berry'], '${SESSION_B}') ok`);
+  const after = await claim(SESSION_B);
+  const fresh = await one(`select phrase_fresh('${BRENDAN}', '${SESSION_B}') b, phrase_fresh('${BRENDAN}', '${SESSION_B}', interval '0 seconds') stale`);
+  const rejected = (await one(`select count(*)::int n from security_events where customer_id = '${BRENDAN}' and title = 'Security phrase rejected'`)).n;
+  const wrongOff = await one(`select phrase_disable('${BRENDAN}', array['acorn','amber','anchor','apple','arrow','atlas']) ok`);
+  const off = await one(`select phrase_disable('${BRENDAN}', array['castle','apple','brook','cabin','amber','berry']) ok`);
+  const offClaim = await claim(SESSION_B);
+  await db.exec('rollback');
+  assert(/Pick 6 different words/.test(outside ?? ''), `outside: ${outside}`);
+  assert(before.a == null && before.b === 'required', JSON.stringify(before));
+  assert(order.ok === false && right.ok === true && after == null, JSON.stringify({ order, right, after }));
+  assert(fresh.b === true && fresh.stale === false && rejected === 1, JSON.stringify({ fresh, rejected }));
+  assert(wrongOff.ok === false && off.ok === true && offClaim == null, JSON.stringify({ wrongOff, off, offClaim }));
+});
+await test('security phrase: a session that owes it reads nothing', async () => {
+  const seen = async (claims) => {
+    await db.exec(`select set_config('request.jwt.claim.sub', '${BRENDAN}', true), set_config('request.jwt.claims', '${JSON.stringify({ sub: BRENDAN, aal: 'aal1', ...claims })}', true); set local role authenticated;`);
+    const { n } = await one(`select count(*)::int n from customers`);
+    await db.exec('savepoint w');
+    const words = await db.exec(`select words from security_phrases`).then(() => 'readable', () => 'denied');
+    await db.exec('rollback to w');
+    await db.exec('reset role');
+    return { n, words };
+  };
+  await db.exec('begin');
+  const owed = await seen({ phrase: 'required' });
+  const passed = await seen({});
+  await db.exec('rollback');
+  assert(owed.n === 0 && passed.n === 1, JSON.stringify({ owed, passed }));
+  assert(passed.words === 'denied', `security_phrases is ${passed.words}`);
+});
+await test('Compliance removes a forgotten security phrase: sessions signed out, withdrawals pause, audited', async () => {
+  await db.exec(`begin; select phrase_setup('${BRENDAN}', ${PHRASE_POOL_SQL});
+    select phrase_enable('${BRENDAN}', array['castle','apple','brook','cabin','amber','berry']);`);
+  await db.exec(`savepoint s; select set_config('request.jwt.claim.sub', '${OPS}', true), set_config('request.jwt.claims', '${JSON.stringify({ sub: OPS, app_role: 'operations', aal: 'aal2' })}', true)`);
+  const ops = await db.exec(`select customer_phrase_reset('${BRENDAN}')`).then(() => null, (e) => e.message);
+  await db.exec('rollback to s');
+  await db.exec(`select set_config('request.jwt.claim.sub', '${COMP}', true), set_config('request.jwt.claims', '${JSON.stringify({ sub: COMP, app_role: 'compliance', aal: 'aal2' })}', true)`);
+  await db.exec(`select customer_phrase_reset('${BRENDAN}')`);
+  const r = await one(`select (select security_phrase_at from customers where id = '${BRENDAN}') at,
+    (select count(*)::int from security_phrases where customer_id = '${BRENDAN}') rows,
+    (select count(*)::int from notifications where customer_id = '${BRENDAN}' and title = 'Your security phrase was removed by support') told`);
+  await db.exec('rollback');
+  assert(/Only Compliance/.test(ops ?? ''), `ops: ${ops}`);
+  assert(r.at === null && r.rows === 0 && r.told === 1, JSON.stringify(r));
 });
 await test('reconciliation inputs: liabilities, suspense and delayed provider steps', async () => {
   const r = (await one(`select recon_inputs() j`)).j;

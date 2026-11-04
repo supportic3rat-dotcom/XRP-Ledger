@@ -22,7 +22,7 @@ import { TxDetailSheet } from '@/components/TxDetailSheet';
 import { TxRow } from '@/components/TxRow';
 import type { TxView } from '@/data/describeTx';
 import { api } from '@/data';
-import { useActivity, useApiMutation, useExternalWallets, useHoldings, useLoan, useKycDecision, useMarkets, useNotifications, usePortfolioHistory, usePriceMap, useProfile, useYieldPositions } from '@/data/hooks';
+import { balanceFlows, useActivity, useApiMutation, useExternalWallets, useHoldings, useLoan, useKycDecision, useMarkets, useNotifications, usePortfolioHistory, usePriceMap, useProfile, useYieldPositions } from '@/data/hooks';
 import { PERIOD_IDS } from '@/data/series';
 import { hm, hmz } from '@/lib/dates';
 import { MASK, useHideAmounts } from '@/state/ui';
@@ -228,7 +228,6 @@ export const HomeScreen = () => {
     .map((h) => ({ asset: h.asset, units: totalOf(h), value: cents(totalOf(h), h.asset) }))
     .filter((x) => x.units > 0n)
     .sort((x, y) => (y.value > x.value ? 1 : y.value < x.value ? -1 : 0));
-  const series = usePortfolioHistory(assets, period);
   const suffix = chartPeriods.find((p) => p.id === period)?.suffix ?? '';
   const verified = profile.data?.kycStatus === 'verified';
   const unread = (notes.data ?? []).filter((n) => !n.readAt).length;
@@ -238,15 +237,6 @@ export const HomeScreen = () => {
   const pendingCents = pending.reduce((s, t) => s + cents(t.amountDrops ?? 0n, t.asset), 0n);
   const owed = loan.data ? loan.data.principalCents + loan.data.interestCents : 0n;
   const accruedCents = (positions.data ?? []).reduce((s, p) => s + cents(p.estimatedAccruedDrops, p.asset), 0n);
-  const change = useMemo(() => {
-    const v = series.data?.values;
-    if (!v?.length) return null;
-    const startCents = BigInt(Math.round((v[0] ?? 0) * 100));
-    const endCents = BigInt(Math.round((v[v.length - 1] ?? 0) * 100));
-    const diff = endCents - startCents;
-    return { diff, up: diff >= 0n, pct: Math.abs(series.data?.pct ?? 0).toFixed(2) };
-  }, [series.data]);
-  const [whole, centsPart] = splitMoney(m.money(totalCents));
   const money = (c: bigint) => (hidden ? MASK : m.money(c));
   const change24 = (a: string) => markets.data?.find((m) => m.asset === a)?.changeBps ?? 0;
   const recent = activity.views.slice(0, 3);
@@ -264,6 +254,26 @@ export const HomeScreen = () => {
       amounts: held.map(([a, units]) => formatAmount(units, a)).join(' · ') || 'Empty',
     };
   });
+  // Connected wallets count toward the headline but never toward custody: those coins stay in the customer's own wallets.
+  const connectedCents = linked.reduce((s, w) => s + w.value, 0n);
+  const [whole, centsPart] = splitMoney(m.money(totalCents + connectedCents));
+  // The chart follows the headline: custodial coins (with their deposits, withdrawals and swaps) plus connected wallets.
+  const charted = useMemo(() => {
+    const units = new Map(assets.map((x) => [x.asset, x.units]));
+    for (const w of wallets.data ?? []) for (const [a, u] of Object.entries(w.balances)) if (u > 0n) units.set(a, (units.get(a) ?? 0n) + u);
+    return [...units].map(([asset, u]) => ({ asset, units: u, value: cents(u, asset) })).sort((x, y) => (y.value > x.value ? 1 : y.value < x.value ? -1 : 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdings.data, wallets.data, prices]);
+  const flows = useMemo(() => balanceFlows(activity.raw.filter((t) => t.customerId === profile.data?.id)), [activity.raw, profile.data?.id]);
+  const series = usePortfolioHistory(charted, period, flows, api.now);
+  const change = useMemo(() => {
+    const v = series.data?.values;
+    if (!v?.length) return null;
+    const startCents = BigInt(Math.round((v[0] ?? 0) * 100));
+    const endCents = BigInt(Math.round((v[v.length - 1] ?? 0) * 100));
+    const diff = endCents - startCents;
+    return { diff, up: diff >= 0n, pct: startCents > 0n ? Math.abs(series.data?.pct ?? 0).toFixed(2) : null };
+  }, [series.data]);
 
   const onAction = (a: Action) => {
     if (a.key === 'history') {
@@ -302,7 +312,7 @@ export const HomeScreen = () => {
         <Card clip={false} style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 12, marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <T size={13} weight={500} color="text2" accessibilityRole="header">
-              Total custodial value
+              {linked.length ? 'Total value' : 'Total custodial value'}
             </T>
             <Pressable accessibilityRole="button" accessibilityLabel={hidden ? 'Show amounts' : 'Hide amounts'} onPress={toggle} hitSlop={14}>
               <Icon name="eye" size="sm" color="text3" />
@@ -320,10 +330,15 @@ export const HomeScreen = () => {
               </>
             )}
           </T>
+          {linked.length && !hidden ? (
+            <T size={12.5} color="text3" num style={{ marginTop: 4 }}>
+              {`${m.money(totalCents)} custodial · ${m.money(connectedCents)} in connected wallets`}
+            </T>
+          ) : null}
           {change && !hidden ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
               <T size={13} weight={500} num color={change.up ? 'pos' : 'neg'}>
-                {`${change.up ? '+' : '−'}${m.money(change.diff < 0n ? -change.diff : change.diff)} (${change.pct}%)`}
+                {`${change.up ? '+' : '−'}${m.money(change.diff < 0n ? -change.diff : change.diff)}${change.pct ? ` (${change.pct}%)` : ''}`}
               </T>
               <T size={13} color="text3">
                 {suffix}
@@ -337,7 +352,7 @@ export const HomeScreen = () => {
               <AreaChart
                 values={series.data.values}
                 height={112}
-                ariaLabel={`Custodial value chart, ${suffix}, ${change?.up ? 'up' : 'down'} ${change?.pct ?? '0'} percent`}
+                ariaLabel={`${linked.length ? 'Total' : 'Custodial'} value chart, ${suffix}, ${change?.up ? 'up' : 'down'} ${m.money(change ? (change.diff < 0n ? -change.diff : change.diff) : 0n)}`}
               />
             ) : (
               <View style={{ height: 112 }} />
@@ -346,7 +361,7 @@ export const HomeScreen = () => {
           <PeriodChips label="Chart period" options={PERIOD_IDS} value={period} onChange={setPeriod} />
           <T size={11.5} color="text3" style={{ marginTop: 10 }}>
             {live
-              ? `Live prices · updated ${priceAt}. Change reflects price only, not deposits or withdrawals.`
+              ? `Live prices · updated ${priceAt}. The chart follows your balance, including deposits and withdrawals.`
               : 'Live prices are unavailable right now; values may be out of date. Your balances are unaffected.'}
           </T>
         </Card>
@@ -461,7 +476,7 @@ export const HomeScreen = () => {
 
         {linked.length ? (
           <>
-            <Sec>Connected wallets · not in your custodial total</Sec>
+            <Sec>Connected wallets · held in your own wallets</Sec>
             <Card>
               {linked.map((w, i) => (
                 <Line key={w.key} first={i === 0} k={w.name} ks={w.address} v={money(w.value)} vs={hidden ? MASK : w.amounts} />

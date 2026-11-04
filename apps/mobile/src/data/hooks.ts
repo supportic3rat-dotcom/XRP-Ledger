@@ -10,10 +10,12 @@ import { subscribeDemo } from './demo/demoApi';
 import { supabase } from './supabaseApi';
 import type { Cents, MicroUsd, Transaction, YieldPosition } from '@xrp/types';
 import type { Holding, PriceInfo } from './api';
-import { useMarkets, usePriceMap } from './market';
+import { useMarkets, usePriceMap, type BalanceFlow } from './market';
 import { useSession } from '@/state/session';
 
 export const useProfile = () => useQuery({ queryKey: qk.profile, queryFn: api.profile });
+/** Kept for 50 minutes: the signed URL lasts an hour. */
+export const useProfilePhoto = (enabled: boolean) => useQuery({ queryKey: qk.profilePhoto, queryFn: api.profilePhoto, enabled, staleTime: 50 * 60_000 });
 /** The customer's crypto trust (null until created). */
 export const useTrust = () => {
   const signedIn = useSession((s) => s.signedIn);
@@ -62,6 +64,21 @@ export const occurredAt = (t: Transaction): string => {
   if (t.kind === 'yield_reward' && t.status === 'credited') return at('credited') ?? t.createdAt;
   return t.createdAt;
 };
+
+/** Settled balance changes for the Home chart: credited deposits and rewards, sent withdrawals, completed swaps. */
+export const balanceFlows = (txs: Transaction[]): BalanceFlow[] =>
+  txs.flatMap((t): BalanceFlow[] => {
+    const units = t.amountDrops ?? 0n;
+    const at = (s: string) => t.events.find((e) => e.toStatus === s)?.at ?? t.createdAt;
+    if ((t.kind === 'deposit' || t.kind === 'yield_reward') && t.status === 'credited') return [{ asset: t.asset, units: units < 0n ? -units : units, at: at('credited') }];
+    if (t.kind === 'withdrawal' && t.status === 'validated') return [{ asset: t.asset, units: units > 0n ? -units : units, at: at('validated') }];
+    if (t.kind === 'exchange' && (t.status === 'sold' || t.status === 'paid_out')) {
+      const when = at('sold');
+      const out: BalanceFlow = { asset: t.asset, units: units > 0n ? -units : units, at: when };
+      return t.counterAsset && t.counterAmount ? [out, { asset: t.counterAsset, units: t.counterAmount, at: when }] : [out];
+    }
+    return [];
+  });
 
 /**
  * Formats values in the customer's own currency (set from their country; changeable in Profile). Money is always
@@ -170,4 +187,4 @@ export const useApiMutation = <TArgs, TResult>(fn: (args: TArgs) => Promise<TRes
   return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries() });
 };
 
-export { useMarket, useMarkets, usePriceHistory, usePriceMap, usePortfolioHistory } from './market';
+export { useMarket, useMarkets, usePriceHistory, usePriceMap, usePortfolioHistory, type BalanceFlow } from './market';

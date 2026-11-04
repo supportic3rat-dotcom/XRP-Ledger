@@ -1,4 +1,4 @@
-import { formatXrp, formatXrpUnit } from '@xrp/ledger';
+import { assetLimits, formatXrp, formatXrpUnit } from '@xrp/ledger';
 import type { Tone } from '@xrp/types';
 import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
@@ -169,7 +169,7 @@ export const CustodyScreen = () => {
                   </Pressable>
                 ),
               },
-              { k: 'Daily withdrawal limit', v: `${formatXrp(25_000_000_000n, { minDecimals: 0, maxDecimals: 2 })} XRP` },
+              { k: 'Daily withdrawal limit', v: `${formatXrp(assetLimits('XRP').dailyLimit, { minDecimals: 0, maxDecimals: 2 })} XRP` },
             ]}
           />
         </Card>

@@ -1,7 +1,7 @@
 import { ASSETS, asset as assetSpec } from '@xrp/ledger';
 import { MOCK_PRICES, chartPeriods, createCoinGecko, sampleSeries, type ChartPeriod, type MarketStats } from '@xrp/providers';
 import type { MicroUsd } from '@xrp/types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 /**
@@ -101,38 +101,71 @@ export const usePriceHistory = (asset: string, period: ChartPeriod, enabled = tr
 /** How many holdings get their own price history in the portfolio chart (CoinGecko's free tier is rate limited). */
 const CHARTED = 3;
 
+/** A settled change to a balance: + in, − out, in the asset's base units. */
+export type BalanceFlow = { asset: string; units: bigint; at: string };
+
+const DAY = 86_400_000;
+const PERIOD_MS: Record<ChartPeriod, number> = { '1D': DAY, '1W': 7 * DAY, '1M': 30 * DAY, '3M': 90 * DAY, '6M': 180 * DAY, '1Y': 365 * DAY, ALL: 5 * 365 * DAY };
+
+/** Point times for a series: its own when it has them, otherwise evenly spaced across the period, ending now. */
+const timesOf = (s: Series, period: ChartPeriod, now: number): number[] => {
+  const own = s.times.map((t) => Date.parse(t));
+  if (own.length === s.values.length && own.every((t) => Number.isFinite(t))) return own;
+  const n = s.values.length;
+  return s.values.map((_, i) => now - PERIOD_MS[period] + (i * PERIOD_MS[period]) / Math.max(1, n - 1));
+};
+
+const toCoins = (units: bigint, asset: string) => Number(units) / 10 ** assetSpec(asset).decimals;
+
 /**
- * Value of the current holdings over a period, from the largest holdings' real price history (smaller ones are
- * counted at today's price). Reflects price moves only — not deposits or withdrawals, which the caption says.
- * Histories share the cache with the asset pages.
+ * What the customer's balance was worth across a period: at each point, the coins they held then (today's holdings
+ * with later deposits, withdrawals and swaps taken back out) at that point's price. The last point is today's balance
+ * at the latest price, so the chart grows with every deposit and moves with every price refresh. The largest holdings
+ * use their real price history; smaller ones are counted at today's price. Histories share the cache with the asset pages.
  */
-export const usePortfolioHistory = (holdings: { asset: string; units: bigint; value?: bigint }[], period: ChartPeriod) => {
-  const qc = useQueryClient();
-  const held = holdings.filter((h) => h.units > 0n);
-  const key = held.map((h) => `${h.asset}:${h.units}`).join(',');
-  return useQuery({
-    queryKey: ['portfolio-history', period, key],
-    enabled: held.length > 0,
-    staleTime: 5 * 60_000,
-    queryFn: async (): Promise<Series> => {
-      const charted = held.slice(0, CHARTED);
-      const rest = held.slice(CHARTED);
-      const all = await Promise.all(
-        charted.map((h) => qc.fetchQuery({ queryKey: ['history', h.asset, period], queryFn: () => fetchHistory(h.asset, period), staleTime: 5 * 60_000 })),
-      );
-      const flat = rest.reduce((sum, h) => sum + (Number(h.units) / 10 ** assetSpec(h.asset).decimals) * (Number(latestPrice(h.asset)) / 1e6), 0);
-      const n = Math.min(...all.map((s) => s.values.length));
-      const values = Array.from({ length: n }, (_, i) =>
-        charted.reduce((sum, h, k) => {
-          const s = all[k]!;
-          const v = s.values[Math.round((i * (s.values.length - 1)) / Math.max(1, n - 1))] ?? 0;
-          return sum + (Number(h.units) / 10 ** assetSpec(h.asset).decimals) * v;
-        }, flat),
-      );
-      const times = all.reduce((best, s) => (s.times.length >= best.length ? s.times : best), [] as string[]);
-      return seriesFrom(values, times.length === n ? times : values.map(() => ''), all.every((s) => s.live));
-    },
+export const usePortfolioHistory = (
+  holdings: { asset: string; units: bigint; value?: bigint }[],
+  period: ChartPeriod,
+  flows: BalanceFlow[] = [],
+  now: () => Date = () => new Date(),
+) => {
+  const { prices } = usePriceMap();
+  const assets = [...new Set([...holdings.filter((h) => h.units > 0n).map((h) => h.asset), ...flows.map((f) => f.asset)])];
+  const charted = assets.slice(0, CHARTED);
+  const histories = useQueries({
+    queries: charted.map((asset) => ({ queryKey: ['history', asset, period], queryFn: () => fetchHistory(asset, period), staleTime: 5 * 60_000 })),
   });
+  const loaded = histories.every((h) => h.data);
+  const stamp = histories.map((h) => h.dataUpdatedAt).join(',');
+  const heldKey = holdings.map((h) => `${h.asset}:${h.units}`).join(',');
+  const flowsKey = flows.map((f) => `${f.asset}:${f.units}@${f.at}`).join(',');
+
+  const data = useMemo((): Series | undefined => {
+    if (!loaded) return undefined;
+    const end = now().getTime();
+    const base = histories[0]?.data ?? { values: Array<number>(chartPeriods.find((p) => p.id === period)?.n ?? 30).fill(0), times: [], pct: 0, live: true };
+    const times = timesOf(base, period, end);
+    const held = new Map(holdings.map((h) => [h.asset, h.units]));
+    const priceAt = (asset: string, i: number): number => {
+      const k = charted.indexOf(asset);
+      const s = histories[k]?.data;
+      if (!s) return Number(prices[asset] ?? latestPrice(asset)) / 1e6;
+      return s.values[Math.round((i * (s.values.length - 1)) / Math.max(1, times.length - 1))] ?? 0;
+    };
+    const unitsAt = (asset: string, t: number) =>
+      flows.reduce((u, f) => (f.asset === asset && Date.parse(f.at) > t ? u - f.units : u), held.get(asset) ?? 0n);
+    const values = times.map((t, i) => assets.reduce((sum, a) => {
+      const u = unitsAt(a, t);
+      return u > 0n ? sum + toCoins(u, a) * priceAt(a, i) : sum;
+    }, 0));
+    const today = assets.reduce((sum, a) => sum + toCoins(held.get(a) ?? 0n, a) * (Number(prices[a] ?? latestPrice(a)) / 1e6), 0);
+    values.push(today);
+    const iso = [...times, end].map((t) => new Date(t).toISOString());
+    return seriesFrom(values, iso, histories.every((h) => h.data?.live));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, stamp, period, prices, heldKey, flowsKey]);
+
+  return { data, isLoading: !loaded };
 };
 
 /** Compact USD for market stats: $1.62T, $48.3B, $912.4M. */

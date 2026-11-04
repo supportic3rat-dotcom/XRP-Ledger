@@ -9,6 +9,7 @@ const staff = (role: string, aal: 'aal1' | 'aal2' = 'aal2') => `Bearer ${token({
 const withdrawal = { amountDrops: '300000000', destination: 'rRecipXk3PaKcV9tYwZ2hNproto7Hd', destinationTag: '10293847' };
 const txRow = { id: 'tx-1', ref: 'WD-002101', status: 'in_review', customer_id: CUSTOMER, kind: 'withdrawal', amount_drops: 300000000, amount_cents: null, meta: {} };
 const rpcs = {
+  phrase_fresh: () => ({ data: true, error: null }),
   touch_device: () => ({ data: { withdrawals_paused_until: null }, error: null }),
   request_withdrawal: () => ({ data: txRow, error: null }),
 };
@@ -31,6 +32,23 @@ Deno.test('with two-factor on, a password alone (aal1) is refused before anythin
   assertEquals(res.status, 403);
   assertEquals((await res.json()).code, 'mfa_required');
   assertEquals(calls.length, 0);
+});
+
+Deno.test('a session that still owes the security phrase is refused before anything runs', async () => {
+  const { deps, calls } = fakeDeps({ rpcs, factors: [] });
+  const owed = `Bearer ${token({ sub: CUSTOMER, aal: 'aal1', session_id: '11111111-1111-4111-8111-111111111111', phrase: 'required' })}`;
+  const res = await withdraw(post(withdrawal, { Authorization: owed, 'Idempotency-Key': 'key-00000003' }), deps);
+  assertEquals(res.status, 403);
+  assertEquals((await res.json()).code, 'phrase_required');
+  assertEquals(calls.length, 0);
+});
+
+Deno.test('with a security phrase on, a withdrawal needs a recent check', async () => {
+  const { deps, calls } = fakeDeps({ rpcs: { ...rpcs, phrase_fresh: () => ({ data: false, error: null }) }, factors: [] });
+  const res = await withdraw(post(withdrawal, { Authorization: customer('aal1'), 'Idempotency-Key': 'key-00000004' }), deps);
+  assertEquals(res.status, 403);
+  assertEquals((await res.json()).code, 'phrase_stale');
+  assertEquals(calls.some((c) => c.fn === 'request_withdrawal'), false);
 });
 
 Deno.test('rejects amounts that are not integer drops (no floats)', async () => {

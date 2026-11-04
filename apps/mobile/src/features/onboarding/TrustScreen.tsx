@@ -1,5 +1,6 @@
 import { COUNTRIES, countryByCode, currencyForCountry } from '@xrp/ledger';
 import { EMAIL, passwordRules } from '@xrp/schemas';
+import type { IconName } from '@xrp/tokens';
 import type { BeneficiaryRelationship, TrustInput, TrustType } from '@xrp/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -29,10 +30,16 @@ import { useTheme } from '@/theme';
 type From = 'create' | 'connect' | 'existing';
 
 const TYPES: { value: TrustType; title: string; body: string }[] = [
-  { value: 'revocable', title: 'Revocable trust', body: 'You stay in control: change your beneficiaries or cancel the trust whenever you like.' },
-  { value: 'irrevocable', title: 'Irrevocable trust', body: 'Fixed once it’s set up. The assets are held for your beneficiaries and can’t be taken back.' },
+  { value: 'revocable', title: 'Revocable trust', body: 'You stay in control: change your beneficiaries or cancel the trust.' },
+  { value: 'irrevocable', title: 'Irrevocable trust', body: 'The assets are held for your beneficiaries and can’t be taken back.' },
   { value: 'spendthrift', title: 'Spendthrift trust', body: 'Protects your beneficiaries’ shares: they can’t sign them away or borrow against them.' },
 ];
+const BENEFITS: { label: string; icon: IconName }[] = [
+  { label: 'Crypto Tax Free', icon: 'file' },
+  { label: 'Advanced Security', icon: 'lock' },
+  { label: 'Swift Asset Transition to Next of Kin', icon: 'send' },
+];
+
 const TYPE_NAMES: Record<TrustType, string> = { revocable: 'Revocable trust', irrevocable: 'Irrevocable trust', spendthrift: 'Spendthrift trust' };
 
 const RELATIONSHIPS: { value: Exclude<BeneficiaryRelationship, 'self'>; label: string }[] = [
@@ -246,6 +253,22 @@ export const TrustScreen = () => {
               Creating a trust is free. All three trust types are available at no cost.
             </Banner>
             <Button label="Create My Trust" onPress={() => setStep(1)} style={{ marginTop: 6 }} />
+            <T size={17} weight={600} style={{ marginTop: 8 }} accessibilityRole="header">
+              Trust Benefits
+            </T>
+            <Card style={{ padding: 14, gap: 12 }}>
+              {BENEFITS.map((b) => (
+                <View key={b.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={b.icon} size="sm" color="accentText" />
+                  </View>
+                  <T>{b.label}</T>
+                </View>
+              ))}
+              <T size={13} color="text3" style={{ paddingLeft: 38 }}>
+                And more
+              </T>
+            </Card>
           </View>
         ) : null}
 
@@ -494,7 +517,7 @@ export const TrustScreen = () => {
               Trust type
             </T>
             <Card>
-              <KV items={[{ k: 'Type', v: TYPE_NAMES[type] }, { k: 'Cost', v: 'Free' }]} baseline={false} />
+              <KV items={[{ k: 'Type', v: TYPE_NAMES[type] }, { k: 'Changes', v: 'Locked for 6 months' }, { k: 'Cost', v: 'Free' }]} baseline={false} />
             </Card>
             <T size={13} weight={600} color="text2">
               Personal information

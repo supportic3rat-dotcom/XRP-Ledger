@@ -35,6 +35,7 @@ import { Timeline, type TimelineStep } from '@/components/Timeline';
 import { TopBar } from '@/components/TopBar';
 import { api } from '@/data';
 import { useActivity, useAllowlist, useApiMutation, useAssets, useBalances, usePrice, useProfile } from '@/data/hooks';
+import { confirmPhrase } from '@/features/account/PhraseCheck';
 import { confirmWithDevice } from '@/lib/deviceAuth';
 import { newIdempotencyKey } from '@/lib/idempotency';
 import { useMoney } from '@/lib/money';
@@ -234,6 +235,10 @@ export const WithdrawScreen = () => {
       return;
     }
     if (step === 4) {
+      if (!(await confirmPhrase('Confirm with your security phrase'))) {
+        setError('The security phrase check was cancelled.');
+        return;
+      }
       const ok = await confirmWithDevice('Confirm this withdrawal');
       if (!ok) {
         setError('Device confirmation was cancelled.');

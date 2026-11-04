@@ -120,6 +120,23 @@ Everything here differs from the design files or the brief on purpose, or still 
   now creates it from the sign-up metadata, with a unique destination tag and an `ACC-…` reference
   (`20261023000300_customer_on_signup.sql`). Users created without `full_name` (staff) are skipped.
 
+## 2026-11-04 · Security phrase, as an option (owner's decision)
+
+- Customers can turn on a security phrase in Security: they're shown 30 random words and tap 6, in order, then tap
+  them again from a shuffled grid to confirm. Off by default.
+- It's asked at sign-in (after the password and any two-factor), before every withdrawal, and when the Deposit
+  screen opens. Each check shows the 30 words in a new order; the customer taps their 6 in order.
+- Enforced on the server: the access-token hook adds `phrase: required` to a session that hasn't passed it, Edge
+  Functions refuse that session (`_shared/handler.ts`), and a restrictive `phrase_required` policy on every RLS table
+  blocks direct reads (`20261104000100_security_phrase.sql`). New tables need that policy too.
+- `withdraw-request` also needs a check from the same session in the last 10 minutes. Deposits are checked in the
+  app only (reporting a deposit moves no money out).
+- Sessions already signed in when it's turned on stay signed in; every new sign-in asks for it. Turning it off needs
+  the phrase. 5 wrong tries in 15 minutes locks it for 15 minutes.
+- The 6 words are stored only as a bcrypt hash; the 30-word list is in `security_phrases`, which the app can't read.
+- Compliance can remove it from a customer's console page (`customer-phrase-reset`) for someone who forgot it:
+  sessions are signed out and withdrawals pause for 24 hours.
+
 ## 2026-11-02 · Two-factor is back, as an option (owner's decision)
 
 - Customers can turn on an authenticator app in Security. Off by default: without it, sign-in stays email and

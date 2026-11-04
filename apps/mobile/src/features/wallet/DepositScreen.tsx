@@ -26,6 +26,7 @@ import { useActivity, useApiMutation, useAssets, useDepositInfo, useProfile } fr
 import { hm, isSameDay, md } from '@/lib/dates';
 import { newIdempotencyKey } from '@/lib/idempotency';
 import { useNoScreenCapture } from '@/lib/useNoScreenCapture';
+import { confirmPhrase } from '@/features/account/PhraseCheck';
 import { useTheme } from '@/theme';
 
 const AUTO_STEPS = [
@@ -45,7 +46,28 @@ const REPORTED_STAGE: Record<string, number> = { reported: 1, validated: 2, scre
 /** The coin whose logo marks a network on the receive card (a token's chain). */
 const NETWORK_COIN: Record<string, string> = { tron: 'TRX', ethereum: 'ETH', solana: 'SOL', polygon: 'POL', bnb: 'BNB' };
 
+/** With a security phrase on, the deposit details show only once it's checked; closing the check goes back. */
 export const DepositScreen = () => {
+  const router = useRouter();
+  const [cleared, setCleared] = useState(false);
+  useEffect(() => {
+    void confirmPhrase('Enter your security phrase to deposit').then((ok) => {
+      if (ok) setCleared(true);
+      else if (router.canGoBack()) router.back();
+      else router.replace('/');
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (cleared) return <DepositDetails />;
+  return (
+    <Screen>
+      <ScrollBody>
+        <TopBar title="Deposit" leadingLabel="Back to Home" />
+      </ScrollBody>
+    </Screen>
+  );
+};
+
+const DepositDetails = () => {
   useNoScreenCapture('deposit');
   const router = useRouter();
   const { c } = useTheme();

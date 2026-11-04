@@ -13,6 +13,7 @@ import {
   unitsToCents,
   walletNetwork,
 } from '@xrp/ledger';
+import { PHRASE_POOL, PHRASE_WORDS } from '@xrp/schemas';
 import type { Balances, Consent, KycStatus, LedgerAccountKind, SupportTicket, Transaction, Trust, TxEvent, TxKind } from '@xrp/types';
 import type { Api, AssetInfo, FirmQuote, Holding } from '../api';
 import { latestPrice } from '../market';
@@ -65,6 +66,8 @@ export const createDemoApi = (): Api => {
     consents: seed.seedConsents.map((c) => ({ ...c })),
     externalWallets: seed.seedExternalWallets.map((x) => ({ ...x })),
     quotes: new Map<string, FirmQuote>(),
+    /** The security phrase: the 30 words and the 6 picked (null while off); `verified` is this session. */
+    phrase: { words: [] as string[], picked: null as string[] | null, verified: true, failures: 0 },
     counters: { WD: 2042, EX: 318, YLD: 112, LN: 9, R: 1, C: 1, SUP: 934, CNS: 9, DEP: 2060 },
   };
 
@@ -175,6 +178,7 @@ export const createDemoApi = (): Api => {
         return { status: 'error', attemptsLeft: Math.max(0, 5 - db.badAttempts), locked: db.badAttempts >= 5 };
       }
       db.badAttempts = 0;
+      db.phrase.verified = false;
       if (db.profile.twoFactorEnabled) return { status: 'mfa_required' };
       db.signedIn = true;
       emit();
@@ -202,6 +206,7 @@ export const createDemoApi = (): Api => {
       emit();
     },
 
+    profilePhoto: async () => null,
     profile: async () => ({ ...db.profile, kycStatus: db.kyc }),
     trust: async () => demoTrust,
     createTrust: async (input) => {
@@ -578,6 +583,42 @@ export const createDemoApi = (): Api => {
       db.profile.backupCodesUnused = 8;
       emit();
       return Array.from({ length: 8 }, () => `${pick()}-${pick()}`);
+    },
+    phraseChallenge: async () => {
+      if (!db.phrase.picked) return null;
+      return { words: [...db.phrase.words].sort(() => Math.random() - 0.5), verified: db.phrase.verified };
+    },
+    verifyPhrase: async (words) => {
+      await wait();
+      if (db.phrase.failures >= 5) throw new Error('Too many attempts. Try again in 15 minutes.');
+      const ok = !!db.phrase.picked && words.join(' ') === db.phrase.picked.join(' ');
+      if (ok) {
+        db.phrase.verified = true;
+        db.phrase.failures = 0;
+      } else db.phrase.failures += 1;
+      return { ok };
+    },
+    startPhraseSetup: async () => {
+      await wait();
+      db.phrase.words = [...PHRASE_WORDS].sort(() => Math.random() - 0.5).slice(0, PHRASE_POOL);
+      return db.phrase.words;
+    },
+    enablePhrase: async (words) => {
+      await wait();
+      db.phrase.picked = [...words];
+      db.phrase.verified = true;
+      db.profile.securityPhraseEnabled = true;
+      db.securityEvents.unshift({ id: `s${Date.now()}`, title: 'Security phrase turned on', meta: 'Just now · iPhone 15', at: iso() });
+      emit();
+    },
+    disablePhrase: async (words) => {
+      await wait();
+      if (!db.phrase.picked || words.join(' ') !== db.phrase.picked.join(' ')) return { ok: false };
+      db.phrase.picked = null;
+      db.profile.securityPhraseEnabled = false;
+      db.securityEvents.unshift({ id: `s${Date.now()}`, title: 'Security phrase turned off', meta: 'Just now · iPhone 15', at: iso() });
+      emit();
+      return { ok: true };
     },
     changePassword: async () => {
       await wait();

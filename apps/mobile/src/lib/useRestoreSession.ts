@@ -8,6 +8,15 @@ import { isSessionExpired, loadLastActive, markActive } from './lastActive';
 
 const MAX_WAIT_MS = 4_000;
 
+const tokenClaims = (token: string): { phrase?: string } => {
+  try {
+    const part = token.split('.')[1] ?? '';
+    return JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '='))) as { phrase?: string };
+  } catch {
+    return {};
+  }
+};
+
 /** Reopens a session that's still inside the limit; an older one is ended, so the app opens on Welcome. */
 const restore = async () => {
   const { data } = await supabase().auth.getSession();
@@ -20,6 +29,11 @@ const restore = async () => {
   // Closed the app at the two-factor step: that session isn't signed in yet.
   const { data: level } = await supabase().auth.mfa.getAuthenticatorAssuranceLevel();
   if (level?.nextLevel === 'aal2' && level.currentLevel !== 'aal2') {
+    await api.signOut().catch(() => undefined);
+    return;
+  }
+  // Closed the app at the security-phrase step: the access-token hook marks that session.
+  if (tokenClaims(data.session.access_token).phrase === 'required') {
     await api.signOut().catch(() => undefined);
     return;
   }

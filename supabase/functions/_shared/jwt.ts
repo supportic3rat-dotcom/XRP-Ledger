@@ -4,6 +4,8 @@ export type Claims = {
   role?: string;
   aal?: 'aal1' | 'aal2';
   session_id?: string;
+  /** Set by the access-token hook while this session still owes the customer's security phrase. */
+  phrase?: 'required';
   app_role?: 'customer' | 'operations' | 'compliance' | 'auditor';
   exp?: number;
 };

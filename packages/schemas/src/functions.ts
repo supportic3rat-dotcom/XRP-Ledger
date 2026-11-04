@@ -1,6 +1,7 @@
 import { ASSET_IDS, isAssetAddress, type AssetId } from '@xrp/ledger';
 import { z } from 'zod';
 import { BACKUP_CODE, EMAIL, isStrongPassword } from './forms.ts';
+import { phraseWords } from './phrase.ts';
 
 /** Edge Function request bodies. Amounts travel as decimal strings of drops/cents, never floats. */
 const drops = z.string().regex(/^\d+$/, 'Amount must be an integer number of drops');
@@ -74,6 +75,14 @@ export const fnSchemas = {
     z.object({ action: z.literal('password-change'), current: z.string().min(1), next: z.string().refine(isStrongPassword, 'Password is too weak') }),
   ]),
   /** Link or unlink a wallet the customer owns, on any supported network (XRP when `network` is omitted). */
+  /** Optional security phrase: 6 words picked, in order, from 30. `verify` is asked at sign-in and before withdrawals and deposits. */
+  'security-phrase': z.discriminatedUnion('action', [
+    z.object({ action: z.literal('challenge') }),
+    z.object({ action: z.literal('verify'), words: phraseWords }),
+    z.object({ action: z.literal('setup') }),
+    z.object({ action: z.literal('enable'), words: phraseWords }),
+    z.object({ action: z.literal('disable'), words: phraseWords }),
+  ]),
   'external-wallet': z.discriminatedUnion('action', [
     z.object({ action: z.literal('add'), address: anyAddress, access: z.enum(['watch', 'self_custody']), network: walletNetworkId }),
     z.object({ action: z.literal('remove'), address: anyAddress, network: walletNetworkId }),
@@ -115,6 +124,8 @@ export const fnSchemas = {
   'customer-password-reset': z.object({ customerId: uuid }),
   /** Compliance removes two-factor for a customer who lost their authenticator and backup codes. */
   'customer-mfa-reset': z.object({ customerId: uuid }),
+  /** Compliance removes the security phrase for a customer who forgot it. */
+  'customer-phrase-reset': z.object({ customerId: uuid }),
   /** Runs whatever scheduled upkeep is due (prices, jobs, balances, daily reconciliation). Called by the app. */
   upkeep: z.object({}),
   'customer-flag': z.object({ customerId: z.string().uuid(), note: z.string() }),

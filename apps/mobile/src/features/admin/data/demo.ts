@@ -84,7 +84,7 @@ const initialQueue = (): QueueItem[] => [
     checks: [
       check('Balance reserved', 'Ledger hold posted at 12:30', 'ok'),
       check('Destination screening', '[Screening provider]: low risk', 'ok'),
-      check('Within daily limit', '1,250 of 25,000 XRP', 'ok'),
+      check('Within daily limit', '1,250 of 1,000,000 XRP', 'ok'),
       check('Confirmed by customer', 'Face ID on device, 12:30', 'ok'),
       check('New destination', 'First withdrawal to this address', 'warn'),
     ],
@@ -866,7 +866,7 @@ export const createDemoData = (role: Role): AdminData => {
           { name: 'M. Okon · Operations', meta: 'Hardware key · last used Oct 12', status: 'Active' },
           { name: 'Director · Treasury', meta: 'Cold vault only', status: 'Standby' },
         ],
-        limits: { customerDailyDrops: X('25000'), autoSignDrops: X('1000'), platformDailyDrops: X('150000'), outflowTodayDrops: X('41280') },
+        limits: { customerDailyDrops: X('1000000'), autoSignDrops: X('1000'), platformDailyDrops: X('150000'), outflowTodayDrops: X('41280') },
         pendingChange: {
           id: 'pol-v4',
           title: 'Raise hot wallet ceiling to 120,000 XRP',
@@ -1015,6 +1015,11 @@ export const createDemoData = (role: Role): AdminData => {
       if (role !== 'compliance') return { ok: false, error: 'Only Compliance can remove two-factor.' };
       log('Removed customer two-factor · sessions signed out', id);
       return { ok: true, message: 'Two-factor removed. The customer has been signed out and told.' };
+    },
+    resetPhrase: async (id) => {
+      if (role !== 'compliance') return { ok: false, error: 'Only Compliance can remove a security phrase.' };
+      log('Removed customer security phrase · sessions signed out', id);
+      return { ok: true, message: 'Security phrase removed. The customer has been signed out and told.' };
     },
     decidePolicy: async (_id, decision) => {
       if (role !== 'compliance') return { ok: false, error: 'Separation of duties: requested by Operations, so it needs Compliance approval.' };

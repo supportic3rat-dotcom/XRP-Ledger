@@ -3,7 +3,7 @@ import type { ThemePreference } from '@xrp/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import { Pill } from '@/components/Badge';
 import { Banner } from '@/components/Banner';
 import { Button } from '@/components/Button';
@@ -20,8 +20,9 @@ import { T } from '@/components/T';
 import { Toggle } from '@/components/Toggle';
 import { useToast } from '@/components/Toast';
 import { api } from '@/data';
-import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile, useSignOut, useTrust } from '@/data/hooks';
+import { useAllowlist, useApiMutation, useConsents, useExternalWallets, useLegalDocuments, useNotificationPrefs, useProfile, useProfilePhoto, useSignOut, useTrust } from '@/data/hooks';
 import { hasKey, removeSelfCustody } from '@/lib/selfCustody';
+import { TrustLockSheet, TRUST_LOCK_MONTHS } from './TrustLock';
 import { usePreferences } from '@/state/preferences';
 import { useSession } from '@/state/session';
 import { useTheme } from '@/theme';
@@ -54,6 +55,7 @@ export const ProfileScreen = () => {
   const { c } = useTheme();
   const showToast = useToast((s) => s.show);
   const profile = useProfile();
+  const photo = useProfilePhoto(profile.data?.kycStatus === 'verified');
   const allowlist = useAllowlist();
   const wallets = useExternalWallets();
   const trust = useTrust();
@@ -67,6 +69,7 @@ export const ProfileScreen = () => {
   const prefs = useNotificationPrefs();
   const setPrefs = useApiMutation(api.setNotificationPrefs);
   const [connectSheet, setConnectSheet] = useState(false);
+  const [lockSheet, setLockSheet] = useState(false);
   const [signOutSheet, setSignOutSheet] = useState(false);
 
   const p = profile.data;
@@ -98,10 +101,14 @@ export const ProfileScreen = () => {
           Profile
         </T>
         <Card clip={false} style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <T size={17} weight={600} color="accentText">
-              {p?.initials ?? ''}
-            </T>
+          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {p?.kycStatus === 'verified' && photo.data ? (
+              <Image source={{ uri: photo.data }} style={{ width: 52, height: 52 }} accessibilityLabel={`Photo of ${p.displayName}`} />
+            ) : (
+              <T size={17} weight={600} color="accentText">
+                {p?.initials ?? ''}
+              </T>
+            )}
           </View>
           <View style={{ flex: 1, gap: 4, minWidth: 0 }}>
             <T size={16} weight={600}>
@@ -147,9 +154,16 @@ export const ProfileScreen = () => {
           <>
             <Sec>Your crypto trust</Sec>
             <Card>
+              <Row first minHeight={52} accessibilityRole="button" accessibilityLabel={`Changes can’t be made until ${TRUST_LOCK_MONTHS} months after creating. Show the countdown`} onPress={() => setLockSheet(true)} chevron>
+                <Icon name="clock" size="sm" color="text3" />
+                <View style={{ flex: 1, gap: 1 }}>
+                  <T weight={500}>{`Changes can’t be made until ${TRUST_LOCK_MONTHS} months after creating`}</T>
+                  <Val>{trust.data.ref}</Val>
+                </View>
+              </Row>
               <KV
+                style={{ borderTopWidth: 1, borderTopColor: c.border }}
                 items={[
-                  { k: 'Trust', v: `${trust.data.type.charAt(0).toUpperCase()}${trust.data.type.slice(1)} trust`, sub: trust.data.ref },
                   ...trust.data.beneficiaries.map((b) => ({
                     k: b.isSelf ? 'You' : b.name,
                     sub: b.isSelf ? undefined : b.relationship.charAt(0).toUpperCase() + b.relationship.slice(1),
@@ -311,6 +325,7 @@ export const ProfileScreen = () => {
         <Button label="Cancel" variant="secondary" onPress={() => setConnectSheet(false)} style={{ marginTop: 10 }} />
       </Sheet>
 
+      {trust.data ? <TrustLockSheet open={lockSheet} onClose={() => setLockSheet(false)} createdAt={trust.data.createdAt} /> : null}
       <Sheet open={signOutSheet} onClose={() => setSignOutSheet(false)} scrim="green" maxHeight={null} paddingX={20} accessibilityLabel="Sign out">
         <Grab bottom={16} />
         <T size={18} weight={600} style={{ marginBottom: 10 }} accessibilityRole="header">

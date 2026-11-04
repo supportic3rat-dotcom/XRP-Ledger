@@ -175,7 +175,7 @@ export const ConnectWalletScreen = () => {
   const router = useRouter();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const signedIn = useSession((x) => x.signedIn);
-  const [method, setMethod] = useState<Method>('scan');
+  const [method, setMethod] = useState<Method>('phrase');
   const [step, setStep] = useState<Step>('choose');
   const [addr, setAddr] = useState('');
   const [tried, setTried] = useState(false);
@@ -350,15 +350,28 @@ export const ConnectWalletScreen = () => {
               value={method}
               onChange={setMethod}
               options={[
+                { value: 'phrase', label: 'Recovery phrase' },
                 { value: 'scan', label: 'Scan QR' },
                 { value: 'addr', label: 'Address' },
-                { value: 'phrase', label: 'Recovery phrase' },
               ]}
               style={{ marginBottom: 16 }}
             />
             {error ? (
               <Banner tone="error" icon="alert" alert style={{ marginBottom: 14 }}>
                 {error}
+              </Banner>
+            ) : null}
+
+            {method !== 'phrase' ? (
+              <Banner tone="info" icon="info" size={12.5} style={{ marginBottom: 14 }}>
+                <T size={12.5} lh={1.45} color="text2">
+                  Watch-only shows this wallet’s balance, but you can’t send from it here, and its coins can’t earn yield or back a loan. For the full
+                  experience, connect your XRP wallet with its recovery phrase: send to your account in a tap, where your coins can earn and be borrowed
+                  against.{' '}
+                  <T size={12.5} lh={1.45} weight={600} color="accentText" underline accessibilityRole="link" onPress={() => setMethod('phrase')}>
+                    Use recovery phrase
+                  </T>
+                </T>
               </Banner>
             ) : null}
 

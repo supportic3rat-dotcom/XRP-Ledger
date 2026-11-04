@@ -2,6 +2,7 @@ import type { IconName } from '@xrp/tokens';
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
+import { AppLockToggle } from '@/components/AppLockToggle';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
@@ -63,6 +64,7 @@ export const MoreScreen = () => {
             </View>
           </Row>
           <MenuRow icon="lock" label="Change password" href="/ops/password" />
+          <AppLockToggle />
         </Card>
       </View>
 
